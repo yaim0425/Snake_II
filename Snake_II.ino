@@ -20,12 +20,6 @@ const char* const MENU_OPTIONS[] = {
 
 const uint8_t MENU_COUNT = 5;
 
-// Espaciado y regiones
-const int8_t MENU_TITLE_TOP = 0;
-const int8_t MENU_TITLE_BOTTOM = 15;
-const int8_t MENU_OPTIONS_TOP = 16;
-const int8_t MENU_OPTIONS_BOTTOM = 63;
-
 // Seleccion actual y direccion de movimiento
 int8_t menuIndex = 0;
 int8_t menuDir = 1;
@@ -34,38 +28,28 @@ int8_t menuDir = 1;
 uint32_t menuLast = 0;
 const uint32_t MENU_DELAY = 2000;
 
-// Dibuja una opcion centrada horizontalmente en la fila y
+// Dibuja una opcion centrada horizontalmente en la fila y del cuerpo
 void menuOption(const char* text, int8_t y, bool selected) {
 
   int8_t x = (display.getWidth() - display.getTextWidth(text, TEXT_6x8)) / 2;
-  int8_t th = display.getTextHeight(TEXT_6x8);
 
-  Adafruit_SSD1306& screen = display.screen();
-
-  screen.setTextSize(TEXT_6x8);
-
-  if (selected) {
-    screen.fillRoundRect(x - 4, y - 4, display.getTextWidth(text, TEXT_6x8) + 6, th + 4, 0, SSD1306_WHITE);
-    screen.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
-  } else {
-    screen.setTextColor(SSD1306_WHITE, SSD1306_BLACK);
-  }
-
-  screen.setCursor(x, y);
-  screen.print(text);
+  if (selected)
+    display.drawHighlight(text, x, y, TEXT_6x8);
+  else
+    display.drawText(text, x, y, TEXT_6x8);
 }
 
-// Dibuja el titulo y las opciones
+// Dibuja el titulo en el Header y las opciones centradas en el Body
 void menuPrint() {
 
-  // Titulo centrado entre (0,0) y (128,15)
-  display.drawTextAligned("PRUEBA", CENTER_UP, TEXT_6x8);
+  // Titulo centrado en la region Header (0,0)-(128,15)
+  display.drawTextAligned("PRUEBA", CENTER, TEXT_6x8, REGION_HEADER);
 
-  // Opciones centradas entre (0,16) y (128,64)
-  int8_t startY = MENU_OPTIONS_TOP + (MENU_OPTIONS_BOTTOM - MENU_OPTIONS_TOP + 1 - MENU_COUNT * 8) / 2;
+  // Opciones centradas en la region Body (0,16)-(128,64)
+  const int8_t OPTIONS_START = 20;  // 16 + (48 - 5*8) / 2
 
   for (int8_t i = 0; i < MENU_COUNT; i++)
-    menuOption(MENU_OPTIONS[i], startY + i * 8, i == menuIndex);
+    menuOption(MENU_OPTIONS[i], OPTIONS_START + i * 8, i == menuIndex);
 }
 
 // Avanza la seleccion cada 2 segundos (rebote: primera y ultima no conectadas)

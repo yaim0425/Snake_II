@@ -3,6 +3,20 @@
 
 #include <Adafruit_SSD1306.h>
 
+// ========================================================
+// Regiones de la pantalla
+// ========================================================
+//
+// Header  : (0,0)   - (128,15)
+// Body    : (0,16)  - (128,64)
+// Full    : (0,0)   - (128,64)
+
+enum Region {
+  REGION_FULL = 0,
+  REGION_HEADER,
+  REGION_BODY
+};
+
 enum TextSize {
   TEXT_6x8 = 1,
   TEXT_12x16 = 2,
@@ -56,10 +70,24 @@ public:
   // Texto
   // ========================================================
 
-  TextPos getTextPos(const char* text, TextAlign align, uint8_t size = 1) const;
-  void drawTextAligned(const char* text, TextAlign align, uint8_t size = 1);
+  // Posición de la esquina sup-izquierda del texto según alineación y región
+  TextPos getTextPos(const char* text, TextAlign align, uint8_t size = 1,
+                     Region region = REGION_FULL) const;
 
-  void drawButton(const char* text, TextAlign align, uint8_t size = 1, bool selected = false);
+  // Imprimir texto en una posición píxel exacta
+  void drawText(const char* text, int16_t x, int16_t y, uint8_t size = 1);
+
+  // Imprimir texto según alineación dentro de la región indicada
+  void drawTextAligned(const char* text, TextAlign align, uint8_t size = 1,
+                       Region region = REGION_FULL);
+
+  // Texto resaltado (cuadro blanco + texto invertido) en posición exacta
+  // El cuadro rebasa al texto: +2*size px en X, +1 px en Y
+  void drawHighlight(const char* text, int16_t x, int16_t y, uint8_t size = 1);
+
+  // Texto resaltado según alineación dentro de la región indicada
+  void drawHighlightAligned(const char* text, TextAlign align, uint8_t size = 1,
+                            Region region = REGION_FULL);
 
   uint8_t getTextWidth(const char* text, uint8_t size = 1) const;
   uint8_t getTextHeight(uint8_t size = 1) const;

@@ -62,14 +62,37 @@ void Display::drawPixel(uint8_t x, uint8_t y, bool black) {
 
 
 // ========================================================
+// Regiones
+// ========================================================
+
+// Devuelve la posición vertical inicial y la altura de la región
+static void regionBounds(Region region, uint8_t height, uint8_t* top, uint8_t* regionHeight) {
+  *top = 0;
+  *regionHeight = height;
+
+  if (region == REGION_HEADER) {
+    *regionHeight = 16;
+  } else if (region == REGION_BODY) {
+    *top = 16;
+    *regionHeight = height - 16;
+  }
+}
+
+
+// ========================================================
 // Texto
 // ========================================================
 
-TextPos Display::getTextPos(const char* text, TextAlign align, uint8_t size) const {
+TextPos Display::getTextPos(const char* text, TextAlign align, uint8_t size,
+                            Region region) const {
+  uint8_t top = 0;
+  uint8_t regionHeight = 0;
+  regionBounds(region, _height, &top, &regionHeight);
+
   int16_t w = getTextWidth(text, size);
   int16_t h = getTextHeight(size);
 
-  TextPos p = { 0, 0 };
+  TextPos p = { 0, top };
 
   switch (align) {
     case LEFT_UP:
@@ -81,26 +104,26 @@ TextPos Display::getTextPos(const char* text, TextAlign align, uint8_t size) con
       p.x = getWidth() - w;
       break;
     case CENTER_LEFT:
-      p.y = (getHeight() - h) / 2;
+      p.y = top + (regionHeight - h) / 2;
       break;
     case CENTER:
       p.x = (getWidth() - w) / 2;
-      p.y = (getHeight() - h) / 2;
+      p.y = top + (regionHeight - h) / 2;
       break;
     case CENTER_RIGHT:
       p.x = getWidth() - w;
-      p.y = (getHeight() - h) / 2;
+      p.y = top + (regionHeight - h) / 2;
       break;
     case LEFT_DOWN:
-      p.y = getHeight() - h;
+      p.y = top + regionHeight - h;
       break;
     case CENTER_DOWN:
       p.x = (getWidth() - w) / 2;
-      p.y = getHeight() - h;
+      p.y = top + regionHeight - h;
       break;
     case RIGHT_DOWN:
       p.x = getWidth() - w;
-      p.y = getHeight() - h;
+      p.y = top + regionHeight - h;
       break;
   }
 
@@ -109,40 +132,42 @@ TextPos Display::getTextPos(const char* text, TextAlign align, uint8_t size) con
   return p;
 }
 
-void Display::drawTextAligned(const char* text, TextAlign align, uint8_t size) {
+void Display::drawText(const char* text, int16_t x, int16_t y, uint8_t size) {
   if (_screen == nullptr) return;
-  TextPos p = getTextPos(text, align, size);
   _screen->setTextSize(size);
-  _screen->setTextColor(SSD1306_WHITE);
-  _screen->setCursor(p.x, p.y);
+  _screen->setTextColor(SSD1306_WHITE, SSD1306_BLACK);
+  _screen->setCursor(x, y);
   _screen->print(text);
 }
 
-void Display::drawButton(const char* text, TextAlign align, uint8_t size, bool selected) {
+void Display::drawTextAligned(const char* text, TextAlign align, uint8_t size,
+                              Region region) {
+  if (_screen == nullptr) return;
+  TextPos p = getTextPos(text, align, size, region);
+  drawText(text, p.x, p.y, size);
+}
+
+void Display::drawHighlight(const char* text, int16_t x, int16_t y, uint8_t size) {
   if (_screen == nullptr) return;
 
-  TextPos p = getTextPos(text, align, size);
-  uint16_t tw = getTextWidth(text, size);
-  uint16_t th = getTextHeight(size);
+  int16_t bx = x - size;
+  int16_t by = y;
+  uint16_t bw = getTextWidth(text, size) + 2 * size;
+  uint16_t bh = getTextHeight(size) + 1;
 
-  int16_t bx = p.x - 4;
-  int16_t by = p.y - 4;
-  uint16_t bw = tw + 6;
-  uint16_t bh = th + 4;
+  _screen->fillRoundRect(bx, by, bw, bh, 0, SSD1306_WHITE);
 
   _screen->setTextSize(size);
-
-  if (selected) {
-    _screen->fillRoundRect(bx, by, bw, bh, 0, SSD1306_WHITE);
-    _screen->setTextColor(SSD1306_BLACK, SSD1306_WHITE);
-  } else {
-    _screen->drawRoundRect(bx, by, bw, bh, 0, SSD1306_WHITE);
-    _screen->setTextColor(SSD1306_WHITE, SSD1306_BLACK);
-  }
-
-  _screen->setCursor(p.x, p.y);
+  _screen->setTextColor(SSD1306_BLACK, SSD1306_WHITE);
+  _screen->setCursor(x, y);
   _screen->print(text);
-  _screen->setTextColor(SSD1306_WHITE, SSD1306_BLACK);
+}
+
+void Display::drawHighlightAligned(const char* text, TextAlign align, uint8_t size,
+                                   Region region) {
+  if (_screen == nullptr) return;
+  TextPos p = getTextPos(text, align, size, region);
+  drawHighlight(text, p.x, p.y, size);
 }
 
 uint8_t Display::getTextWidth(const char* text, uint8_t size) const {
