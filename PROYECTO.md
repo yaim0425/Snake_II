@@ -198,6 +198,10 @@ Formato: `[fecha] descripción`. Se agrega una entrada por cada cambio al códig
   normal o resaltado. El resaltado rellena un cuadro `fillRoundRect` con texto
   invertido centrado; el cuadro rebasa al texto `+2*size` px en X y `+1` px en Y
   (size1->+2x1, size2->+4x1, size3->+6x1). Menú actualizado al nuevo API.
+- **[2026-09-17] `Snake_II.ino` actualizada a demo de regiones**: recorre en bucle las
+  9 alineaciones en `REGION_HEADER` (H1-H9) y `REGION_BODY` (B1-B9), el resaltado en
+  los 3 tamaños (6x8/12x16/18x24), texto normal vs resaltado, y termina cada ciclo
+  en el menú PRUEBA (selección automática por rebote).
 
 ---
 
