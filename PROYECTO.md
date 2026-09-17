@@ -7,9 +7,9 @@ Programación orientada a objetos: cada clase en su archivo `.h` y `.cpp`.
 
 ## 1. Estado actual del proyecto
 
-En desarrollo por partes. La clase `Display` está completa y probada mediante una
-demo (`Snake_II.ino`). El código del juego original está respaldado (no restaurado)
-en `Snake_II_juego_backup.txt`.
+En desarrollo por partes. La clase `Display` está completa. `Snake_II.ino` contiene
+actualmente un menú de prueba. El código del juego original está respaldado (no
+restaurado) en `Snake_II_juego_backup.txt`.
 
 Fases pendientes: integración de la clase `Display` en el juego, botones/pulsadores,
 buzzer, menú, lógica de la serpiente.
@@ -45,7 +45,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | Archivo | Contenido |
 |---------|-----------|
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
-| `Snake_II.ino` | Actualmente: demo de la clase `Display` en bucle. |
+| `Snake_II.ino` | Actualmente: menú de prueba (PRUEBA) con selección automática por rebote. |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
 | `GameBuzzer.h` | Clase del buzzer del juego original (sin cambios). |
 | `PROYECTO.md` | Este documento. |
@@ -162,6 +162,11 @@ Formato: `[fecha] descripción`. Se agrega una entrada por cada cambio al códig
   `Snake_II_juego_backup.txt`. Demo en bucle de una propiedad por pantalla.
 - **[2026-09-16] Demo reorganizada**: pantalla "INFO" dividida en pasos individuales
   (ancho, alto, celda, celdas, texto) para que no se sobrecargue la información.
+- **[2026-09-17] Menú de prueba en `Snake_II.ino`**: reemplaza a la demo. Título
+  "PRUEBA" centrado en (0,0)-(128,15); 5 opciones (Nueva, Continuar, Dificultad,
+  Sonido, Creditos) centradas en la banda (0,16)-(128,64), texto 6x8, una selección
+  a la vez, cambio automático cada 2000 ms, la primera y la última no conectadas
+  (rebote). Opción seleccionada: caja blanca con texto invertido (`fillRoundRect`).
 
 ---
 

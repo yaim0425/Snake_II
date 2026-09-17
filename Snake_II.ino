@@ -1,93 +1,82 @@
 // ====================================================================================
-// DEMO DE LA CLASE Display
+// MENU PRUEBA
 //
-// Muestra en bucle las principales funciones de Display.h / Display.cpp
+// Demo de menu con seleccion automatica (rebote) usando la clase Display
 // ====================================================================================
 
 #include "Display.h"
 
-#include <stdio.h>
-#include <string.h>
-
 // Controlador del OLED
 Display display;
 
-// Tiempo que se muestra cada demo
-const uint32_t STEP_DELAY = 1500;
-
-// Nombres de las alineaciones
-const char* const ALIGN_NAME[] = {
-  "LEFT_UP", "CENTER_UP", "RIGHT_UP",
-  "CENTER_LEFT", "CENTER", "CENTER_RIGHT",
-  "LEFT_DOWN", "CENTER_DOWN", "RIGHT_DOWN"
+// Opciones del menu
+const char* const MENU_OPTIONS[] = {
+  "Nueva",
+  "Continuar",
+  "Dificultad",
+  "Sonido",
+  "Creditos"
 };
 
-// Contador de pasos de la demo
-uint8_t step = 0;
+const uint8_t MENU_COUNT = 5;
 
-// Titulo superior de cada paso
-void demoTitle(const char* title) {
-  display.drawTextAligned(title, CENTER_UP, TEXT_6x8);
-}
+// Espaciado y regiones
+const int8_t MENU_TITLE_TOP = 0;
+const int8_t MENU_TITLE_BOTTOM = 15;
+const int8_t MENU_OPTIONS_TOP = 16;
+const int8_t MENU_OPTIONS_BOTTOM = 63;
 
-// Valor en el centro de la pantalla
-void demoValue(const char* title, const char* value) {
-  demoTitle(title);
-  display.drawTextAligned(value, CENTER, TEXT_12x16);
-}
+// Seleccion actual y direccion de movimiento
+int8_t menuIndex = 0;
+int8_t menuDir = 1;
 
-// Muestra una propiedad de la pantalla por pantalla
-void demoInfo(uint8_t info) {
-  char buf[24];
+// Tiempo de cambio de seleccion
+uint32_t menuLast = 0;
+const uint32_t MENU_DELAY = 2000;
 
-  if (info == 0) {
-    sprintf(buf, "%u px", display.getWidth());
-    demoValue("ANCHO", buf);
-  } else if (info == 1) {
-    sprintf(buf, "%u px", display.getHeight());
-    demoValue("ALTO", buf);
-  } else if (info == 2) {
-    sprintf(buf, "%u px", display.getCellSize());
-    demoValue("CELDA", buf);
-  } else if (info == 3) {
-    sprintf(buf, "%u x %u", display.getColumns(), display.getRows());
-    demoValue("CELDAS COL x FIL", buf);
-  } else if (info == 4) {
-    sprintf(buf, "%u x %u", display.getTextWidth("X", 1), display.getTextHeight(1));
-    demoValue("TEXTO 6x8", buf);
+// Dibuja una opcion centrada horizontalmente en la fila y
+void menuOption(const char* text, int8_t y, bool selected) {
+
+  int8_t x = (display.getWidth() - display.getTextWidth(text, TEXT_6x8)) / 2;
+  int8_t th = display.getTextHeight(TEXT_6x8);
+
+  Adafruit_SSD1306& screen = display.screen();
+
+  screen.setTextSize(TEXT_6x8);
+
+  if (selected) {
+    screen.fillRoundRect(x - 4, y - 4, display.getTextWidth(text, TEXT_6x8) + 6, th + 4, 0, SSD1306_WHITE);
+    screen.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
   } else {
-    sprintf(buf, "%u x %u", display.getTextWidth("X", 2), display.getTextHeight(2));
-    demoValue("TEXTO 12x16", buf);
+    screen.setTextColor(SSD1306_WHITE, SSD1306_BLACK);
   }
+
+  screen.setCursor(x, y);
+  screen.print(text);
 }
 
-// Muestra las 9 alineaciones de drawTextAligned
-void demoAlign(TextAlign align) {
-  demoTitle("ALINEACION");
-  display.drawTextAligned("*", align, TEXT_6x8);
+// Dibuja el titulo y las opciones
+void menuPrint() {
+
+  // Titulo centrado entre (0,0) y (128,15)
+  display.drawTextAligned("PRUEBA", CENTER_UP, TEXT_6x8);
+
+  // Opciones centradas entre (0,16) y (128,64)
+  int8_t startY = MENU_OPTIONS_TOP + (MENU_OPTIONS_BOTTOM - MENU_OPTIONS_TOP + 1 - MENU_COUNT * 8) / 2;
+
+  for (int8_t i = 0; i < MENU_COUNT; i++)
+    menuOption(MENU_OPTIONS[i], startY + i * 8, i == menuIndex);
 }
 
-// Muestra botones con y sin seleccion
-void demoButtons() {
-  demoTitle("BOTONES");
+// Avanza la seleccion cada 2 segundos (rebote: primera y ultima no conectadas)
+void menuUpdate() {
+  if (millis() - menuLast < MENU_DELAY) return;
+  menuLast = millis();
 
-  display.drawButton("JUGAR", CENTER_UP, TEXT_6x8, false);
-  display.drawButton("OPCION", CENTER, TEXT_12x16, true);
-  display.drawButton("SALIR", CENTER_DOWN, TEXT_18x24, false);
-}
+  menuIndex += menuDir;
 
-// Muestra pixeles punto a punto y getTextPos
-void demoPixel() {
-  char buf[24];
-
-  demoTitle("PIXELES");
-
-  for (uint8_t x = 0; x < display.getWidth(); x += 4)
-    display.drawPixel(x, 28);
-
-  TextPos p = display.getTextPos("X", CENTER_RIGHT, TEXT_12x16);
-  sprintf(buf, "POS %u,%u", p.x, p.y);
-  display.drawTextAligned(buf, CENTER_DOWN, TEXT_6x8);
+  if (menuIndex >= MENU_COUNT - 1) menuDir = -1;
+  if (menuIndex <= 0) menuDir = 1;
 }
 
 // ====================================================================================
@@ -95,35 +84,19 @@ void demoPixel() {
 void setup() {
   Serial.begin(115200);
   display.begin();
-  Serial.println("Demo Display lista");
+  Serial.println("Menu PRUEBA");
 }
 
 // ====================================================================================
 
 void loop() {
+  menuUpdate();
+
   display.clear();
-
-  if (step < 9) {
-    demoAlign((TextAlign)step);
-  } else if (step < 15) {
-    demoInfo(step - 9);
-  } else if (step == 15) {
-    demoButtons();
-  } else if (step == 16) {
-    demoTitle("BOTON SELECCIONADO");
-    display.drawButton("SELEC", CENTER, TEXT_18x24, true);
-  } else {
-    demoPixel();
-  }
-
+  menuPrint();
   display.show();
-
-  delay(STEP_DELAY);
-
-  step++;
-  if (step > 17) step = 0;
 }
 
 // ====================================================================================
-// Fin de la demo
+// Fin del menu
 // ====================================================================================
