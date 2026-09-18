@@ -79,6 +79,10 @@ private:
   // Separación vertical entre opciones apiladas
   static constexpr int16_t OPTION_STEP = 20;
 
+  // Dos filas libres sobre el pie: no se dibuja nada entre 40..55
+  static constexpr int16_t FREE_TOP = 40;
+  static constexpr int16_t PIE_TOP  = 56;
+
   // Velocidad de la animación (px por tick)
   static constexpr uint32_t ANIM_TICK = 15;
 
