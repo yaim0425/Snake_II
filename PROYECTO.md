@@ -348,6 +348,9 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   **ancho completo** (128 px); (3) solo el texto se desliza; la opción seleccionada se
   repinta en negro (`drawTextInverted`, nuevo método en `Display`) mientras cruza el
   cuadro.
+- **[2026-09-17] `Menu`: navegación en subrutina y solo `MOVE_UP`/`MOVE_DOWN`**: se
+  separa la navegación en `Menu::navigate()` (como `animate()`); solo `MOVE_UP`/
+  `MOVE_DOWN` navegan (los 4 botones de Acción ya no mueven el cursor).
 - **[2026-09-17] Compromiso de la IA con commits**: se agrega a las reglas (sección 0)
   que la IA debe hacer un commit al modificar archivos.
 - **[2026-09-17] Reglas de trabajo con la IA**: se agrega la sección "0. Reglas de
