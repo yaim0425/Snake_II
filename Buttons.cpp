@@ -6,10 +6,8 @@
 
 Buttons::Buttons(
   const int8_t* pins,
-  uint32_t buttonDelay
-)
-  : _buttonDelay(buttonDelay)
-{
+  uint32_t buttonDelay)
+  : _buttonDelay(buttonDelay) {
   for (uint8_t i = 0; i < MAX_BUTTONS; i++) {
 
     _pins[i] = pins[i];
@@ -35,8 +33,7 @@ void Buttons::begin() {
 
     pinMode(
       _pins[i],
-      INPUT_PULLDOWN
-    );
+      INPUT_PULLDOWN);
 
     _buttonLast[i] = millis();
   }
@@ -104,9 +101,7 @@ void Buttons::read() {
         // ----------------------------------------
 
         if (
-          _buttons[i] &&
-          !_lastButtons[i]
-        ) {
+          _buttons[i] && !_lastButtons[i]) {
           _pressed[i] = true;
         }
 
@@ -115,9 +110,7 @@ void Buttons::read() {
         // ----------------------------------------
 
         if (
-          !_buttons[i] &&
-          _lastButtons[i]
-        ) {
+          !_buttons[i] && _lastButtons[i]) {
           _released[i] = true;
         }
       }

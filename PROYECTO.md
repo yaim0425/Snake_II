@@ -266,6 +266,9 @@ Formato: `[fecha] descripción`. Se agrega una entrada por cada cambio al códig
   Body, una tabla de 2 columnas con cada botón: pin, nombre corto y estado
   (H=mantiene, P=recién presionado, R=liberado). Los eventos también se imprimen
   por Serial.
+- **[2026-09-17] `Snake_II.ino`: menú inicial**: título "Snake II" (`TEXT_12x16`)
+  centrado en Header; en el Body, "Top: 0 pts" en `LEFT_DOWN` y "v0.1" en
+  `RIGHT_DOWN` (tamano 1). El Top cambiará después (puntaje máximo guardado).
 
 ---
 
