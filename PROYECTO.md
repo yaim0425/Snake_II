@@ -361,6 +361,10 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
 - **[2026-09-17] `Menu`: navegación en subrutina y solo `MOVE_UP`/`MOVE_DOWN`**: se
   separa la navegación en `Menu::navigate()` (como `animate()`); solo `MOVE_UP`/
   `MOVE_DOWN` navegan (los 4 botones de Acción ya no mueven el cursor).
+- **[2026-09-17] Diagrama de conexiones mejorado**: en `Conexiones_Snake_II_ESP32S3.png`
+  se agrandan las etiquetas GPIO (con fondo blanco para que se lean sobre los cables)
+  y se agregan pictogramas de los elementos (pulsador, buzzer, OLED, chip ESP32-S3
+  con pads dorados y puerto USB-C).
 - **[2026-09-17] Diagrama de conexiones**: se genera `Conexiones_Snake_II_ESP32S3.png`
   (botones MOVE y ACTION a sus GPIO con pull a 3V3, OLED I2C en 8/9 dir 0x3C, buzzer
   en GPIO11) para dejar claro cómo se conecta cada elemento a la placa ESP32-S3.
