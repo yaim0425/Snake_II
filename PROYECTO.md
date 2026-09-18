@@ -225,7 +225,7 @@ Menu(Display& display, Buttons& buttons, uint8_t topScore = 0, const char* versi
 | Método | Descripción |
 |--------|-------------|
 | `void begin()` | Ubica las opciones en su posición inicial y arranca la animación. |
-| `void update()` | Lee botones (`_buttons.read()`) y navega con `MOVE_UP`/`ACTION_UP` y `MOVE_DOWN`/`ACTION_DOWN`; anima el deslizamiento. |
+| `void update()` | Lee botones (`_buttons.read()`) y navega con `MOVE_UP`/`ACTION_UP`/`ACTION_LEFT` y `MOVE_DOWN`/`ACTION_DOWN`/`ACTION_RIGHT` (los 4 botones de Acción mueven el cursor); anima el deslizamiento; log en Serial al cambiar de opción. |
 | `void print()` | Dibuja título, opciones (la seleccionada resaltada) y pie (Top + versión). |
 | `int8_t selected()` | Índice de la opción seleccionada. |
 | `void setTopScore(uint8_t)` | Actualiza el puntaje máximo mostrado. |
@@ -322,11 +322,15 @@ Formato: `[fecha] descripción`. Se agrega una entrada por cada cambio al códig
   centrado en Header; en el Body, "Top: 0 pts" en `LEFT_DOWN` y "v0.1" en
   `RIGHT_DOWN` (tamano 1). El Top cambiará después (puntaje máximo guardado).
 - **[2026-09-17] Clase `Menu`**: se crean `Menu.h`/`Menu.cpp`. Menú inicial con 5
-  opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pila
-  deslizante hacia un cuadro de selección fijo (centrado en la banda 16..55). Animación
-  1 px/15 ms. Navegación con `MOVE_UP/DOWN` y `ACTION_UP/DOWN` (sin conexión
-  primera-última). Pie = Top + versión (la fila del pie se limpia antes de escribir).
-  `Snake_II.ino` ahora arranca el menú con `Buttons`.
+opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pila
+   deslizante hacia un cuadro de selección fijo (centrado en la banda 16..55). Animación
+   1 px/15 ms. Navegación con `MOVE_UP/DOWN` y los 4 botones de Acción (`ACTION_UP`/
+   `ACTION_LEFT` suben, `ACTION_DOWN`/`ACTION_RIGHT` bajan; sin conexión
+   primera-última). Pie = Top + versión (la fila del pie se limpia antes de escribir).
+   `Snake_II.ino` ahora arranca el menú con `Buttons`.
+- **[2026-09-17] `Menu`: los 4 botones de Acción navegan**: se agregan `ACTION_LEFT`/`ACTION_RIGHT`
+   a la navegación (left sube, right baja) y un log en Serial al cambiar de opción,
+   para verificar que los pulsos llegan.
 - **[2026-09-17] Ajustes del menú (experimental)**: (1) visibilidad simétrica de las
   opciones superior e inferior (8 px c/u) — las bandas de Header y pie se limpian y
   redibujan para el recorte; (2) el cuadro de selección ahora es **fijo** y de
