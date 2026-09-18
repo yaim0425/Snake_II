@@ -1,0 +1,234 @@
+#include "Buttons.h"
+
+// ========================================================
+// Constructor
+// ========================================================
+
+Buttons::Buttons(
+  const int8_t* pins,
+  uint32_t buttonDelay
+)
+  : _buttonDelay(buttonDelay)
+{
+  for (uint8_t i = 0; i < MAX_BUTTONS; i++) {
+
+    _pins[i] = pins[i];
+
+    _buttons[i] = false;
+    _lastButtons[i] = false;
+    _rawButtons[i] = false;
+
+    _pressed[i] = false;
+    _released[i] = false;
+
+    _buttonLast[i] = 0;
+  }
+}
+
+// ========================================================
+// Inicialización
+// ========================================================
+
+void Buttons::begin() {
+
+  for (uint8_t i = 0; i < MAX_BUTTONS; i++) {
+
+    pinMode(
+      _pins[i],
+      INPUT_PULLDOWN
+    );
+
+    _buttonLast[i] = millis();
+  }
+
+  // Leer estado inicial
+  for (uint8_t i = 0; i < MAX_BUTTONS; i++) {
+
+    bool state =
+      digitalRead(_pins[i]) == HIGH;
+
+    _buttons[i] = state;
+    _lastButtons[i] = state;
+    _rawButtons[i] = state;
+  }
+}
+
+// ========================================================
+// Leer botones
+// ========================================================
+
+void Buttons::read() {
+
+  uint32_t now = millis();
+
+  // Limpiar eventos
+  for (uint8_t i = 0; i < MAX_BUTTONS; i++) {
+
+    _pressed[i] = false;
+    _released[i] = false;
+  }
+
+  // Leer botones
+  for (uint8_t i = 0; i < MAX_BUTTONS; i++) {
+
+    bool state =
+      digitalRead(_pins[i]) == HIGH;
+
+    // --------------------------------------------
+    // Cambio físico detectado
+    // --------------------------------------------
+
+    if (state != _rawButtons[i]) {
+
+      _rawButtons[i] = state;
+
+      _buttonLast[i] = now;
+    }
+
+    // --------------------------------------------
+    // Debounce
+    // --------------------------------------------
+
+    if ((now - _buttonLast[i]) >= _buttonDelay) {
+
+      if (_buttons[i] != _rawButtons[i]) {
+
+        // Guardar estado anterior
+        _lastButtons[i] = _buttons[i];
+
+        // Aceptar nuevo estado
+        _buttons[i] = _rawButtons[i];
+
+        // ----------------------------------------
+        // Pressed
+        // ----------------------------------------
+
+        if (
+          _buttons[i] &&
+          !_lastButtons[i]
+        ) {
+          _pressed[i] = true;
+        }
+
+        // ----------------------------------------
+        // Released
+        // ----------------------------------------
+
+        if (
+          !_buttons[i] &&
+          _lastButtons[i]
+        ) {
+          _released[i] = true;
+        }
+      }
+    }
+  }
+}
+
+// ========================================================
+// Estado actual
+// ========================================================
+
+bool Buttons::moveUp() const {
+  return _buttons[MOVE_UP];
+}
+
+bool Buttons::moveRight() const {
+  return _buttons[MOVE_RIGHT];
+}
+
+bool Buttons::moveDown() const {
+  return _buttons[MOVE_DOWN];
+}
+
+bool Buttons::moveLeft() const {
+  return _buttons[MOVE_LEFT];
+}
+
+bool Buttons::actionUp() const {
+  return _buttons[ACTION_UP];
+}
+
+bool Buttons::actionRight() const {
+  return _buttons[ACTION_RIGHT];
+}
+
+bool Buttons::actionDown() const {
+  return _buttons[ACTION_DOWN];
+}
+
+bool Buttons::actionLeft() const {
+  return _buttons[ACTION_LEFT];
+}
+
+// ========================================================
+// Pressed
+// ========================================================
+
+bool Buttons::moveUpPressed() const {
+  return _pressed[MOVE_UP];
+}
+
+bool Buttons::moveRightPressed() const {
+  return _pressed[MOVE_RIGHT];
+}
+
+bool Buttons::moveDownPressed() const {
+  return _pressed[MOVE_DOWN];
+}
+
+bool Buttons::moveLeftPressed() const {
+  return _pressed[MOVE_LEFT];
+}
+
+bool Buttons::actionUpPressed() const {
+  return _pressed[ACTION_UP];
+}
+
+bool Buttons::actionRightPressed() const {
+  return _pressed[ACTION_RIGHT];
+}
+
+bool Buttons::actionDownPressed() const {
+  return _pressed[ACTION_DOWN];
+}
+
+bool Buttons::actionLeftPressed() const {
+  return _pressed[ACTION_LEFT];
+}
+
+// ========================================================
+// Released
+// ========================================================
+
+bool Buttons::moveUpReleased() const {
+  return _released[MOVE_UP];
+}
+
+bool Buttons::moveRightReleased() const {
+  return _released[MOVE_RIGHT];
+}
+
+bool Buttons::moveDownReleased() const {
+  return _released[MOVE_DOWN];
+}
+
+bool Buttons::moveLeftReleased() const {
+  return _released[MOVE_LEFT];
+}
+
+bool Buttons::actionUpReleased() const {
+  return _released[ACTION_UP];
+}
+
+bool Buttons::actionRightReleased() const {
+  return _released[ACTION_RIGHT];
+}
+
+bool Buttons::actionDownReleased() const {
+  return _released[ACTION_DOWN];
+}
+
+bool Buttons::actionLeftReleased() const {
+  return _released[ACTION_LEFT];
+}

@@ -45,6 +45,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | Archivo | Contenido |
 |---------|-----------|
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
+| `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Snake_II.ino` | Actualmente: menú de prueba (PRUEBA) con selección automática por rebote. |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
 | `GameBuzzer.h` | Clase del buzzer del juego original (sin cambios). |
@@ -163,6 +164,49 @@ size=3 -> texto 18x24    -> cuadro  (18+6) x (24+2) = 24x26
 
 ---
 
+## 7. Clase `Buttons` — API
+
+Ubicación: `Buttons.h` / `Buttons.cpp`. Basada en el diseño de `GameInput` (referencia
+`D:\Documents\ESP32S3\Snake_2\GameInput.{h,cpp}`).
+
+### Pines (orden del enum)
+
+```cpp
+const int8_t BUTTON_PINS[Buttons::MAX_BUTTONS] = {
+  37, 39, 38, 36,   // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
+  41, 01, 02, 40    // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
+};
+```
+
+### Enum
+
+```cpp
+enum Button : uint8_t {
+  MOVE_UP = 0, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT,
+  ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
+};
+```
+
+### Métodos
+
+| Método | Descripción |
+|--------|-------------|
+| `Buttons(const int8_t* pins, uint32_t buttonDelay = 30)` | Constructor, recibe los pines y el tiempo de debounce en ms. |
+| `void begin()` | Configura `INPUT_PULLDOWN` y lee el estado inicial. |
+| `void read()` | Leer físicamente, aplicar debounce y generar eventos. Llamar una vez por `loop()`. |
+| `moveUp() / moveRight() / moveDown() / moveLeft()` | Estado actual (mantenido). |
+| `actionUp() / actionRight() / actionDown() / actionLeft()` | Estado actual (mantenido). |
+| `...,Pressed()` | Evento de pulso (true solo en el ciclo en que se presiona). |
+| `...,Released()` | Evento de liberación (true solo en el ciclo en que se suelta). |
+
+### Diseño del debounce
+
+- Lee en bruto (`_rawButtons`), detecta el cambio físico y toma nota del instante.
+- Solo acepta el nuevo estado tras `_buttonDelay` ms de estabilidad.
+- Genera `_pressed`/`_released` de un solo ciclo.
+
+---
+
 ## 7. CHANGELOG
 
 Formato: `[fecha] descripción`. Se agrega una entrada por cada cambio al código.
@@ -210,6 +254,10 @@ Formato: `[fecha] descripción`. Se agrega una entrada por cada cambio al códig
   5 opciones (selección automática por rebote cada 2000 ms). El título "PRUEBA" ahora
   se imprime con `TEXT_12x16` (tamaño 2) centrado en `REGION_HEADER`. Las opciones
   siguen en `REGION_BODY` con `TEXT_6x8`, la seleccionada con `drawHighlight`.
+- **[2026-09-17] Clase `Buttons`**: se crean `Buttons.h`/`Buttons.cpp` (basadas en el
+  ejemplo `GameInput`). 8 botones con enum (`MOVE_*`=0-3, `ACTION_*`=4-7), debounce de
+  30 ms por defecto, eventos `pressed`/`released` de un ciclo, y getters de estado.
+  Pines: MOVE 37/39/38/36, ACTION 41/1/2/40.
 
 ---
 
