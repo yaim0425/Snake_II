@@ -1,14 +1,29 @@
 // ====================================================================================
-// MENU INICIAL
+// MENU INICIAL (clase Menu)
 //
 // Titulo  : Snake II (tamano 2, centrado en Header)
-// Body    : Down-Left "Top: 0 pts" | Down-Right "v0.1" (tamano 1)
+// Opciones: Nuevo, Continuar, Dificultad, Sonido, Creditos (tamano 2, deslizantes)
+// Pie     : Top: X pts (izquierda) | version (derecha)
+// Navegacion: MOVE_UP/MOVE_DOWN (y ACTION_UP/ACTION_DOWN)
 // ====================================================================================
 
 #include "Display.h"
+#include "Buttons.h"
+#include "Menu.h"
 
 // Controlador del OLED
 Display display;
+
+// Pines de los botones (orden del enum Button)
+const int8_t BUTTON_PINS[Buttons::MAX_BUTTONS] = {
+  37, 39, 38, 36,   // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
+  41, 01, 02, 40    // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
+};
+
+Buttons buttons(BUTTON_PINS);
+
+// Menu inicial
+Menu menu(display, buttons, 0, "v0.1");
 
 // ====================================================================================
 
@@ -16,6 +31,8 @@ void setup() {
   Serial.begin(115200);
 
   display.begin();
+  buttons.begin();
+  menu.begin();
 
   Serial.println("Menu inicial");
 }
@@ -23,16 +40,10 @@ void setup() {
 // ====================================================================================
 
 void loop() {
+  menu.update();
 
   display.clear();
-
-  // Titulo centrado en el Header, tamano 2
-  display.drawTextAligned("Snake II", CENTER, TEXT_12x16, REGION_HEADER);
-
-  // Pie del Body: Top a la izquierda abajo, version a la derecha abajo
-  display.drawTextAligned("Top: 0 pts", LEFT_DOWN, TEXT_6x8, REGION_BODY);
-  display.drawTextAligned("v0.1", RIGHT_DOWN, TEXT_6x8, REGION_BODY);
-
+  menu.print();
   display.show();
 }
 

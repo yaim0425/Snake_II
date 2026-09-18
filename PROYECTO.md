@@ -46,7 +46,8 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 |---------|-----------|
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
-| `Snake_II.ino` | Actualmente: menú de prueba (PRUEBA) con selección automática por rebote. |
+| `Menu.h` / `Menu.cpp` | Clase `Menu` (menú inicial con opciones deslizantes). Completa. |
+| `Snake_II.ino` | Actualmente: arranca y ejecuta el menú inicial (`Menu`). |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
 | `GameBuzzer.h` | Clase del buzzer del juego original (sin cambios). |
 | `PROYECTO.md` | Este documento. |
@@ -208,6 +209,55 @@ enum Button : uint8_t {
 
 ---
 
+## 8. Clase `Menu` — API
+
+Ubicación: `Menu.h` / `Menu.cpp`.
+
+### Constructor
+
+```cpp
+Menu(Display& display, Buttons& buttons, uint8_t topScore = 0, const char* version = "v0.1");
+```
+
+### Métodos
+
+| Método | Descripción |
+|--------|-------------|
+| `void begin()` | Ubica las opciones en su posición inicial y arranca la animación. |
+| `void update()` | Lee botones (`_buttons.read()`) y navega con `MOVE_UP`/`ACTION_UP` y `MOVE_DOWN`/`ACTION_DOWN`; anima el deslizamiento. |
+| `void print()` | Dibuja título, opciones (la seleccionada resaltada) y pie (Top + versión). |
+| `int8_t selected()` | Índice de la opción seleccionada. |
+| `void setTopScore(uint8_t)` | Actualiza el puntaje máximo mostrado. |
+
+### Opciones y enum
+
+```cpp
+enum Option : uint8_t {
+  OPC_NUEVO = 0, OPC_CONTINUAR, OPC_DIFICULTAD, OPC_SONIDO, OPC_CREDITOS
+};
+```
+
+### Diseño del menú (experimental)
+
+- **Título:** "Snake II", `TEXT_12x16`, centrado en `REGION_HEADER`.
+- **Pie:** "Top: X pts" (`LEFT_DOWN`) y versión (`RIGHT_DOWN`) en `TEXT_6x8`.
+  La fila del pie (y 56..64) se limpia con negro antes de escribir para no mezclarse
+  con las opciones.
+- **Opción seleccionada:** texto `TEXT_12x16` con `drawHighlight`, centrada en el
+  cuadro fijo de selección. El cuadro de la selección queda centrado entre la fila 16
+  y una fila antes del pie (banda 16..55).
+  `TEXT_SEL_TOP = 28` (parte superior del texto), cuadro 12x18 en y 27..45.
+- **Deslizamiento:** las 5 opciones se apilan verticalmente con
+  `OPTION_STEP = 20` px y cada una se mueve (1 px / 15 ms) hacia su posición
+  objetivo `TEXT_SEL_TOP + (i - selected) * OPTION_STEP`. Al cambiar la opción, la
+  actual sube/baja hacia su nuevo objetivo y la nueva entra al cuadro de selección.
+- **Ocultamiento:** la opción que sube por arriba de `BODY_TOP` (16) no se dibuja;
+  las de abajo se dibujan parcialmente y su cola queda detrás del pie (que se limpia
+  y redibuja al final).
+- Primera y última opción no conectadas (navegación con límites).
+
+---
+
 ## 7. CHANGELOG
 
 Formato: `[fecha] descripción`. Se agrega una entrada por cada cambio al código.
@@ -269,6 +319,12 @@ Formato: `[fecha] descripción`. Se agrega una entrada por cada cambio al códig
 - **[2026-09-17] `Snake_II.ino`: menú inicial**: título "Snake II" (`TEXT_12x16`)
   centrado en Header; en el Body, "Top: 0 pts" en `LEFT_DOWN` y "v0.1" en
   `RIGHT_DOWN` (tamano 1). El Top cambiará después (puntaje máximo guardado).
+- **[2026-09-17] Clase `Menu`**: se crean `Menu.h`/`Menu.cpp`. Menú inicial con 5
+  opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pila
+  deslizante hacia un cuadro de selección fijo (centrado en la banda 16..55). Animación
+  1 px/15 ms. Navegación con `MOVE_UP/DOWN` y `ACTION_UP/DOWN` (sin conexión
+  primera-última). Pie = Top + versión (la fila del pie se limpia antes de escribir).
+  `Snake_II.ino` ahora arranca el menú con `Buttons`.
 
 ---
 
