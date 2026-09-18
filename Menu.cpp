@@ -36,7 +36,6 @@ Menu::Menu(Display& display, Buttons& buttons, uint8_t topScore,
     _optionCount(DEFAULT_OPTIONS),
     _optionTexts(DEFAULT_OPTION_TEXT),
     _selected(OPC_NUEVO),
-    _prev(-1),
     _dir(1),
     _slideX(0),
     _animLast(0),
@@ -49,7 +48,6 @@ Menu::Menu(Display& display, Buttons& buttons, uint8_t topScore,
 
 void Menu::begin() {
   _slideX = 0;
-  _prev = -1;
   _animLast = millis();
   _holdStart = millis();
 }
@@ -69,7 +67,6 @@ void Menu::setOptions(const char* const* texts, uint8_t count) {
 
   if (_selected >= (int8_t)count) _selected = count - 1;
 
-  _prev = -1;
   _slideX = 0;
   _holdStart = millis();
 }
@@ -104,7 +101,7 @@ void Menu::navigate() {
   }
 
   if (moved) {
-    startSlide(before, (_selected > before) ? 1 : -1);
+    startSlide((_selected > before) ? 1 : -1);
     _holdStart = millis();
     Serial.printf("Menu: opcion %d -> %d\n", before, _selected);
   }
@@ -114,16 +111,10 @@ void Menu::navigate() {
 // Inicio de la transición lateral
 // ========================================================
 
-void Menu::startSlide(int8_t prev, int8_t dir) {
-  // Descarta una transición en curso (salto al estado central)
-  if (_prev >= 0 || _slideX != 0) {
-    _prev = -1;
-    _slideX = 0;
-  }
-
-  _prev = prev;
+void Menu::startSlide(int8_t dir) {
+  // La anterior desaparece: la entrante arranca desde un lado
   _dir = dir;
-  _slideX = _dir * SLIDE_DIST;  // la entrante arranca desde un lado
+  _slideX = _dir * SLIDE_DIST;
   _animLast = millis();
 }
 
@@ -134,7 +125,7 @@ void Menu::startSlide(int8_t prev, int8_t dir) {
 void Menu::animate() {
   uint32_t now = millis();
 
-  if (_prev < 0) return;
+  if (_slideX == 0) return;
   if (now - _animLast < ANIM_TICK) return;
   _animLast = now;
 
@@ -142,9 +133,6 @@ void Menu::animate() {
 
   if ((_dir > 0 && _slideX < 0) || (_dir < 0 && _slideX > 0))
     _slideX = 0;
-
-  if (_slideX == 0)
-    _prev = -1;
 }
 
 // ========================================================
@@ -205,20 +193,24 @@ void Menu::drawDiamonds() {
     int16_t cx = (int16_t)((i + 1) * _display.getWidth()) / (n + 1);
     int16_t x = cx - DIA_SIZE / 2;
 
-    int16_t y = DIA_TOP;
     if (i == _selected) {
-      y = DIA_TOP - DIA_RISE;
-
       // Parpadeo al mantener seleccionado
       if (millis() - _holdStart >= BLINK_HOLD &&
           ((millis() / BLINK_TOGGLE) & 1) == 0)
         continue;  // fase apagada: no se dibuja
-    }
 
-    _display.screen().fillTriangle(x + 4, y, x + 8, y + 4,
-                                   x + 4, y + 8, SSD1306_WHITE);
-    _display.screen().fillTriangle(x + 4, y, x, y + 4,
-                                   x + 4, y + 8, SSD1306_WHITE);
+      // Rombo completo, filas 46..53 (2 filas libres por arriba)
+      Adafruit_SSD1306& s = _display.screen();
+      s.fillTriangle(x + 4, DIA_TOP, x + 8, DIA_TOP + 4,
+                     x + 4, DIA_TOP + 8, SSD1306_WHITE);
+      s.fillTriangle(x + 4, DIA_TOP, x, DIA_TOP + 4,
+                     x + 4, DIA_TOP + 8, SSD1306_WHITE);
+    } else {
+      // Solo la punta (triángulo superior), 1 px más baja que el seleccionado
+      int16_t y = DIA_TOP + DIA_RISE;
+      _display.screen().fillTriangle(x + 4, y, x, y + 4,
+                                     x + 8, y + 4, SSD1306_WHITE);
+    }
   }
 }
 
@@ -232,16 +224,14 @@ void Menu::print() {
   _display.screen().fillRect(0, BOX_TOP, _display.getWidth(), BOX_HEIGHT,
                              SSD1306_WHITE);
 
-  // Opciones deslizantes (la entrante va al centro, la saliente se va)
+  // Opciones deslizantes: solo la entrante (la anterior desaparece)
   _chipBox.fillScreen(0);
   paintOption(_selected, _slideX);
-  if (_prev >= 0)
-    paintOption(_prev, _slideX - _dir * SLIDE_DIST);
   blitChip();
 
-  // Limpiar la banda de rombos (45..53): 1 px libre + 8 px de rombo
-  _display.screen().fillRect(0, DIA_TOP - DIA_RISE, _display.getWidth(),
-                             DIA_SIZE + DIA_RISE, SSD1306_BLACK);
+  // Limpiar la banda de rombos (45..53): 1 px libre + 8 px del rombo
+  _display.screen().fillRect(0, DIA_TOP - 1, _display.getWidth(),
+                             DIA_SIZE + 1, SSD1306_BLACK);
   drawDiamonds();
 
   // Limpiar la banda del Header y redibujar el título

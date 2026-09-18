@@ -90,10 +90,11 @@ private:
   static constexpr uint32_t ANIM_TICK = 15;
   static constexpr int8_t ANIM_STEP   = 2;
 
-  // Rombos de posición (banda 46..53, encima de las 2 filas libres 54..55)
-  static constexpr int16_t DIA_TOP  = 46;
+  // Rombos de posición (encima de la fila 44 del cuadro; 2 filas libres
+  // entre el rombo completo y el cuadro; pie libre a partir de la 54)
+  static constexpr int16_t DIA_TOP  = 46;  // fila superior del rombo seleccionado
   static constexpr uint8_t DIA_SIZE = 8;
-  static constexpr int16_t DIA_RISE = 1;
+  static constexpr int16_t DIA_RISE = 1;   // el seleccionado se eleva 1 px sobre la punta
 
   // Parpadeo del rombo seleccionado tras mantenerlo
   static constexpr uint32_t BLINK_HOLD   = 500;
@@ -104,7 +105,7 @@ private:
   // ========================================================
 
   void navigate();
-  void startSlide(int8_t prev, int8_t dir);
+  void startSlide(int8_t dir);
   void animate();
   int16_t textCenterX(const char* text) const;
   void paintOption(int8_t index, int16_t offX);   // dibuja la opción en el canvas
@@ -129,7 +130,6 @@ private:
   const char* const* _optionTexts;
 
   int8_t _selected;   // opción actual (objetivo central)
-  int8_t _prev;       // opción que sale (-1 = sin transición)
   int8_t _dir;        // +1 bajar, -1 subir (sentido del deslizamiento)
   int16_t _slideX;    // desplazamiento de la opción entrante (objetivo 0)
   uint32_t _animLast;

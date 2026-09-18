@@ -273,25 +273,27 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
 - **Cuadro de selección:** **fijo** y de **ancho completo** (128 px),
   `BOX_TOP = 27`, `BOX_HEIGHT = 18` (centrado en la banda 16..55). **No se mueve**;
   el tamaño del texto (tamaño 2) tampoco cambia.
-- **Animación lateral (carousel):** al navegar, la opción **saliente** se desliza
-  hacia un lado y la **entrante** (nueva seleccionada) entra por el lado opuesto
-  y se centra en el cuadro. Sentido: bajar (`MOVE_DOWN`) → sale por la izquierda,
-  entra por la derecha; subir (`MOVE_UP`) invierte los lados. Movimiento
-  `2 px / 15 ms`, salto total `SLIDE_DIST = 48 px`. Si llega otro pulso a mitad de
-  la animación, la transición salta al estado central y arranca la nueva.
+- **Animación lateral (carousel):** al navegar, la opción **anterior desaparece**
+  (ya no se dibuja) y la **entrante** (nueva seleccionada) se desliza hasta centrarse
+  en el cuadro. Sentido: bajar (`MOVE_DOWN`) → la entrante entra por la derecha;
+  subir (`MOVE_UP`) → entra por la izquierda. Movimiento `2 px / 15 ms`, salto
+  total `SLIDE_DIST = 48 px`. Si llega otro pulso a mitad de la animación, la
+  transición se reinicia desde el lado correspondiente.
 - **Recorte del texto deslizante:** las opciones se dibujan en un `GFXcanvas8`
   (128×18, `_chipBox`) que recorta los caracteres parciales en ambos bordes
   (`drawChar` de la librería *no* recorta en X); el canvas se vuelca a la banda
   del cuadro con un blit (chip blanco `255`, texto negro `1`, resto transparente).
   Colores del canvas: `CHIP_WHITE = 255`, `CHIP_TEXT = 1`.
-- **Rombos de posición:** sobre el pie, en la banda `46..53` (8 px, justo encima de
-  las 2 filas libres `54..55`). Uno por opción, repartidos uniformemente en el ancho
-  (`cx = (i+1)·128/(n+1)`). El rombo de la opción seleccionada se **eleva 1 px**
-  (`DIA_RISE`). Si se **mantiene** seleccionado sin navegar `BLINK_HOLD = 500 ms`,
-  el rombo **parpadea** alternando cada `BLINK_TOGGLE = 250 ms`. La banda de rombos
-  se limpia con negro antes de redibujarlos.
-- El rombo se dibuja con dos triángulos (`fillTriangle`) de 8×8 px, como el
-  alimento del juego.
+- **Rombos de posición:** solo el **seleccionado** es un **rombo completo** de
+  `8×8` px (dibujado con dos `fillTriangle`, como el alimento del juego), con la
+  fila superior en `DIA_TOP = 46` (banda `46..53`, justo encima de las 2 filas
+  libres `44..45`: base del cuadro + 1 px de aire). Los **no seleccionados** son
+  solo la **punta** (triángulo superior), `1 px` más bajos (`DIA_RISE`): fila
+  superior `47`, banda `47..50`. Reparto uniforme en el ancho
+  (`cx = (i+1)·128/(n+1)`). Si se **mantiene** seleccionado sin navegar
+  `BLINK_HOLD = 500 ms`, el rombo **parpadea** alternando cada
+  `BLINK_TOGGLE = 250 ms`. Antes de dibujarlos se limpia con negro la banda
+  `45..53` (`fillRect(0, DIA_TOP-1, ancho, DIA_SIZE+1)`).
 - Primera y última opción no conectadas (navegación con límites).
 
 ---
@@ -403,6 +405,17 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
 - **[2026-09-17] `Menu`: 2 píxeles libres sobre el pie**: se limpian con negro las
   filas `54..63` (2 px `54..55` sobre el pie `56..64`) justo antes de escribir el pie,
   así los 2 píxeles sobre el pie quedan siempre limpios.
+- **[2026-09-17] `Menu`: rombo completo solo para el seleccionado**: los rombos no
+  seleccionados ahora son solo la punta (triángulo superior) en la fila `47`; el
+  rombo completo (8×8) solo se dibuja para el seleccionado en `DIA_TOP = 46`
+  (banda `46..53`), con 2 filas libres `44..45` sobre él. La banda de rombos se
+  limpia con `fillRect(0, DIA_TOP-1, ancho, DIA_SIZE+1)` (45..53). Se elimina el
+  estado `_prev` (ya no se dibuja ninguna opción saliente).
+- **[2026-09-17] `Menu`: animación "desaparece y entra"**: al navegar, la opción
+  anterior ya no se dibuja (se elimina `_prev` y el dibujo de la saliente); solo la
+  nueva seleccionada se desliza desde un lado hasta centrarse (`_slideX` de
+  `±SLIDE_DIST` a 0, `startSlide(dir)` sin parámetro `prev`). La transición se
+  reinicia desde el lado correspondiente si llega otro pulso a mitad de la animación.
 
 ---
 
