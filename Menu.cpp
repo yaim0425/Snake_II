@@ -118,8 +118,8 @@ void Menu::print() {
   _display.screen().fillRect(0, 0, _display.getWidth(), BODY_TOP, SSD1306_BLACK);
   _display.drawTextAligned("Snake II", CENTER, TEXT_12x16, REGION_HEADER);
 
-  // Limpiar la fila del pie antes de escribir (para no mezclarla con opciones)
-  _display.screen().fillRect(0, 56, _display.getWidth(), 8, SSD1306_BLACK);
+  // Limpiar los 2 px libres sobre el pie (54..55) + la fila del pie (56..63)
+  _display.screen().fillRect(0, 54, _display.getWidth(), 10, SSD1306_BLACK);
 
   // Pie: Top y versión
   char buf[16];
