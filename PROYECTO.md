@@ -123,6 +123,7 @@ y con cualquier tamaño (`TEXT_6x8`, `TEXT_12x16`, `TEXT_18x24`).
 | `void drawPixel(x, y, black=false)` | Dibuja 1 píxel (blanco o negro). |
 | `TextPos getTextPos(texto, align, size=1, region=FULL)` | Devuelve x,y (esquina sup-izq) según alineación y región. |
 | `void drawText(texto, x, y, size=1)` | Imprime texto en posición píxel exacta. |
+| `void drawTextInverted(texto, x, y, size=1)` | Imprime texto en negro (sobre cualquier fondo) en posición exacta. |
 | `void drawTextAligned(texto, align, size=1, region=FULL)` | Posición según alineación/región + imprime. |
 | `void drawHighlight(texto, x, y, size=1)` | Texto resaltado (cuadro blanco + texto invertido) en posición exacta. |
 | `void drawHighlightAligned(texto, align, size=1, region=FULL)` | Igual que `drawHighlight`, posicionado por alineación/región. |
@@ -239,21 +240,21 @@ enum Option : uint8_t {
 
 ### Diseño del menú (experimental)
 
-- **Título:** "Snake II", `TEXT_12x16`, centrado en `REGION_HEADER`.
+- **Título:** "Snake II", `TEXT_12x16`, centrado en `REGION_HEADER`. Se dibuja al
+  inicio, luego se limpia la banda (0..16) con negro y se redibuja (para no mezclarse
+  con las opciones que pasan por esa zona).
 - **Pie:** "Top: X pts" (`LEFT_DOWN`) y versión (`RIGHT_DOWN`) en `TEXT_6x8`.
-  La fila del pie (y 56..64) se limpia con negro antes de escribir para no mezclarse
-  con las opciones.
-- **Opción seleccionada:** texto `TEXT_12x16` con `drawHighlight`, centrada en el
-  cuadro fijo de selección. El cuadro de la selección queda centrado entre la fila 16
-  y una fila antes del pie (banda 16..55).
-  `TEXT_SEL_TOP = 28` (parte superior del texto), cuadro 12x18 en y 27..45.
-- **Deslizamiento:** las 5 opciones se apilan verticalmente con
-  `OPTION_STEP = 20` px y cada una se mueve (1 px / 15 ms) hacia su posición
-  objetivo `TEXT_SEL_TOP + (i - selected) * OPTION_STEP`. Al cambiar la opción, la
-  actual sube/baja hacia su nuevo objetivo y la nueva entra al cuadro de selección.
-- **Ocultamiento:** la opción que sube por arriba de `BODY_TOP` (16) no se dibuja;
-  las de abajo se dibujan parcialmente y su cola queda detrás del pie (que se limpia
-  y redibuja al final).
+  La fila del pie (y 56..64) se limpia con negro antes de escribir.
+- **Cuadro de selección:** **fijo** y de **ancho completo** (128 px),
+  `BOX_TOP = 27`, `BOX_HEIGHT = 18` (centrado en la banda 16..55). **No se mueve**.
+- **Movimiento:** el texto de cada opción (tamaño 2) se desliza 1 px/15 ms hacia su
+  posición objetivo `TEXT_SEL_TOP + (i - selected) * OPTION_STEP`.
+- Las opciones se dibujan en blanco; el cuadro blanco se pinta encima; la opción
+  seleccionada se repinta en negro (`drawTextInverted`) mientras cruza el cuadro
+  (efecto de entrar/salir del cuadro).
+- **Visibilidad simétrica:** la opción de arriba y la de abajo se ven parcialmente
+  (8 px) — la de arriba sobresale del borde superior del Body y la de abajo del pie;
+  las bandas del Header y del pie se limpian para un recorte limpio.
 - Primera y última opción no conectadas (navegación con límites).
 
 ---
@@ -325,6 +326,12 @@ Formato: `[fecha] descripción`. Se agrega una entrada por cada cambio al códig
   1 px/15 ms. Navegación con `MOVE_UP/DOWN` y `ACTION_UP/DOWN` (sin conexión
   primera-última). Pie = Top + versión (la fila del pie se limpia antes de escribir).
   `Snake_II.ino` ahora arranca el menú con `Buttons`.
+- **[2026-09-17] Ajustes del menú (experimental)**: (1) visibilidad simétrica de las
+  opciones superior e inferior (8 px c/u) — las bandas de Header y pie se limpian y
+  redibujan para el recorte; (2) el cuadro de selección ahora es **fijo** y de
+  **ancho completo** (128 px); (3) solo el texto se desliza; la opción seleccionada se
+  repinta en negro (`drawTextInverted`, nuevo método en `Display`) mientras cruza el
+  cuadro.
 
 ---
 

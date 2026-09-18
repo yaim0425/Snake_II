@@ -77,6 +77,9 @@ public:
   // Imprimir texto en una posición píxel exacta
   void drawText(const char* text, int16_t x, int16_t y, uint8_t size = 1);
 
+  // Imprimir texto invertido (negro) en una posición píxel exacta
+  void drawTextInverted(const char* text, int16_t x, int16_t y, uint8_t size = 1);
+
   // Imprimir texto según alineación dentro de la región indicada
   void drawTextAligned(const char* text, TextAlign align, uint8_t size = 1,
                        Region region = REGION_FULL);

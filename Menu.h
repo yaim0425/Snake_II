@@ -69,7 +69,11 @@ private:
   static constexpr int16_t BODY_TOP    = 16;
   static constexpr int16_t MENU_BOTTOM = 55;
 
-  // Opción seleccionada: texto tamaño 2 (12x16), cuadro 12x18 centrado en la región
+  // Cuadro de selección: fijo, ancho completo, centrado en la banda 16..55
+  static constexpr int16_t BOX_TOP    = 27;
+  static constexpr int16_t BOX_HEIGHT = 18;
+
+  // Posición objetivo del texto seleccionado (centrado en el cuadro)
   static constexpr int16_t TEXT_SEL_TOP = 28;
 
   // Separación vertical entre opciones apiladas

@@ -90,24 +90,33 @@ int16_t Menu::optionTarget(int8_t i) const {
 
 void Menu::print() {
 
-  // Título
+  // Título (se redibuja después de limpiar la banda)
   _display.drawTextAligned("Snake II", CENTER, TEXT_12x16, REGION_HEADER);
 
-  // Opciones
+  // Opciones en blanco (todas las visibles)
   for (uint8_t i = 0; i < OPTION_COUNT; i++) {
 
     int16_t y = _optionY[i];
-
-    // No dibujar si la opción sale por arriba del Body
-    if (y < BODY_TOP) continue;
+    if (y + 16 <= BODY_TOP) continue;
 
     int8_t x = (_display.getWidth() - _display.getTextWidth(OPTION_TEXT[i], TEXT_12x16)) / 2;
 
-    if (i == _selected)
-      _display.drawHighlight(OPTION_TEXT[i], x, y, TEXT_12x16);
-    else
-      _display.drawText(OPTION_TEXT[i], x, y, TEXT_12x16);
+    _display.drawText(OPTION_TEXT[i], x, y, TEXT_12x16);
   }
+
+  // Cuadro de selección: fijo, de ancho completo
+  _display.screen().fillRect(0, BOX_TOP, _display.getWidth(), BOX_HEIGHT, SSD1306_WHITE);
+
+  // Texto seleccionado: invertido (negro) mientras cruza el cuadro
+  int16_t selY = _optionY[_selected];
+  if (selY < BOX_TOP + BOX_HEIGHT && selY + 16 > BOX_TOP) {
+    int8_t selX = (_display.getWidth() - _display.getTextWidth(OPTION_TEXT[_selected], TEXT_12x16)) / 2;
+    _display.drawTextInverted(OPTION_TEXT[_selected], selX, selY, TEXT_12x16);
+  }
+
+  // Limpiar la banda del Header y redibujar el título
+  _display.screen().fillRect(0, 0, _display.getWidth(), BODY_TOP, SSD1306_BLACK);
+  _display.drawTextAligned("Snake II", CENTER, TEXT_12x16, REGION_HEADER);
 
   // Limpiar la fila del pie antes de escribir (para no mezclarla con opciones)
   _display.screen().fillRect(0, 56, _display.getWidth(), 8, SSD1306_BLACK);

@@ -140,6 +140,14 @@ void Display::drawText(const char* text, int16_t x, int16_t y, uint8_t size) {
   _screen->print(text);
 }
 
+void Display::drawTextInverted(const char* text, int16_t x, int16_t y, uint8_t size) {
+  if (_screen == nullptr) return;
+  _screen->setTextSize(size);
+  _screen->setTextColor(SSD1306_BLACK);
+  _screen->setCursor(x, y);
+  _screen->print(text);
+}
+
 void Display::drawTextAligned(const char* text, TextAlign align, uint8_t size,
                               Region region) {
   if (_screen == nullptr) return;
