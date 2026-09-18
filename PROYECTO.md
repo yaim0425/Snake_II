@@ -136,12 +136,13 @@ y con cualquier tamaño (`TEXT_6x8`, `TEXT_12x16`, `TEXT_18x24`).
 - **Texto normal (`drawText`/`drawTextAligned`):** blanco sobre fondo negro, sin cuadro.
 - **Resaltado (`drawHighlight`/`drawHighlightAligned`):** cuadro blanco (`fillRoundRect`,
   radio 0) con el texto invertido (negro) centrado dentro del cuadro.
-- El cuadro **rebasa al texto**: `+2*size` px en X (1/2/3 px por lado) y `+1` px en Y.
+- El cuadro **rebasa al texto**: `+2*size` px en X (1/2/3 px por lado) y `+1` px
+  arriba y `+1` px abajo (total `+2` px en Y), centrando el texto en el cuadro.
 
 ```
-size=1 -> texto 6x8      -> cuadro  (6+2)  x (8+1)  = 8x9
-size=2 -> texto 12x16    -> cuadro  (12+4) x (16+1) = 16x17
-size=3 -> texto 18x24    -> cuadro  (18+6) x (24+1) = 24x25
+size=1 -> texto 6x8      -> cuadro  (6+2)  x (8+2)  = 8x10
+size=2 -> texto 12x16    -> cuadro  (12+4) x (16+2) = 16x18
+size=3 -> texto 18x24    -> cuadro  (18+6) x (24+2) = 24x26
 ```
 
 - No existen "botones no seleccionados": se usa texto normal o resaltado.
@@ -202,6 +203,9 @@ Formato: `[fecha] descripción`. Se agrega una entrada por cada cambio al códig
   9 alineaciones en `REGION_HEADER` (H1-H9) y `REGION_BODY` (B1-B9), el resaltado en
   los 3 tamaños (6x8/12x16/18x24), texto normal vs resaltado, y termina cada ciclo
   en el menú PRUEBA (selección automática por rebote).
+- **[2026-09-17] Rebose vertical simétrico en `drawHighlight`**: el cuadro del
+  resaltado ahora rebasa `+1` px arriba y `+1` px abajo (total `+2` en Y); el texto
+  queda centrado verticalmente en el cuadro.
 
 ---
 

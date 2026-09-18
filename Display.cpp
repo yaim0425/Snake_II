@@ -151,9 +151,9 @@ void Display::drawHighlight(const char* text, int16_t x, int16_t y, uint8_t size
   if (_screen == nullptr) return;
 
   int16_t bx = x - size;
-  int16_t by = y;
+  int16_t by = y - 1;
   uint16_t bw = getTextWidth(text, size) + 2 * size;
-  uint16_t bh = getTextHeight(size) + 1;
+  uint16_t bh = getTextHeight(size) + 2;
 
   _screen->fillRoundRect(bx, by, bw, bh, 0, SSD1306_WHITE);
 
