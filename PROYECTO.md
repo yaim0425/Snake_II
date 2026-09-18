@@ -66,7 +66,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 |---------|-----------|
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
-| `Menu.h` / `Menu.cpp` | Clase `Menu` (menú inicial con opciones deslizantes). Completa. |
+| `Menu.h` / `Menu.cpp` | Clase `Menu` (menú inicial con carousel lateral y rombos de posición). Completa. |
 | `Snake_II.ino` | Actualmente: arranca y ejecuta el menú inicial (`Menu`). |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
 | `GameBuzzer.h` | Clase del buzzer del juego original (sin cambios). |
@@ -244,9 +244,10 @@ Menu(Display& display, Buttons& buttons, uint8_t topScore = 0, const char* versi
 
 | Método | Descripción |
 |--------|-------------|
-| `void begin()` | Ubica las opciones en su posición inicial y arranca la animación. |
-| `void update()` | Lee botones (`_buttons.read()`) y navega con `MOVE_UP`/`ACTION_UP`/`ACTION_LEFT` y `MOVE_DOWN`/`ACTION_DOWN`/`ACTION_RIGHT` (los 4 botones de Acción mueven el cursor); anima el deslizamiento; log en Serial al cambiar de opción. |
-| `void print()` | Dibuja título, opciones (la seleccionada resaltada) y pie (Top + versión). |
+| `void begin()` | Restablece el estado de la animación y del parpadeo. |
+| `void setOptions(textos, conteo)` | Fija la lista y la cantidad de opciones (1..`MAX_OPTIONS`=8). El menú (textos y rombos) se adapta al conteo. |
+| `void update()` | Lee botones, navega con `MOVE_UP`/`MOVE_DOWN` y anima el deslizamiento lateral; log en Serial al cambiar de opción. |
+| `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Top + versión). |
 | `int8_t selected()` | Índice de la opción seleccionada. |
 | `void setTopScore(uint8_t)` | Actualiza el puntaje máximo mostrado. |
 
@@ -258,24 +259,39 @@ enum Option : uint8_t {
 };
 ```
 
-### Diseño del menú (experimental)
+El enum documenta los índices de las 5 opciones por defecto. La cantidad real es
+variable (`setOptions`), con `MAX_OPTIONS = 8`.
+
+### Diseño del menú (carousel)
 
 - **Título:** "Snake II", `TEXT_12x16`, centrado en `REGION_HEADER`. Se dibuja al
-  inicio, luego se limpia la banda (0..16) con negro y se redibuja (para no mezclarse
-  con las opciones que pasan por esa zona).
+  inicio, luego se limpia la banda (0..16) con negro y se redibuja.
 - **Pie:** "Top: X pts" (`LEFT_DOWN`) y versión (`RIGHT_DOWN`) en `TEXT_6x8`.
-  Se limpian con negro las filas `54..63` (2 píxeles libres `54..55` sobre el pie
-  `56..64` + la fila del pie) antes de escribir el pie.
+  Se limpian con negro las filas `54..63` (2 filas libres `54..55` sobre el pie
+  `56..64` + la fila del pie) antes de escribir el pie. Las 2 filas sobre el pie
+  quedan siempre limpias.
 - **Cuadro de selección:** **fijo** y de **ancho completo** (128 px),
-  `BOX_TOP = 27`, `BOX_HEIGHT = 18` (centrado en la banda 16..55). **No se mueve**.
-- **Movimiento:** el texto de cada opción (tamaño 2) se desliza 1 px/15 ms hacia su
-  posición objetivo `TEXT_SEL_TOP + (i - selected) * OPTION_STEP`.
-- Las opciones se dibujan en blanco; el cuadro blanco se pinta encima; la opción
-  seleccionada se repinta en negro (`drawTextInverted`) mientras cruza el cuadro
-  (efecto de entrar/salir del cuadro).
-- **Visibilidad simétrica:** la opción de arriba y la de abajo se ven parcialmente
-  (8 px) — la de arriba sobresale del borde superior del Body y la de abajo del pie;
-  las bandas del Header y del pie se limpian para un recorte limpio.
+  `BOX_TOP = 27`, `BOX_HEIGHT = 18` (centrado en la banda 16..55). **No se mueve**;
+  el tamaño del texto (tamaño 2) tampoco cambia.
+- **Animación lateral (carousel):** al navegar, la opción **saliente** se desliza
+  hacia un lado y la **entrante** (nueva seleccionada) entra por el lado opuesto
+  y se centra en el cuadro. Sentido: bajar (`MOVE_DOWN`) → sale por la izquierda,
+  entra por la derecha; subir (`MOVE_UP`) invierte los lados. Movimiento
+  `2 px / 15 ms`, salto total `SLIDE_DIST = 48 px`. Si llega otro pulso a mitad de
+  la animación, la transición salta al estado central y arranca la nueva.
+- **Recorte del texto deslizante:** las opciones se dibujan en un `GFXcanvas8`
+  (128×18, `_chipBox`) que recorta los caracteres parciales en ambos bordes
+  (`drawChar` de la librería *no* recorta en X); el canvas se vuelca a la banda
+  del cuadro con un blit (chip blanco `255`, texto negro `1`, resto transparente).
+  Colores del canvas: `CHIP_WHITE = 255`, `CHIP_TEXT = 1`.
+- **Rombos de posición:** sobre el pie, en la banda `46..53` (8 px, justo encima de
+  las 2 filas libres `54..55`). Uno por opción, repartidos uniformemente en el ancho
+  (`cx = (i+1)·128/(n+1)`). El rombo de la opción seleccionada se **eleva 1 px**
+  (`DIA_RISE`). Si se **mantiene** seleccionado sin navegar `BLINK_HOLD = 500 ms`,
+  el rombo **parpadea** alternando cada `BLINK_TOGGLE = 250 ms`. La banda de rombos
+  se limpia con negro antes de redibujarlos.
+- El rombo se dibuja con dos triángulos (`fillTriangle`) de 8×8 px, como el
+  alimento del juego.
 - Primera y última opción no conectadas (navegación con límites).
 
 ---
@@ -360,6 +376,16 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
 - **[2026-09-17] `Menu`: navegación en subrutina y solo `MOVE_UP`/`MOVE_DOWN`**: se
   separa la navegación en `Menu::navigate()` (como `animate()`); solo `MOVE_UP`/
   `MOVE_DOWN` navegan (los 4 botones de Acción ya no mueven el cursor).
+- **[2026-09-17] `Menu` rediseñado como carousel lateral**: se elimina la pila
+  vertical (opciones apiladas) y el deslizamiento vertical. Ahora solo la opción
+  seleccionada se muestra en el cuadro fijo; al navegar, la saliente se desliza hacia
+  un lado y la entrante entra por el opuesto (bajar→sale izq/entra der; subir→al
+  revés). Se usa un `GFXcanvas8` (128×18) para recortar el texto en los bordes.
+  Las opciones pasan a ser de cantidad variable (`setOptions`, máx. 8). Se agregan
+  **rombos de posición** en la banda 46..53 (uno por opción, repartidos en el ancho):
+  el seleccionado se eleva 1 px y, al mantenerlo `500 ms`, parpadea cada `250 ms`.
+  Se mantienen título, cuadro fijo con texto tamaño 2, pie y las 2 filas libres
+  (54..55) sobre el pie.
 - **[2026-09-17] Eliminado el diagrama de conexiones**: se retira
   `Conexiones_Snake_II_ESP32S3.png` (imagen y entradas del CHANGELOG).
 - **[2026-09-17] Frase para nueva sesión**: se agrega a la sección 0 la frase exacta
