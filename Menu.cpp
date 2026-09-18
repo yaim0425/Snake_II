@@ -48,24 +48,30 @@ void Menu::update() {
 
   _buttons.read();
 
+  // Navegación
+  navigate();
+
+  // Animar
+  animate();
+}
+
+// ========================================================
+// Navegación
+// ========================================================
+
+void Menu::navigate() {
+
   int8_t before = _selected;
 
-  // Navegación (primera y última no conectadas)
-  if (_buttons.pressed(Buttons::MOVE_UP) ||
-      _buttons.pressed(Buttons::ACTION_UP) ||
-      _buttons.pressed(Buttons::ACTION_LEFT))
+  // Solo MOVE_UP y MOVE_DOWN (primera y última no conectadas)
+  if (_buttons.pressed(Buttons::MOVE_UP))
     if (_selected > 0) _selected--;
 
-  if (_buttons.pressed(Buttons::MOVE_DOWN) ||
-      _buttons.pressed(Buttons::ACTION_DOWN) ||
-      _buttons.pressed(Buttons::ACTION_RIGHT))
+  if (_buttons.pressed(Buttons::MOVE_DOWN))
     if (_selected < OPTION_COUNT - 1) _selected++;
 
   if (_selected != before)
     Serial.printf("Menu: opcion %d -> %d\n", before, _selected);
-
-  // Animar
-  animate();
 }
 
 // ========================================================

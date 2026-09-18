@@ -5,6 +5,17 @@ Programación orientada a objetos: cada clase en su archivo `.h` y `.cpp`.
 
 ---
 
+## 0. Reglas de trabajo con la IA
+
+- **La IA no debe hacer nada sin una orden explícita del usuario.**
+- No crear, modificar ni eliminar archivos por iniciativa propia.
+- No proponer ni iniciar fases de desarrollo por su cuenta; solo actuar cuando
+  el usuario lo indique.
+- **La IA debe hacer un commit al modificar archivos** (cuando el usuario lo ordene
+  o como parte del flujo de trabajo ya autorizado).
+
+---
+
 ## 1. Estado actual del proyecto
 
 En desarrollo por partes. La clase `Display` está completa. `Snake_II.ino` contiene
@@ -337,6 +348,10 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   **ancho completo** (128 px); (3) solo el texto se desliza; la opción seleccionada se
   repinta en negro (`drawTextInverted`, nuevo método en `Display`) mientras cruza el
   cuadro.
+- **[2026-09-17] Compromiso de la IA con commits**: se agrega a las reglas (sección 0)
+  que la IA debe hacer un commit al modificar archivos.
+- **[2026-09-17] Reglas de trabajo con la IA**: se agrega la sección "0. Reglas de
+  trabajo con la IA": la IA no debe hacer nada sin una orden explícita del usuario.
 - **[2026-09-17] `Menu`: 2 píxeles libres sobre el pie**: se limpian con negro las
   filas `54..63` (2 px `54..55` sobre el pie `56..64`) justo antes de escribir el pie,
   así los 2 píxeles sobre el pie quedan siempre limpios.
