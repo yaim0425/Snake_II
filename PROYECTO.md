@@ -206,6 +206,10 @@ Formato: `[fecha] descripción`. Se agrega una entrada por cada cambio al códig
 - **[2026-09-17] Rebose vertical simétrico en `drawHighlight`**: el cuadro del
   resaltado ahora rebasa `+1` px arriba y `+1` px abajo (total `+2` en Y); el texto
   queda centrado verticalmente en el cuadro.
+- **[2026-09-17] `Snake_II.ino` restaurada al menú PRUEBA**: volvió el menú con las
+  5 opciones (selección automática por rebote cada 2000 ms). El título "PRUEBA" ahora
+  se imprime con `TEXT_12x16` (tamaño 2) centrado en `REGION_HEADER`. Las opciones
+  siguen en `REGION_BODY` con `TEXT_6x8`, la seleccionada con `drawHighlight`.
 
 ---
 

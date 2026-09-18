@@ -1,26 +1,13 @@
 // ====================================================================================
-// DEMO DISPLAY: REGIONES, TEXTOS Y RESALTADO
+// MENU PRUEBA
 //
-// Recorre en bucle las nuevas funciones de Display:
-//   - 9 alineaciones dentro de REGION_HEADER y REGION_BODY
-//   - Resaltado en los 3 tamaños de texto
-//   - Texto normal vs resaltado
-//   - Menu PRUEBA (final de cada ciclo)
+// Menu con 5 opciones y seleccion automatica (rebote) usando la clase Display
 // ====================================================================================
 
 #include "Display.h"
 
-#include <stdio.h>
-#include <string.h>
-
 // Controlador del OLED
 Display display;
-
-// Tiempo que se muestra cada pantalla
-const uint32_t STEP_DELAY = 1500;
-
-// Contador de pasos de la demo
-uint8_t step = 0;
 
 // Opciones del menu
 const char* const MENU_OPTIONS[] = {
@@ -33,58 +20,15 @@ const char* const MENU_OPTIONS[] = {
 
 const uint8_t MENU_COUNT = 5;
 
+// Seleccion actual y direccion de movimiento
 int8_t menuIndex = 0;
 int8_t menuDir = 1;
 
+// Tiempo de cambio de seleccion
 uint32_t menuLast = 0;
 const uint32_t MENU_DELAY = 2000;
 
-// ====================================================================================
-// Pantallas de la demo
-// ====================================================================================
-
-// Muestra la alineacion dentro de la region Header
-void screenHeaderAlign(uint8_t n) {
-  char buf[16];
-
-  display.drawTextAligned("*", (TextAlign)n, TEXT_6x8, REGION_HEADER);
-
-  sprintf(buf, "H%d HEADER", n + 1);
-  display.drawTextAligned(buf, CENTER_DOWN, TEXT_6x8, REGION_BODY);
-}
-
-// Muestra la alineacion dentro de la region Body
-void screenBodyAlign(uint8_t n) {
-  char buf[16];
-
-  display.drawTextAligned("*", (TextAlign)n, TEXT_18x24, REGION_BODY);
-  display.drawTextAligned("BODY", CENTER_UP, TEXT_6x8, REGION_HEADER);
-
-  sprintf(buf, "B%d", n + 1);
-  display.drawTextAligned(buf, RIGHT_DOWN, TEXT_6x8, REGION_HEADER);
-}
-
-// Muestra un texto resaltado centrado en el Body con el label indicado
-void screenHighlight(uint8_t size, const char* label) {
-  display.drawTextAligned(label, CENTER_DOWN, TEXT_6x8, REGION_BODY);
-  display.drawHighlightAligned("BOX", CENTER, size, REGION_BODY);
-}
-
-// Compara texto normal vs resaltado en el Body
-void screenCompare() {
-  display.drawTextAligned("TEXTO / RESALTADO", CENTER_UP, TEXT_6x8, REGION_HEADER);
-
-  uint8_t tw = display.getTextWidth("SIMPLE", TEXT_6x8);
-  int8_t x = (display.getWidth() - tw) / 2;
-
-  display.drawText("SIMPLE", x, 24, TEXT_6x8);
-  display.drawHighlight("SIMPLE", x, 44, TEXT_6x8);
-}
-
-// ====================================================================================
-// Menu PRUEBA
-// ====================================================================================
-
+// Dibuja una opcion centrada horizontalmente en la fila y del cuerpo
 void menuOption(const char* text, int8_t y, bool selected) {
 
   int8_t x = (display.getWidth() - display.getTextWidth(text, TEXT_6x8)) / 2;
@@ -95,10 +39,11 @@ void menuOption(const char* text, int8_t y, bool selected) {
     display.drawText(text, x, y, TEXT_6x8);
 }
 
+// Dibuja el titulo en el Header y las opciones centradas en el Body
 void menuPrint() {
 
-  // Titulo centrado en la region Header (0,0)-(128,15)
-  display.drawTextAligned("PRUEBA", CENTER, TEXT_6x8, REGION_HEADER);
+  // Titulo centrado en la region Header (0,0)-(128,15), tamano 2
+  display.drawTextAligned("PRUEBA", CENTER_UP, TEXT_12x16, REGION_HEADER);
 
   // Opciones centradas en la region Body (0,16)-(128,64)
   const int8_t OPTIONS_START = 20;  // 16 + (48 - 5*8) / 2
@@ -107,6 +52,7 @@ void menuPrint() {
     menuOption(MENU_OPTIONS[i], OPTIONS_START + i * 8, i == menuIndex);
 }
 
+// Avanza la seleccion cada 2 segundos (rebote: primera y ultima no conectadas)
 void menuUpdate() {
   if (millis() - menuLast < MENU_DELAY) return;
   menuLast = millis();
@@ -122,39 +68,19 @@ void menuUpdate() {
 void setup() {
   Serial.begin(115200);
   display.begin();
-  Serial.println("Demo regiones Display");
+  Serial.println("Menu PRUEBA");
 }
 
 // ====================================================================================
 
 void loop() {
+  menuUpdate();
+
   display.clear();
-
-  if (step < 9) {
-    screenHeaderAlign(step);
-  } else if (step < 18) {
-    screenBodyAlign(step - 9);
-  } else if (step == 18) {
-    screenHighlight(TEXT_6x8, "RESALTADO 6x8");
-  } else if (step == 19) {
-    screenHighlight(TEXT_12x16, "RESALTADO 12x16");
-  } else if (step == 20) {
-    screenHighlight(TEXT_18x24, "RESALTADO 18x24");
-  } else if (step == 21) {
-    screenCompare();
-  } else {
-    menuUpdate();
-    menuPrint();
-  }
-
+  menuPrint();
   display.show();
-
-  delay(STEP_DELAY);
-
-  step++;
-  if (step > 22) step = 0;
 }
 
 // ====================================================================================
-// Fin de la demo
+// Fin del menu
 // ====================================================================================
