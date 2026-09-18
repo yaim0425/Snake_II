@@ -90,9 +90,9 @@ private:
   static constexpr uint32_t ANIM_TICK = 15;
   static constexpr int8_t ANIM_STEP   = 2;
 
-  // Rombos de posición (encima de la fila 44 del cuadro; 2 filas libres
-  // entre el rombo completo y el cuadro; pie libre a partir de la 54)
-  static constexpr int16_t DIA_TOP  = 46;  // fila superior del rombo seleccionado
+  // Rombos de posición (sobre la fila 44 del cuadro: aire en la 45 y 2 filas
+  // libres 44..45 entre rombo completo y cuadro; pie libre a partir de la 54)
+  static constexpr int16_t DIA_TOP  = 46;  // punta superior del rombo seleccionado (8 filas: 46..53)
   static constexpr uint8_t DIA_SIZE = 8;
   static constexpr int16_t DIA_RISE = 1;   // el seleccionado se eleva 1 px sobre la punta
 

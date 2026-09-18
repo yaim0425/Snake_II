@@ -199,17 +199,19 @@ void Menu::drawDiamonds() {
           ((millis() / BLINK_TOGGLE) & 1) == 0)
         continue;  // fase apagada: no se dibuja
 
-      // Rombo completo, filas 46..53 (2 filas libres por arriba)
+      // Rombo completo de 8 filas (46..53): punta inferior en la 53, visible
+      // (no alcanza la limpieza del pie que empieza en la 54)
       Adafruit_SSD1306& s = _display.screen();
-      s.fillTriangle(x + 4, DIA_TOP, x + 8, DIA_TOP + 4,
-                     x + 4, DIA_TOP + 8, SSD1306_WHITE);
-      s.fillTriangle(x + 4, DIA_TOP, x, DIA_TOP + 4,
-                     x + 4, DIA_TOP + 8, SSD1306_WHITE);
+      s.fillTriangle(x + 4, DIA_TOP, x + 8, DIA_TOP + 3,
+                     x + 4, DIA_TOP + 7, SSD1306_WHITE);
+      s.fillTriangle(x + 4, DIA_TOP, x, DIA_TOP + 3,
+                     x + 4, DIA_TOP + 7, SSD1306_WHITE);
     } else {
-      // Solo la punta (triángulo superior), 1 px más baja que el seleccionado
+      // Solo la punta (triángulo superior), 1 px más baja que el seleccionado;
+      // base en la fila DIA_TOP+DIA_RISE+3 (50), con aire hasta el pie
       int16_t y = DIA_TOP + DIA_RISE;
-      _display.screen().fillTriangle(x + 4, y, x, y + 4,
-                                     x + 8, y + 4, SSD1306_WHITE);
+      _display.screen().fillTriangle(x + 4, y, x, y + 3,
+                                     x + 8, y + 3, SSD1306_WHITE);
     }
   }
 }

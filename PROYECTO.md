@@ -285,15 +285,16 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
   del cuadro con un blit (chip blanco `255`, texto negro `1`, resto transparente).
   Colores del canvas: `CHIP_WHITE = 255`, `CHIP_TEXT = 1`.
 - **Rombos de posición:** solo el **seleccionado** es un **rombo completo** de
-  `8×8` px (dibujado con dos `fillTriangle`, como el alimento del juego), con la
-  fila superior en `DIA_TOP = 46` (banda `46..53`, justo encima de las 2 filas
-  libres `44..45`: base del cuadro + 1 px de aire). Los **no seleccionados** son
-  solo la **punta** (triángulo superior), `1 px` más bajos (`DIA_RISE`): fila
-  superior `47`, banda `47..50`. Reparto uniforme en el ancho
-  (`cx = (i+1)·128/(n+1)`). Si se **mantiene** seleccionado sin navegar
-  `BLINK_HOLD = 500 ms`, el rombo **parpadea** alternando cada
-  `BLINK_TOGGLE = 250 ms`. Antes de dibujarlos se limpia con negro la banda
-  `45..53` (`fillRect(0, DIA_TOP-1, ancho, DIA_SIZE+1)`).
+  `8` filas (dibujado con dos `fillTriangle`, como el alimento del juego), con la
+  punta superior en `DIA_TOP = 46` (banda `46..53`). Las 2 filas de píxeles sobre
+  él son la `45` (aire) y la `44` (base del cuadro); la **punta inferior queda en
+  la fila `53`, visible**, justo sobre las 2 filas libres `54..55` del pie. Los
+  **no seleccionados** son solo la **punta** (triángulo superior), `1 px` más bajos
+  (`DIA_RISE`, punta en la `47`) y con la base en la fila `50` (sobra aire hasta
+  el pie). Reparto uniforme en el ancho (`cx = (i+1)·128/(n+1)`). Si se
+  **mantiene** seleccionado sin navegar `BLINK_HOLD = 500 ms`, el rombo
+  **parpadea** alternando cada `BLINK_TOGGLE = 250 ms`. Antes de dibujarlos se
+  limpia con negro la banda `45..53` (`fillRect(0, DIA_TOP-1, ancho, DIA_SIZE+1)`).
 - Primera y última opción no conectadas (navegación con límites).
 
 ---
@@ -416,6 +417,13 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   nueva seleccionada se desliza desde un lado hasta centrarse (`_slideX` de
   `±SLIDE_DIST` a 0, `startSlide(dir)` sin parámetro `prev`). La transición se
   reinicia desde el lado correspondiente si llega otro pulso a mitad de la animación.
+- **[2026-09-18] `Menu`: punta inferior del rombo seleccionado visible**: el rombo
+  completo se dibujaba en 9 filas (46..54) y su vértice inferior (fila 54) era
+  borrado por la limpieza del pie. Ahora ocupa 8 filas (46..53): triángulos con
+  hombros en `DIA_TOP+3` y vértice inferior en `DIA_TOP+7`, de modo que la punta
+  inferior queda en la fila `53` (visible). La punta de las opciones no
+  seleccionadas tiene ahora la base en `DIA_TOP+DIA_RISE+3` (fila 50), con más
+  aire hasta el pie.
 
 ---
 
