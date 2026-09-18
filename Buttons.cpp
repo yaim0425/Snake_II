@@ -129,6 +129,18 @@ void Buttons::read() {
 // Estado actual
 // ========================================================
 
+bool Buttons::state(uint8_t index) const {
+  return _buttons[index];
+}
+
+bool Buttons::pressed(uint8_t index) const {
+  return _pressed[index];
+}
+
+bool Buttons::released(uint8_t index) const {
+  return _released[index];
+}
+
 bool Buttons::moveUp() const {
   return _buttons[MOVE_UP];
 }

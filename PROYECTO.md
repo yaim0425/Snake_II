@@ -194,6 +194,7 @@ enum Button : uint8_t {
 | `Buttons(const int8_t* pins, uint32_t buttonDelay = 30)` | Constructor, recibe los pines y el tiempo de debounce en ms. |
 | `void begin()` | Configura `INPUT_PULLDOWN` y lee el estado inicial. |
 | `void read()` | Leer físicamente, aplicar debounce y generar eventos. Llamar una vez por `loop()`. |
+| `bool state(index)` / `pressed(index)` / `released(index)` | Acceso por índice (0-7) útil para ciclos genéricos. |
 | `moveUp() / moveRight() / moveDown() / moveLeft()` | Estado actual (mantenido). |
 | `actionUp() / actionRight() / actionDown() / actionLeft()` | Estado actual (mantenido). |
 | `...,Pressed()` | Evento de pulso (true solo en el ciclo en que se presiona). |
@@ -258,6 +259,13 @@ Formato: `[fecha] descripción`. Se agrega una entrada por cada cambio al códig
   ejemplo `GameInput`). 8 botones con enum (`MOVE_*`=0-3, `ACTION_*`=4-7), debounce de
   30 ms por defecto, eventos `pressed`/`released` de un ciclo, y getters de estado.
   Pines: MOVE 37/39/38/36, ACTION 41/1/2/40.
+- **[2026-09-17] `Buttons`: acceso por índice**: se agregan `state(index)`,
+  `pressed(index)` y `released(index)` para recorrer los 8 botones en ciclos genéricos.
+- **[2026-09-17] `Snake_II.ino`: prueba de Buttons**: título "PRUEBA" (tamano 2,
+  centrado en Header, de ahora en adelante el título de todas las pruebas). En el
+  Body, una tabla de 2 columnas con cada botón: pin, nombre corto y estado
+  (H=mantiene, P=recién presionado, R=liberado). Los eventos también se imprimen
+  por Serial.
 
 ---
 

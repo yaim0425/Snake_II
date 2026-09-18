@@ -1,86 +1,86 @@
 // ====================================================================================
-// MENU PRUEBA
+// PRUEBA DE BUTTONS
 //
-// Menu con 5 opciones y seleccion automatica (rebote) usando la clase Display
+// Titulo: PRUEBA (tamano 2, centrado en Header)
+// En el cuerpo se muestran los botones: pin, nombre y estado.
+// Leyenda: H = se mantiene presionado, P = recien presionado, R = liberado
 // ====================================================================================
 
 #include "Display.h"
+#include "Buttons.h"
+
+#include <stdio.h>
 
 // Controlador del OLED
 Display display;
 
-// Opciones del menu
-const char* const MENU_OPTIONS[] = {
-  "Nueva",
-  "Continuar",
-  "Dificultad",
-  "Sonido",
-  "Creditos"
+// Pines de los botones (orden del enum Button)
+const int8_t BUTTON_PINS[Buttons::MAX_BUTTONS] = {
+  37, 39, 38, 36,   // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
+  41, 01, 02, 40    // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
 };
 
-const uint8_t MENU_COUNT = 5;
+// Nombre corto de cada boton
+const char* const BUTTON_NAME[Buttons::MAX_BUTTONS] = {
+  "Up", "Ri", "Do", "Le",
+  "AU", "AR", "AD", "AL"
+};
 
-// Seleccion actual y direccion de movimiento
-int8_t menuIndex = 0;
-int8_t menuDir = 1;
-
-// Tiempo de cambio de seleccion
-uint32_t menuLast = 0;
-const uint32_t MENU_DELAY = 2000;
-
-// Dibuja una opcion centrada horizontalmente en la fila y del cuerpo
-void menuOption(const char* text, int8_t y, bool selected) {
-
-  int8_t x = (display.getWidth() - display.getTextWidth(text, TEXT_6x8)) / 2;
-
-  if (selected)
-    display.drawHighlight(text, x, y, TEXT_6x8);
-  else
-    display.drawText(text, x, y, TEXT_6x8);
-}
-
-// Dibuja el titulo en el Header y las opciones centradas en el Body
-void menuPrint() {
-
-  // Titulo centrado en la region Header (0,0)-(128,15), tamano 2
-  display.drawTextAligned("PRUEBA", CENTER_UP, TEXT_12x16, REGION_HEADER);
-
-  // Opciones centradas en la region Body (0,16)-(128,64)
-  const int8_t OPTIONS_START = 20;  // 16 + (48 - 5*8) / 2
-
-  for (int8_t i = 0; i < MENU_COUNT; i++)
-    menuOption(MENU_OPTIONS[i], OPTIONS_START + i * 8, i == menuIndex);
-}
-
-// Avanza la seleccion cada 2 segundos (rebote: primera y ultima no conectadas)
-void menuUpdate() {
-  if (millis() - menuLast < MENU_DELAY) return;
-  menuLast = millis();
-
-  menuIndex += menuDir;
-
-  if (menuIndex >= MENU_COUNT - 1) menuDir = -1;
-  if (menuIndex <= 0) menuDir = 1;
-}
+Buttons buttons(BUTTON_PINS);
 
 // ====================================================================================
 
 void setup() {
   Serial.begin(115200);
+
   display.begin();
-  Serial.println("Menu PRUEBA");
+  buttons.begin();
+
+  Serial.println("Prueba Buttons");
 }
 
 // ====================================================================================
 
 void loop() {
-  menuUpdate();
+  buttons.read();
 
   display.clear();
-  menuPrint();
+
+  // Titulo centrado en el Header, tamano 2
+  display.drawTextAligned("PRUEBA", CENTER, TEXT_12x16, REGION_HEADER);
+
+  // Leyenda de estados
+  display.drawTextAligned("H=HOLD P=NEW R=REL", CENTER_UP, TEXT_6x8, REGION_BODY);
+
+  // Estado de cada boton en el cuerpo
+  for (uint8_t i = 0; i < Buttons::MAX_BUTTONS; i++) {
+
+    char stateCh = ' ';
+    if (buttons.released(i))
+      stateCh = 'R';
+    else if (buttons.pressed(i))
+      stateCh = 'P';
+    else if (buttons.state(i))
+      stateCh = 'H';
+
+    char buf[12];
+    sprintf(buf, "%02d %s %c", BUTTON_PINS[i], BUTTON_NAME[i], stateCh);
+
+    int8_t x = (i < 4) ? 8 : 72;
+    int8_t y = 24 + (i % 4) * 8;
+
+    display.drawText(buf, x, y, TEXT_6x8);
+
+    // Eventos por serial
+    if (buttons.pressed(i))
+      Serial.printf("[%02d] %s PRESSED\n", BUTTON_PINS[i], BUTTON_NAME[i]);
+    if (buttons.released(i))
+      Serial.printf("[%02d] %s RELEASED\n", BUTTON_PINS[i], BUTTON_NAME[i]);
+  }
+
   display.show();
 }
 
 // ====================================================================================
-// Fin del menu
+// Fin de la prueba
 // ====================================================================================

@@ -49,6 +49,10 @@ public:
   // Estado actual
   // ========================================================
 
+  bool state(uint8_t index) const;
+  bool pressed(uint8_t index) const;
+  bool released(uint8_t index) const;
+
   bool moveUp() const;
   bool moveRight() const;
   bool moveDown() const;
