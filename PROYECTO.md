@@ -13,6 +13,9 @@ Programación orientada a objetos: cada clase en su archivo `.h` y `.cpp`.
   el usuario lo indique.
 - **La IA debe hacer un commit al modificar archivos** (cuando el usuario lo ordene
   o como parte del flujo de trabajo ya autorizado).
+- **La IA debe actualizar este documento (`PROYECTO.md`) antes de hacer el commit**:
+  toda modificación de código debe quedar reflejada (CHANGELOG y, si corresponde,
+  secciones/API), y ese cambio a `PROYECTO.md` debe incluirse en el mismo commit.
 
 ---
 
@@ -351,6 +354,9 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
 - **[2026-09-17] `Menu`: navegación en subrutina y solo `MOVE_UP`/`MOVE_DOWN`**: se
   separa la navegación en `Menu::navigate()` (como `animate()`); solo `MOVE_UP`/
   `MOVE_DOWN` navegan (los 4 botones de Acción ya no mueven el cursor).
+- **[2026-09-17] Documentación antes del commit**: se agrega a las reglas (sección 0)
+  que la IA debe actualizar `PROYECTO.md` (CHANGELOG y secciones/API) antes de cada
+  commit, incluyendo ese cambio en el mismo commit.
 - **[2026-09-17] Compromiso de la IA con commits**: se agrega a las reglas (sección 0)
   que la IA debe hacer un commit al modificar archivos.
 - **[2026-09-17] Reglas de trabajo con la IA**: se agrega la sección "0. Reglas de
