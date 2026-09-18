@@ -244,9 +244,7 @@ enum Option : uint8_t {
   inicio, luego se limpia la banda (0..16) con negro y se redibuja (para no mezclarse
   con las opciones que pasan por esa zona).
 - **Pie:** "Top: X pts" (`LEFT_DOWN`) y versión (`RIGHT_DOWN`) en `TEXT_6x8`.
-  Las filas `40..63` (2 filas libres `FREE_TOP=40` sobre el pie `PIE_TOP=56` + la fila
-  del pie) se limpian con negro antes de escribir, para que las opciones nunca toquen
-  el pie.
+  La fila del pie (y 56..64) se limpia con negro antes de escribir.
 - **Cuadro de selección:** **fijo** y de **ancho completo** (128 px),
   `BOX_TOP = 27`, `BOX_HEIGHT = 18` (centrado en la banda 16..55). **No se mueve**.
 - **Movimiento:** el texto de cada opción (tamaño 2) se desliza 1 px/15 ms hacia su
@@ -334,9 +332,6 @@ Formato: `[fecha] descripción`. Se agrega una entrada por cada cambio al códig
   **ancho completo** (128 px); (3) solo el texto se desliza; la opción seleccionada se
   repinta en negro (`drawTextInverted`, nuevo método en `Display`) mientras cruza el
   cuadro.
-- **[2026-09-17] Dos filas libres sobre el pie en `Menu`**: se limpian con negro las
-  filas `40..63` (2 filas libres `40..55` sobre el pie `56..64`) antes de escribir el
-  pie; las opciones nunca tocan el pie. Nuevas constantes `FREE_TOP`/`PIE_TOP`.
 
 ---
 
