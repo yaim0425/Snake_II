@@ -376,6 +376,8 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
 - **[2026-09-17] `Menu`: navegación en subrutina y solo `MOVE_UP`/`MOVE_DOWN`**: se
   separa la navegación en `Menu::navigate()` (como `animate()`); solo `MOVE_UP`/
   `MOVE_DOWN` navegan (los 4 botones de Acción ya no mueven el cursor).
+- **[2026-09-17] `Menu`: define `optionText()`**: se agregaba la definición que
+  faltaba de `Menu::optionText()` (error de enlazado "undefined reference").
 - **[2026-09-17] `Menu` rediseñado como carousel lateral**: se elimina la pila
   vertical (opciones apiladas) y el deslizamiento vertical. Ahora solo la opción
   seleccionada se muestra en el cuadro fijo; al navegar, la saliente se desliza hacia

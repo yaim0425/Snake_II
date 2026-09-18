@@ -14,6 +14,10 @@ const char* const Menu::DEFAULT_OPTION_TEXT[Menu::DEFAULT_OPTIONS] = {
   "Creditos"
 };
 
+const char* Menu::optionText(int8_t index) const {
+  return _optionTexts[index];
+}
+
 // Valores del canvas del cuadro: 0 = transparente, 1 = texto (negro),
 // 255 = chip (blanco)
 static constexpr uint8_t CHIP_WHITE = 255;
