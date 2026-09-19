@@ -66,7 +66,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 |---------|-----------|
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
-| `Menu.h` / `Menu.cpp` | Clase `Menu` (menú inicial con cuadro fijo y rombos de posición). Completa. |
+| `Menu.h` / `Menu.cpp` | Clase `Menu` (menú inicial con carousel lateral y rombos de posición). Completa. |
 | `Snake_II.ino` | Actualmente: arranca y ejecuta el menú inicial (`Menu`). |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
 | `GameBuzzer.h` | Clase del buzzer del juego original (sin cambios). |
@@ -244,10 +244,10 @@ Menu(Display& display, Buttons& buttons, uint8_t topScore = 0, const char* versi
 
 | Método | Descripción |
 |--------|-------------|
-| `void begin()` | Restablece el estado del parpadeo. |
+| `void begin()` | Restablece el estado de la animación y del parpadeo. |
 | `void setOptions(textos, conteo)` | Fija la lista y la cantidad de opciones (1..`MAX_OPTIONS`=8). El menú (textos y rombos) se adapta al conteo. |
-| `void update()` | Lee botones y navega con `MOVE_RIGHT`/`MOVE_LEFT`; log en Serial al cambiar de opción. |
-| `void print()` | Dibuja título, cuadro fijo con la opción seleccionada, rombos de posición y pie (Top + versión). |
+| `void update()` | Lee botones, navega con `MOVE_RIGHT`/`MOVE_LEFT` y anima el deslizamiento lateral; log en Serial al cambiar de opción. |
+| `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Top + versión). |
 | `int8_t selected()` | Índice de la opción seleccionada. |
 | `void setTopScore(uint8_t)` | Actualiza el puntaje máximo mostrado. |
 
@@ -262,7 +262,7 @@ enum Option : uint8_t {
 El enum documenta los índices de las 5 opciones por defecto. La cantidad real es
 variable (`setOptions`), con `MAX_OPTIONS = 8`.
 
-### Diseño del menú
+### Diseño del menú (carousel)
 
 - **Título:** "Snake II", `TEXT_12x16`, centrado en `REGION_HEADER`. Se dibuja al
   inicio, luego se limpia la banda (0..16) con negro y se redibuja.
@@ -273,12 +273,17 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
 - **Cuadro de selección:** **fijo** y de **ancho completo** (128 px),
   `BOX_TOP = 16`, `BOX_HEIGHT = 18` (banda 16..33, límite superior del Body). **No se mueve**;
   el tamaño del texto (tamaño 2) tampoco cambia.
-- **Cambio inmediato (sin animación):** al navegar, la opción seleccionada cambia
-  al instante en el cuadro. Sentido: derecha (`MOVE_RIGHT`) → siguiente opción;
-  izquierda (`MOVE_LEFT`) → anterior. No hay deslizamiento lateral.
-- **Texto del cuadro:** la opción seleccionada se dibuja centrada con
-  `drawTextInverted` (`TEXT_12x16`, negro sobre el cuadro blanco) en
-  `TEXT_SEL_TOP = 17`.
+- **Animación lateral (carousel):** al navegar, la opción **anterior desaparece**
+  (ya no se dibuja) y la **entrante** (nueva seleccionada) se desliza hasta centrarse
+  en el cuadro. Sentido: derecha (`MOVE_RIGHT`) → la entrante entra por la derecha
+  (siguiente opción); izquierda (`MOVE_LEFT`) → entra por la izquierda (anterior).
+  Movimiento `2 px / 15 ms`, salto total `SLIDE_DIST = 48 px`. Si llega otro pulso
+  a mitad de la animación, la transición se reinicia desde el lado correspondiente.
+- **Recorte del texto deslizante:** las opciones se dibujan en un `GFXcanvas8`
+  (128×18, `_chipBox`) que recorta los caracteres parciales en ambos bordes
+  (`drawChar` de la librería *no* recorta en X); el canvas se vuelca a la banda
+  del cuadro con un blit (chip blanco `255`, texto negro `1`, resto transparente).
+  Colores del canvas: `CHIP_WHITE = 255`, `CHIP_TEXT = 1`.
 - **Rombos de posición:** banda `45..53`, pegada a las 2 filas libres `54..55` del
   pie (`DIA_TOP = 45`). Solo el **seleccionado** es un **rombo simétrico
   completo** de 9 filas (dibujado con dos `fillTriangle`, como el alimento del
@@ -415,6 +420,11 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
 - **[2026-09-18] `Menu`: cuadro de selección subido al límite del Body (fila 16)**:
   `BOX_TOP` pasa a 16 (banda 16..33, pegado al límite superior del cuerpo) y el texto
   a `TEXT_SEL_TOP = 17`.
+- **[2026-09-18] `Menu`: restaurada la animación del deslizamiento lateral**: se
+  revierte el cambio anterior; la opción entrante vuelve a deslizarse hasta
+  centrarse en el cuadro (2 px / 15 ms, `SLIDE_DIST = 48 px`). Se restablecen
+  `startSlide`/`animate`, el estado `_dir`/`_slideX`/`_animLast`, las constantes
+  de animación y el `GFXcanvas8 _chipBox` para recortar el texto al deslizar.
 - **[2026-09-18] `Menu`: eliminada la animación del deslizamiento lateral**: al
   navegar, la opción seleccionada cambia al instante en el cuadro (ya no se
   desliza). Se eliminan `startSlide`/`animate`, el estado `_dir`/`_slideX`/

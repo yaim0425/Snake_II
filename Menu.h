@@ -42,7 +42,7 @@ public:
   void setOptions(const char* const* texts, uint8_t count);
 
   // ========================================================
-  // Actualizar (lee botones y navega)
+  // Actualizar (lee botones, navega y anima)
   // ========================================================
 
   void update();
@@ -86,6 +86,11 @@ private:
   // Posición del texto del cuadro (1 px dentro, centrado verticalmente)
   static constexpr int16_t TEXT_SEL_TOP = 17;
 
+  // Animación lateral (carousel): distancia del salto y velocidad
+  static constexpr int16_t SLIDE_DIST = 48;
+  static constexpr uint32_t ANIM_TICK = 15;
+  static constexpr int8_t ANIM_STEP   = 2;
+
   // Rombos de posición: banda 45..53, pegada a las 2 filas libres 54..55 del pie.
   static constexpr int16_t DIA_TOP  = 45;  // punta superior del rombo (rombo simétrico 45..53)
   static constexpr uint8_t DIA_SIZE = 8;   // rombo: punta 45, hombros 49, punta inferior 53
@@ -99,7 +104,11 @@ private:
   // ========================================================
 
   void navigate();
+  void startSlide(int8_t dir);
+  void animate();
   int16_t textCenterX(const char* text) const;
+  void paintOption(int8_t index, int16_t offX);   // dibuja la opción en el canvas
+  void blitChip();                                 // vuelca el canvas a la pantalla
   void drawDiamonds();
 
   // ========================================================
@@ -119,8 +128,13 @@ private:
   uint8_t _optionCount;
   const char* const* _optionTexts;
 
-  int8_t _selected;   // opción actual
+  int8_t _selected;   // opción actual (objetivo central)
+  int8_t _dir;        // +1 siguiente (entra por la derecha), -1 anterior (izquierda)
+  int16_t _slideX;    // desplazamiento de la opción entrante (objetivo 0)
+  uint32_t _animLast;
   uint32_t _holdStart;
+
+  GFXcanvas8 _chipBox;  // ventana del cuadro (recorta el texto al deslizar)
 };
 
 #endif
