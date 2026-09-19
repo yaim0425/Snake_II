@@ -567,6 +567,9 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   usar `ACTION_RIGHT` a `ACTION_LEFT` (pin 40) para activar la opción del menú;
   se actualizan el comentario de `Menu.h`, el comentario en `App.cpp` y la
   documentación (secciones 8 y 9).
+- **[2026-09-18] `Credits`: bloque bajado 4 px y sin hint**: el título "Snake II"
+  y la versión se escriben 4 px más abajo (`getTextPos` + `+4` en Y, con
+  `drawText`); se elimina el texto "ACTION_UP: volver" del pie de la ventana.
 
 ---
 

@@ -38,11 +38,12 @@ void Credits::print() {
 
   _display.drawTextAligned("Creditos", CENTER, TEXT_12x16, REGION_HEADER);
 
-  _display.drawTextAligned("Snake II", CENTER_UP, TEXT_12x16, REGION_BODY);
-  _display.drawTextAligned(_version, CENTER, TEXT_6x8, REGION_BODY);
+  // Título y versión bajados 4 px
+  TextPos tPos = _display.getTextPos("Snake II", CENTER_UP, TEXT_12x16, REGION_BODY);
+  _display.drawText("Snake II", tPos.x, tPos.y + 4, TEXT_12x16);
 
-  _display.drawTextAligned("ACTION_UP: volver", CENTER_DOWN, TEXT_6x8,
-                           REGION_BODY);
+  TextPos vPos = _display.getTextPos(_version, CENTER, TEXT_6x8, REGION_BODY);
+  _display.drawText(_version, vPos.x, vPos.y + 4, TEXT_6x8);
 }
 
 // ========================================================
