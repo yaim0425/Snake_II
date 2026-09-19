@@ -194,10 +194,10 @@ void Menu::drawDiamonds() {
     int16_t x = cx - DIA_SIZE / 2;
 
     if (i == _selected) {
-      // Parpadeo al mantener seleccionado
+      // Parpadeo: visible 75% del período, oculto 25%
       if (millis() - _holdStart >= BLINK_HOLD &&
-          ((millis() / BLINK_TOGGLE) & 1) == 0)
-        continue;  // fase apagada: no se dibuja
+          (millis() % BLINK_PERIOD) < (uint32_t)BLINK_PERIOD * BLINK_OFF_PCT / 100)
+        continue;  // fase oculta (25%): no se dibuja
 
       // Rombo simétrico de 9 filas (45..53), como el alimento del juego:
       // punta superior 45, hombros 49, punta inferior 53 (visible)
