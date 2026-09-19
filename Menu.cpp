@@ -89,13 +89,13 @@ void Menu::navigate() {
   int8_t before = _selected;
   bool moved = false;
 
-  // Solo MOVE_UP y MOVE_DOWN (primera y última no conectadas)
-  if (_buttons.pressed(Buttons::MOVE_UP) && _selected > 0) {
+  // Solo MOVE_LEFT y MOVE_RIGHT (primera y última no conectadas)
+  if (_buttons.pressed(Buttons::MOVE_LEFT) && _selected > 0) {
     _selected--;
     moved = true;
   }
 
-  if (_buttons.pressed(Buttons::MOVE_DOWN) && _selected < _optionCount - 1) {
+  if (_buttons.pressed(Buttons::MOVE_RIGHT) && _selected < _optionCount - 1) {
     _selected++;
     moved = true;
   }

@@ -246,7 +246,7 @@ Menu(Display& display, Buttons& buttons, uint8_t topScore = 0, const char* versi
 |--------|-------------|
 | `void begin()` | Restablece el estado de la animación y del parpadeo. |
 | `void setOptions(textos, conteo)` | Fija la lista y la cantidad de opciones (1..`MAX_OPTIONS`=8). El menú (textos y rombos) se adapta al conteo. |
-| `void update()` | Lee botones, navega con `MOVE_UP`/`MOVE_DOWN` y anima el deslizamiento lateral; log en Serial al cambiar de opción. |
+| `void update()` | Lee botones, navega con `MOVE_RIGHT`/`MOVE_LEFT` y anima el deslizamiento lateral; log en Serial al cambiar de opción. |
 | `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Top + versión). |
 | `int8_t selected()` | Índice de la opción seleccionada. |
 | `void setTopScore(uint8_t)` | Actualiza el puntaje máximo mostrado. |
@@ -275,10 +275,10 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
   el tamaño del texto (tamaño 2) tampoco cambia.
 - **Animación lateral (carousel):** al navegar, la opción **anterior desaparece**
   (ya no se dibuja) y la **entrante** (nueva seleccionada) se desliza hasta centrarse
-  en el cuadro. Sentido: bajar (`MOVE_DOWN`) → la entrante entra por la derecha;
-  subir (`MOVE_UP`) → entra por la izquierda. Movimiento `2 px / 15 ms`, salto
-  total `SLIDE_DIST = 48 px`. Si llega otro pulso a mitad de la animación, la
-  transición se reinicia desde el lado correspondiente.
+  en el cuadro. Sentido: derecha (`MOVE_RIGHT`) → la entrante entra por la derecha
+  (siguiente opción); izquierda (`MOVE_LEFT`) → entra por la izquierda (anterior).
+  Movimiento `2 px / 15 ms`, salto total `SLIDE_DIST = 48 px`. Si llega otro pulso
+  a mitad de la animación, la transición se reinicia desde el lado correspondiente.
 - **Recorte del texto deslizante:** las opciones se dibujan en un `GFXcanvas8`
   (128×18, `_chipBox`) que recorta los caracteres parciales en ambos bordes
   (`drawChar` de la librería *no* recorta en X); el canvas se vuelca a la banda
@@ -420,6 +420,9 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
 - **[2026-09-18] `Menu`: cuadro de selección subido al límite del Body (fila 16)**:
   `BOX_TOP` pasa a 16 (banda 16..33, pegado al límite superior del cuerpo) y el texto
   a `TEXT_SEL_TOP = 17`.
+- **[2026-09-18] `Menu`: navegación con `MOVE_RIGHT`/`MOVE_LEFT`**: los botones de
+  navegación del menú pasan de `MOVE_UP`/`MOVE_DOWN` a `MOVE_RIGHT` (siguiente,
+  entra por la derecha) y `MOVE_LEFT` (anterior, entra por la izquierda).
 - **[2026-09-18] `Menu`: rombo seleccionado corregido (simétrico, como el
   alimento)**: el rombo completo pasó de un octógono asimétrico de 8 filas a un
   **rombo simétrico de 9 filas** (45..53): punta superior en `DIA_TOP = 45`,
