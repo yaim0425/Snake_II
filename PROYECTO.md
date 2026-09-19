@@ -340,7 +340,7 @@ enum class State : uint8_t {
 |--------|---------|-------|
 | `MENU` | `Menu` | Confirma con `ACTION_LEFT` (`confirm()`). |
 | `NUEVO`, `CONTINUAR`, `DIFICULTAD`, `SONIDO` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. |
-| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` (rol tamaño 2 centrado en el Body + nombre tamaño 1 resaltado de lado a lado en el pie del Body). |
+| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` (rol tamaño 2 **seleccionado** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). |
 
 ### Patrón de ventana
 
@@ -595,8 +595,14 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
     al entrar en la ventana.
   - Derecha (2): "Director" (tamaño 2) + "YAIM904" (tamaño 1).
   El rol (tamaño 2) se **centra en el Body** y se baja 4 px (`CENTER` + 4). El
-  nombre (tamaño 1) va **en el pie del Body** (`HINT_TOP = 54`, altura 10),
+  nombre (tamaño 1) va **en el pie del Body** (`PIE_TOP = 54`, altura 10),
   resaltado de lado a lado (cuadro blanco de ancho completo + texto invertido).
+- **[2026-09-18] `Credits`: selección al rol (tamaño 2) y nombre plano**: la
+  ventana pasa a mostrar el **rol (tamaño 2) SELECCIONADO** (`drawHighlight`:
+  cuadro blanco + texto invertido), centrado en el **alto restante del Body**
+  (de la fila `16` a la anterior al pie, `PIE_TOP = 54`). El **nombre
+  (tamaño 1)** queda **des-seleccionado** (texto plano blanco) y se centra en el
+  pie del Body (`PIE_TOP + 1`).
 
 ---
 
