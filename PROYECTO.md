@@ -27,12 +27,16 @@ Para no empezar desde cero, el usuario debe decir exactamente:
 
 ## 1. Estado actual del proyecto
 
-En desarrollo por partes. La clase `Display` está completa. `Snake_II.ino` contiene
-actualmente un menú de prueba. El código del juego original está respaldado (no
-restaurado) en `Snake_II_juego_backup.txt`.
+En desarrollo por partes. La clase `Display` está completa. `Snake_II.ino` es el
+**enlace de dependencias**: crea UNA única instancia de `Display` (y de `Buttons`)
+y la comparte por referencia con la clase `App`, que es el **despachador** de
+ventanas (estado interno + transición con `begin()` de la ventana entrante).
+Se muestran el menú inicial, los placeholders "En desarrollo" (Nuevo, Continuar,
+Dificultad, Sonido) y los créditos. El código del juego original está respaldado
+(no restaurado) en `Snake_II_juego_backup.txt`.
 
-Fases pendientes: integración de la clase `Display` en el juego, botones/pulsadores,
-buzzer, menú, lógica de la serpiente.
+Fases pendientes: integración de la clase `Display` en el juego, botones/pulsadores
+(`Buttons` ya integrado), buzzer, menú, lógica de la serpiente.
 
 ---
 
@@ -69,7 +73,8 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú inicial con carousel lateral y rombos de posición). Completa. |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad, Sonido). Completa. |
-| `Snake_II.ino` | Dispatcher: variable global `AppState` + despachador por estado; todas las ventanas corren en `loop()`. |
+| `App.h` / `App.cpp` | Clase `App` (despachador de ventanas con estado interno; comparte `Display`/`Buttons` por referencia). Completa. |
+| `Snake_II.ino` | Enlace de dependencias: una única `Display` y `Buttons`, instancia de `App`; `setup()` llama `app.begin()`, `loop()` llama `app.update()` y `app.print()`. |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
 | `GameBuzzer.h` | Clase del buzzer del juego original (sin cambios). |
 | `PROYECTO.md` | Este documento. |
@@ -310,23 +315,32 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
 
 ---
 
-## 9. Despachador `AppState` y ventanas
+## 9. Clase `App` — despachador de ventanas
 
-Ubicación: `Snake_II.ino` (despachador), `Menu`, `Credits`, `InfoWindow` (ventanas).
+Ubicación: `App.h` / `App.cpp`. Todas las ventanas (`Menu`, `Credits`,
+`InfoWindow`) se comparten **la misma instancia** de `Display` y `Buttons`.
 
-### Estado global
+### Responsabilidad
+
+`App` es el **despachador**: su **estado interno** (`enum class State`) decide qué
+ventana corre y cuándo cambiar de ventana (`changeState()`, que llama al `begin()`
+de la ventana entrante). `loop()` no participa en las transiciones: solo llama a
+`app.update()` y `app.print()`. `Snake_II.ino` crea una única `Display` y una
+única `Buttons` y las pasa a `App` por referencia.
+
+### Estados internos
 
 ```cpp
-enum AppState : uint8_t {
-  ST_MENU = 0, ST_NUEVO, ST_CONTINUAR, ST_DIFICULTAD, ST_SONIDO, ST_CREDITOS
+enum class State : uint8_t {
+  MENU = 0, NUEVO, CONTINUAR, DIFICULTAD, SONIDO, CREDITOS
 };
-AppState state = ST_MENU;
 ```
 
-La **variable global `state` es la única que activa una ventana**. Todas las
-ventanas se ejecutan desde `loop()`, y el **despachador** (`switch (state)`) decide
-cuál corre y cuándo cambiar de estado (`changeState()`). Solo el despachador
-modifica `state`.
+| Estado | Ventana | Notas |
+|--------|---------|-------|
+| `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
+| `NUEVO`, `CONTINUAR`, `DIFICULTAD`, `SONIDO` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. |
+| `CREDITOS` | `Credits` | Muestra "Snake II", versión y "ACTION_UP: volver". |
 
 ### Patrón de ventana
 
@@ -334,28 +348,18 @@ Toda ventana implementa:
 
 | Método | Descripción |
 |--------|-------------|
-| `begin()` | Restablece la ventana al entrar (al cambiar de estado). |
+| `begin()` | Restablece la ventana al entrar. `App` lo llama solo en `changeState()`. |
 | `update()` | Lee botones (`_buttons.read()`) y maneja sus eventos. |
-| `print()` | Dibuja la ventana en pantalla (aleja del render real). |
+| `print()` | Dibuja la ventana (App hace `display.clear()` antes de cada `print()`). |
 | `done()` | `true` cuando la ventana pide volver al menú. |
-
-El `loop()` hace lo mismo para todas: `update() → display.clear() → print() →
-display.show()` y, si `done()`, `changeState(ST_MENU)`.
-
-### Estados y ventanas actuales
-
-| Estado | Ventana | Notas |
-|--------|---------|-------|
-| `ST_MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
-| `ST_NUEVO`, `ST_CONTINUAR`, `ST_DIFICULTAD`, `ST_SONIDO` | `InfoWindow` | Placeholder "En desarrollo"; se reemplazarán por `Juego`/`Config` reales. |
-| `ST_CREDITOS` | `Credits` | Muestra versión y "Snake II". |
 
 ### Reglas del despachador
 
-1. Solo `loop()`/`changeState()` cambian `state`.
+1. Solo `App` cambia de estado (nadie más conoce `State`).
 2. Una ventana nunca cambia de estado ni conoce a las demás: expone `done()`.
 3. `ACTION_UP` es el botón común "volver al menú" en todas las ventanas.
 4. `ACTION_RIGHT` activa la opción del menú (su `confirm()`).
+5. `begin()` de cada ventana se llama desde `changeState()`, nunca desde `loop()`.
 
 ---
 
@@ -538,6 +542,21 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   `ST_CONTINUAR`, `ST_DIFICULTAD`, `ST_SONIDO`, `ST_CREDITOS`). Todas las
   ventanas corren en `loop()`; solo el despachador cambia `state`;
   `ACTION_UP` vuelve al menú.
+- **[2026-09-18] Reestructura del despachador a clase `App`**: el despachador
+  pasa de una variable global `AppState` + `switch` en `Snake_II.ino` a una
+  **clase `App`** (`App.h`/`App.cpp`) con el estado `enum class State` interno.
+  `changeState()` llama al `begin()` de la ventana entrante (ya no se llama desde
+  `loop()`); `loop()` solo ejecuta `app.update()` y `app.print()`. `Snake_II.ino`
+  queda como enlace de dependencias: crea **una única** instancia global de
+  `Display` y `Buttons` y se las pasa a `App` por referencia; todas las ventanas
+  comparten esa misma instancia.
+- **[2026-09-18] `InfoWindow`: "En desarrollo" a tamaño 1**: el mensaje central
+  de los placeholders pasa de `TEXT_12x16` (demasiado grande para la pantalla) a
+  `TEXT_6x8`, con el título de la ventana en `TEXT_12x16` en el Header.
+- **[2026-09-18] `Credits`: sin solape en el render**: "Snake II" se alinea con
+  `CENTER_UP` (banda 16..31) y la versión con `CENTER` (36..43), eliminando el
+  solape anterior entre ambos textos (antes ambos se centraban en el Body y se
+  pisaban), de modo que la ventana de créditos se ve correctamente al entrar.
 
 ---
 

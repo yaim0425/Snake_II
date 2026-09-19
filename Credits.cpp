@@ -40,7 +40,7 @@ void Credits::print() {
 
   _display.drawTextAligned("Creditos", CENTER, TEXT_12x16, REGION_HEADER);
 
-  _display.drawTextAligned("Snake II", CENTER, TEXT_12x16, REGION_BODY);
+  _display.drawTextAligned("Snake II", CENTER_UP, TEXT_12x16, REGION_BODY);
   _display.drawTextAligned(_version, CENTER, TEXT_6x8, REGION_BODY);
 
   char buf[16];

@@ -40,7 +40,7 @@ void InfoWindow::print() {
   if (_title != nullptr)
     _display.drawTextAligned(_title, CENTER, TEXT_12x16, REGION_HEADER);
 
-  _display.drawTextAligned("En desarrollo", CENTER, TEXT_12x16, REGION_BODY);
+  _display.drawTextAligned("En desarrollo", CENTER, TEXT_6x8, REGION_BODY);
   _display.drawTextAligned("ACTION_UP: volver", CENTER_DOWN, TEXT_6x8,
                            REGION_BODY);
 }
