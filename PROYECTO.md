@@ -71,7 +71,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú inicial con carousel lateral y rombos de posición). Completa. |
-| `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables, vuelve al menú con `ACTION_UP`). Completa. |
+| `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad, Sonido). Completa. |
 | `App.h` / `App.cpp` | Clase `App` (despachador de ventanas con estado interno; comparte `Display`/`Buttons` por referencia). Completa. |
 | `Snake_II.ino` | Enlace de dependencias: una única `Display` y `Buttons`, instancia de `App`; `setup()` llama `app.begin()`, `loop()` llama `app.update()` y `app.print()`. |
@@ -340,7 +340,7 @@ enum class State : uint8_t {
 |--------|---------|-------|
 | `MENU` | `Menu` | Confirma con `ACTION_LEFT` (`confirm()`). |
 | `NUEVO`, `CONTINUAR`, `DIFICULTAD`, `SONIDO` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. |
-| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). |
+| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). |
 
 ### Patrón de ventana
 
@@ -606,8 +606,16 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
 - **[2026-09-18] `Credits`: cuadro de selección de borde a borde**: el cuadro
   blanco que resalta el rol (tamaño 2) pasa a ocupar **todo el ancho de la
   pantalla** (`fillRect(0, roleY-1, ancho, roleH+2)` en blanco) con el texto
-  centrado en invertido (`drawTextInverted`), en lugar del `drawHighlight` que
-  solo rodeaba el texto.
+  centrado en invertido, en lugar del `drawHighlight` que solo rodeaba el texto.
+- **[2026-09-18] `Credits`: animación lateral (espejo del menú)**: a ambos textos
+  (rol tamaño 2 y nombre tamaño 1) se les aplica la **misma transición lateral
+  del menú principal**: la entrada previa se **barre** desde la dirección
+  contraria a la entrante y la nueva **se desliza** hasta centrarse
+  (`startSlide`/`animate`, `SLIDE_DIST = 48`, `ANIM_TICK = 15`, `ANIM_STEP = 2`).
+  El texto se pinta en un canvas `GFXcanvas8` (`paintText`/`blitBand`) que recorta
+  el deslizamiento; el barrido se hace con `fillRect` (blanco sobre el rol dentro
+  del cuadro, negro sobre el nombre en el pie). `begin()` reinicia la animación y
+  `update()` la avanza (`navigate()` + `animate()`).
 
 ---
 
