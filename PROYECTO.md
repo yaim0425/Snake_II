@@ -256,7 +256,7 @@ Menu(Display& display, Buttons& buttons, uint8_t topScore = 0, const char* versi
 | `void update()` | Lee botones, navega con `MOVE_RIGHT`/`MOVE_LEFT` y anima el deslizamiento lateral; log en Serial al cambiar de opción. |
 | `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Top + versión). |
 | `int8_t selected()` | Índice de la opción seleccionada. |
-| `int8_t confirm()` | Devuelve la opción seleccionada si se confirma con `ACTION_RIGHT` (pulse recién presionado), o `-1`. Es el "activar opción" del menú. |
+| `int8_t confirm()` | Devuelve la opción seleccionada si se confirma con `ACTION_LEFT` (pulse recién presionado), o `-1`. Es el "activar opción" del menú. |
 | `void setTopScore(uint8_t)` | Actualiza el puntaje máximo mostrado. |
 
 ### Opciones y enum
@@ -338,7 +338,7 @@ enum class State : uint8_t {
 
 | Estado | Ventana | Notas |
 |--------|---------|-------|
-| `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
+| `MENU` | `Menu` | Confirma con `ACTION_LEFT` (`confirm()`). |
 | `NUEVO`, `CONTINUAR`, `DIFICULTAD`, `SONIDO` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. |
 | `CREDITOS` | `Credits` | Muestra "Snake II", versión y "ACTION_UP: volver". |
 
@@ -358,7 +358,7 @@ Toda ventana implementa:
 1. Solo `App` cambia de estado (nadie más conoce `State`).
 2. Una ventana nunca cambia de estado ni conoce a las demás: expone `done()`.
 3. `ACTION_UP` es el botón común "volver al menú" en todas las ventanas.
-4. `ACTION_RIGHT` activa la opción del menú (su `confirm()`).
+4. `ACTION_LEFT` activa la opción del menú (su `confirm()`).
 5. `begin()` de cada ventana se llama desde `changeState()`, nunca desde `loop()`.
 
 ---
@@ -563,6 +563,10 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   parpadeaba y el ESP32 volvía al menú inicial (reinicio). Ahora se pasa el
   literal directo a `drawTextAligned` (como en `InfoWindow`) y se elimina
   `<stdio.h>`.
+- **[2026-09-18] `Menu`: confirmación con `ACTION_LEFT`**: `confirm()` pasa de
+  usar `ACTION_RIGHT` a `ACTION_LEFT` (pin 40) para activar la opción del menú;
+  se actualizan el comentario de `Menu.h`, el comentario en `App.cpp` y la
+  documentación (secciones 8 y 9).
 
 ---
 
