@@ -81,10 +81,11 @@ private:
   void navigate();
   void startSlide(int8_t dir);
   void animate();
-  void wipeOld(int16_t offX, int16_t y, uint8_t h, uint16_t color);
+  void wipeOld(int16_t offX);
   void paintText(const char* text, int16_t x, uint8_t size);
-  void blitBand(const char* text, int16_t x, uint8_t size, int16_t y,
-                uint16_t color);
+  void blitBand(int16_t y, uint8_t size, uint16_t fgColor, uint16_t bgColor);
+  void drawBand(uint8_t slot, int16_t y, uint8_t size, uint16_t fgColor,
+                uint16_t bgColor);
 };
 
 #endif

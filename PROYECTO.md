@@ -612,10 +612,12 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   del menú principal**: la entrada previa se **barre** desde la dirección
   contraria a la entrante y la nueva **se desliza** hasta centrarse
   (`startSlide`/`animate`, `SLIDE_DIST = 48`, `ANIM_TICK = 15`, `ANIM_STEP = 2`).
-  El texto se pinta en un canvas `GFXcanvas8` (`paintText`/`blitBand`) que recorta
-  el deslizamiento; el barrido se hace con `fillRect` (blanco sobre el rol dentro
-  del cuadro, negro sobre el nombre en el pie). `begin()` reinicia la animación y
-  `update()` la avanza (`navigate()` + `animate()`).
+  El texto se pinta en un canvas `GFXcanvas8` (`drawBand`): la entrada previa se
+  dibuja centrada, se **barre** (`wipeOld`, sobre el canvas) y la entrante se
+  pinta con un **bloque de fondo** que cubre el texto viejo (`paintText`), y
+  finalmente se vuelca con `blitBand` (texto y fondo a los colores de cada
+  banda). `begin()` reinicia la animación y `update()` la avanza (`navigate()` +
+  `animate()`).
 
 ---
 

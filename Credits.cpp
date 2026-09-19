@@ -14,16 +14,18 @@ static const char* const ROLE_NAME[Credits::NUM_ENTRIES][2] = {
   { "Director", "YAIM904"     }
 };
 
-// Valores del canvas del barrido: 0 = transparente, 1 = texto (se dibuja)
+// Valores del canvas de la banda: 0 = transparente, 1 = texto, 255 = fondo
+// (el fondo/bloque cubre el texto viejo al deslizar el nuevo)
+static constexpr uint8_t CHIP_BG   = 255;
 static constexpr uint8_t CHIP_TEXT = 1;
 
 // ========================================================
 // Geometría
 // ========================================================
 // El rol (tamaño 2) va SELECCIONADO (cuadro blanco de borde a borde + texto
-// invertido), centrado en el alto restante del Body: de la fila 16 (BODY_TOP)
+// negro), centrado en el alto restante del Body: de la fila 16 (BODY_TOP)
 // hasta la fila anterior al pie (PIE_TOP).
-// El nombre (tamaño 1) va DES-SELECCIONADO (texto plano blanco) en el pie.
+// El nombre (tamaño 1) va DES-SELECCIONADO (texto blanco plano) en el pie.
 static constexpr int16_t BODY_TOP = 16;   // fila superior del Body
 static constexpr int16_t PIE_TOP = 54;    // fila superior del pie del Body
 
@@ -124,50 +126,78 @@ void Credits::animate() {
 // Borrado de la entrada previa (dirección contraria a la entrante)
 // ========================================================
 
-void Credits::wipeOld(int16_t offX, int16_t y, uint8_t h, uint16_t color) {
+void Credits::wipeOld(int16_t offX) {
   int16_t w = _display.getWidth();
   uint16_t a = (offX < 0) ? (uint16_t)(-offX) : (uint16_t)offX;
   if (a >= SLIDE_DIST) return;   // aún no arranca el barrido
 
-  // Progreso del barrido (0 al inicio, w al final)
+  // Progreso del barrido (0 al inicio, w al final), sobre el canvas
   int16_t front = (int16_t)((uint32_t)(SLIDE_DIST - a) * w / SLIDE_DIST);
-  Adafruit_SSD1306& s = _display.screen();
 
   if (_dir > 0)
-    s.fillRect(w - front, y, front, h, color);   // barrido derecha -> izquierda
+    _band.fillRect(w - front, 0, front, _band.height(), 0);  // dcha -> izda
   else
-    s.fillRect(0, y, front, h, color);           // barrido izquierda -> derecha
+    _band.fillRect(0, 0, front, _band.height(), 0);          // izda -> dcha
 }
 
 // ========================================================
-// Pintar un texto en el canvas (solo la capa de texto)
+// Pintar un texto en el canvas (bloque de fondo + texto)
 // ========================================================
 
 void Credits::paintText(const char* text, int16_t x, uint8_t size) {
-  _band.fillScreen(0);
+  uint8_t tw = _display.getTextWidth(text, size);
+  uint8_t th = _display.getTextHeight(size);
+
+  // Bloque de fondo: cubre el texto viejo bajo el entrante
+  _band.fillRect(x - 2, 0, tw + 4, th, CHIP_BG);
+
   _band.setTextSize(size);
-  _band.setTextColor(CHIP_TEXT);
+  _band.setTextColor(CHIP_TEXT, CHIP_BG);
   _band.setCursor(x, 0);
   _band.print(text);
 }
 
 // ========================================================
-// Vuelcar el canvas a la pantalla en una banda
+// Volcar el canvas a la pantalla en una banda
 // ========================================================
 
-void Credits::blitBand(const char* text, int16_t x, uint8_t size, int16_t y,
-                       uint16_t color) {
-  paintText(text, x, size);
-
+void Credits::blitBand(int16_t y, uint8_t size, uint16_t fgColor,
+                       uint16_t bgColor) {
   Adafruit_SSD1306& s = _display.screen();
   uint8_t h = _display.getTextHeight(size);
 
   for (uint8_t py = 0; py < h; py++) {
     for (uint8_t px = 0; px < _display.getWidth(); px++) {
-      if (_band.getPixel(px, py) == CHIP_TEXT)
-        s.drawPixel(px, y + py, color);
+      uint8_t v = _band.getPixel(px, py);
+      if (v == CHIP_TEXT)      s.drawPixel(px, y + py, fgColor);
+      else if (v == CHIP_BG)   s.drawPixel(px, y + py, bgColor);
     }
   }
+}
+
+// ========================================================
+// Dibujar una banda (rol = 0, nombre = 1) con transición
+// ========================================================
+
+void Credits::drawBand(uint8_t slot, int16_t y, uint8_t size, uint16_t fgColor,
+                       uint16_t bgColor) {
+  int16_t w = _display.getWidth();
+
+  _band.fillScreen(0);
+
+  // La entrada previa (centrada) se pinta y se barre desde la dirección
+  // contraria a la entrante
+  if (_prev != _entry) {
+    int16_t prevX = (w - _display.getTextWidth(ROLE_NAME[_prev][slot], size)) / 2;
+    paintText(ROLE_NAME[_prev][slot], prevX, size);
+    wipeOld(_slideX);
+  }
+
+  // La entrada entrante (bloque de fondo + texto) se desliza hasta centrarse
+  int16_t curX = (w - _display.getTextWidth(ROLE_NAME[_entry][slot], size)) / 2;
+  paintText(ROLE_NAME[_entry][slot], curX + _slideX, size);
+
+  blitBand(y, size, fgColor, bgColor);
 }
 
 // ========================================================
@@ -175,43 +205,18 @@ void Credits::blitBand(const char* text, int16_t x, uint8_t size, int16_t y,
 // ========================================================
 
 void Credits::print() {
-  Adafruit_SSD1306& s = _display.screen();
-
   // Título de la ventana
   _display.drawTextAligned("Creditos", CENTER, TEXT_12x16, REGION_HEADER);
 
-  // ----- Rol (tamaño 2) seleccionado -----
-
-  // Cuadro blanco de borde a borde, fijo
+  // Rol: cuadro blanco de borde a borde (fijo), texto negro
   int16_t w = _display.getWidth();
   int16_t roleH = _display.getTextHeight(TEXT_12x16);
   int16_t roleY = BODY_TOP + (PIE_TOP - BODY_TOP - roleH) / 2;
-  s.fillRect(0, roleY - 1, w, roleH + 2, SSD1306_WHITE);
+  _display.screen().fillRect(0, roleY - 1, w, roleH + 2, SSD1306_WHITE);
+  drawBand(0, roleY, TEXT_12x16, SSD1306_BLACK, SSD1306_WHITE);
 
-  // Entrada previa (centrada) se borra desde la dirección contraria
-  if (_prev != _entry) {
-    int16_t prevX = (w - _display.getTextWidth(ROLE_NAME[_prev][0], TEXT_12x16)) / 2;
-    blitBand(ROLE_NAME[_prev][0], prevX, TEXT_12x16, roleY, SSD1306_BLACK);
-    wipeOld(_slideX, roleY - 1, roleH + 2, SSD1306_WHITE);
-  }
-
-  // Entrada entrante se desliza hasta centrarse
-  int16_t curX = (w - _display.getTextWidth(ROLE_NAME[_entry][0], TEXT_12x16)) / 2;
-  blitBand(ROLE_NAME[_entry][0], curX + _slideX, TEXT_12x16, roleY, SSD1306_BLACK);
-
-  // ----- Nombre (tamaño 1) des-seleccionado, en el pie -----
-
-  uint8_t nameH = _display.getTextHeight(TEXT_6x8);
-  uint8_t nameY = PIE_TOP + 1;  // banda de 10px, texto de 8px, centrado
-
-  if (_prev != _entry) {
-    int16_t prevX = (w - _display.getTextWidth(ROLE_NAME[_prev][1], TEXT_6x8)) / 2;
-    blitBand(ROLE_NAME[_prev][1], prevX, TEXT_6x8, nameY, SSD1306_WHITE);
-    wipeOld(_slideX, PIE_TOP, 10, SSD1306_BLACK);
-  }
-
-  int16_t nameX = (w - _display.getTextWidth(ROLE_NAME[_entry][1], TEXT_6x8)) / 2;
-  blitBand(ROLE_NAME[_entry][1], nameX + _slideX, TEXT_6x8, nameY, SSD1306_WHITE);
+  // Nombre: texto blanco plano en el pie
+  drawBand(1, PIE_TOP + 1, TEXT_6x8, SSD1306_WHITE, SSD1306_BLACK);
 }
 
 // ========================================================
