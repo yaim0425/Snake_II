@@ -1,7 +1,5 @@
 #include "Credits.h"
 
-#include <stdio.h>
-
 // ========================================================
 // Constructor
 // ========================================================
@@ -43,9 +41,8 @@ void Credits::print() {
   _display.drawTextAligned("Snake II", CENTER_UP, TEXT_12x16, REGION_BODY);
   _display.drawTextAligned(_version, CENTER, TEXT_6x8, REGION_BODY);
 
-  char buf[16];
-  sprintf(buf, "ACTION_UP: volver");
-  _display.drawTextAligned(buf, CENTER_DOWN, TEXT_6x8, REGION_BODY);
+  _display.drawTextAligned("ACTION_UP: volver", CENTER_DOWN, TEXT_6x8,
+                           REGION_BODY);
 }
 
 // ========================================================

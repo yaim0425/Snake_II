@@ -557,6 +557,12 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   `CENTER_UP` (banda 16..31) y la versión con `CENTER` (36..43), eliminando el
   solape anterior entre ambos textos (antes ambos se centraban en el Body y se
   pisaban), de modo que la ventana de créditos se ve correctamente al entrar.
+- **[2026-09-18] `Credits`: corregido desbordamiento de pila al entrar**: el
+  hint "ACTION_UP: volver" se copiaba con `sprintf` en un `char buf[16]`, pero el
+  texto mide 17 chars + NUL (18 bytes) → corrompía la pila, la pantalla
+  parpadeaba y el ESP32 volvía al menú inicial (reinicio). Ahora se pasa el
+  literal directo a `drawTextAligned` (como en `InfoWindow`) y se elimina
+  `<stdio.h>`.
 
 ---
 
