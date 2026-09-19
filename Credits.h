@@ -8,10 +8,16 @@ class Credits {
 public:
 
   // ========================================================
+  // Configuración
+  // ========================================================
+
+  static constexpr uint8_t NUM_ENTRIES = 2;
+
+  // ========================================================
   // Constructor
   // ========================================================
 
-  Credits(Display& display, Buttons& buttons, const char* version = "v0.1");
+  Credits(Display& display, Buttons& buttons);
 
   // ========================================================
   // Inicialización (al entrar en la ventana)
@@ -20,7 +26,7 @@ public:
   void begin();
 
   // ========================================================
-  // Actualizar (lee botones y eventos)
+  // Actualizar (lee botones, navega entre entradas)
   // ========================================================
 
   void update();
@@ -39,10 +45,18 @@ public:
 
 private:
 
+  // ========================================================
+  // Dependencias
+  // ========================================================
+
   Display& _display;
   Buttons& _buttons;
 
-  const char* _version;
+  // ========================================================
+  // Estado
+  // ========================================================
+
+  uint8_t _entry;   // entrada visible (0 = izquierda, 1 = derecha)
   bool _exit;
 };
 

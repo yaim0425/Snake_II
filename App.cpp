@@ -9,7 +9,7 @@ App::App(Display& display, Buttons& buttons)
     _display(display),
     _buttons(buttons),
     _menu(display, buttons, 0, "v0.1"),
-    _credits(display, buttons, "v0.1"),
+    _credits(display, buttons),
     _info(display, buttons) {}
 
 // ========================================================

@@ -71,7 +71,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú inicial con carousel lateral y rombos de posición). Completa. |
-| `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos, vuelve al menú con `ACTION_UP`). Completa. |
+| `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 2 entradas navegables, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad, Sonido). Completa. |
 | `App.h` / `App.cpp` | Clase `App` (despachador de ventanas con estado interno; comparte `Display`/`Buttons` por referencia). Completa. |
 | `Snake_II.ino` | Enlace de dependencias: una única `Display` y `Buttons`, instancia de `App`; `setup()` llama `app.begin()`, `loop()` llama `app.update()` y `app.print()`. |
@@ -340,7 +340,7 @@ enum class State : uint8_t {
 |--------|---------|-------|
 | `MENU` | `Menu` | Confirma con `ACTION_LEFT` (`confirm()`). |
 | `NUEVO`, `CONTINUAR`, `DIFICULTAD`, `SONIDO` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. |
-| `CREDITOS` | `Credits` | Muestra "Snake II", versión y "ACTION_UP: volver". |
+| `CREDITOS` | `Credits` | 2 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` (rol tamaño 2 + nombre tamaño 1 resaltado de lado a lado). |
 
 ### Patrón de ventana
 
@@ -577,6 +577,17 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   "ACTION_UP: volver" del pie y se dibuja la **línea horizontal de 1 px** en la
   fila `54` (`PIE_LINE_ROW`), a **2 px sobre el pie** (igual que en `Credits` y el
   menú principal).
+- **[2026-09-18] `Credits`: sin línea y contenido navegable**: se elimina la
+  línea separadora del pie y la ventana pasa a mostrar **2 entradas de crédito**
+  navegables con `MOVE_LEFT`/`MOVE_RIGHT` (sin conectar extremos):
+  - Izquierda: rol "Programador" (tamaño 2) + nombre "opencode.ai" (tamaño 1)
+    **resaltado de lado a lado** (cuadro blanco de ancho completo con texto
+    invertido centrado, `fillRect` + `drawTextInverted`).
+  - Derecha: rol "Director" (tamaño 2) + nombre "YAIM904" (tamaño 1, mismo
+    resaltado).
+  El rol se dibuja centrado y bajado 4 px del tope del Body; el cuadro del nombre
+  queda en la fila 40 (altura 10). Se elimina la versión del constructor de
+  `Credits` (ya no se muestra) y se actualiza `App.cpp`.
 
 ---
 
