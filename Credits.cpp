@@ -37,7 +37,6 @@ Credits::Credits(Display& display, Buttons& buttons)
   : _display(display),
     _buttons(buttons),
     _entry(1),
-    _prev(1),
     _dir(1),
     _slideX(0),
     _animLast(0),
@@ -50,7 +49,6 @@ Credits::Credits(Display& display, Buttons& buttons)
 
 void Credits::begin() {
   _entry = 1;  // entrada central (Snake II / v0.1)
-  _prev = _entry;
   _slideX = 0;
   _animLast = millis();
   _exit = false;
@@ -76,13 +74,11 @@ void Credits::navigate() {
   bool moved = false;
 
   if (_buttons.pressed(Buttons::MOVE_LEFT) && _entry > 0) {
-    _prev = _entry;
     _entry--;
     moved = true;
   }
 
   if (_buttons.pressed(Buttons::MOVE_RIGHT) && _entry < NUM_ENTRIES - 1) {
-    _prev = _entry;
     _entry++;
     moved = true;
   }
@@ -120,24 +116,6 @@ void Credits::animate() {
 
   if ((_dir > 0 && _slideX < 0) || (_dir < 0 && _slideX > 0))
     _slideX = 0;
-}
-
-// ========================================================
-// Borrado de la entrada previa (dirección contraria a la entrante)
-// ========================================================
-
-void Credits::wipeOld(int16_t offX) {
-  int16_t w = _display.getWidth();
-  uint16_t a = (offX < 0) ? (uint16_t)(-offX) : (uint16_t)offX;
-  if (a >= SLIDE_DIST) return;   // aún no arranca el barrido
-
-  // Progreso del barrido (0 al inicio, w al final), sobre el canvas
-  int16_t front = (int16_t)((uint32_t)(SLIDE_DIST - a) * w / SLIDE_DIST);
-
-  if (_dir > 0)
-    _band.fillRect(w - front, 0, front, _band.height(), 0);  // dcha -> izda
-  else
-    _band.fillRect(0, 0, front, _band.height(), 0);          // izda -> dcha
 }
 
 // ========================================================
@@ -185,15 +163,9 @@ void Credits::drawBand(uint8_t slot, int16_t y, uint8_t size, uint16_t fgColor,
 
   _band.fillScreen(0);
 
-  // La entrada previa (centrada) se pinta y se barre desde la dirección
-  // contraria a la entrante
-  if (_prev != _entry) {
-    int16_t prevX = (w - _display.getTextWidth(ROLE_NAME[_prev][slot], size)) / 2;
-    paintText(ROLE_NAME[_prev][slot], prevX, size);
-    wipeOld(_slideX);
-  }
-
-  // La entrada entrante (bloque de fondo + texto) se desliza hasta centrarse
+  // Solo la entrada entrante (bloque de fondo + texto) se desliza hasta
+  // centrarse; el texto viejo desaparece porque la pantalla se limpia cada
+  // frame, así no quedan restos de glifos con anchos distintos
   int16_t curX = (w - _display.getTextWidth(ROLE_NAME[_entry][slot], size)) / 2;
   paintText(ROLE_NAME[_entry][slot], curX + _slideX, size);
 

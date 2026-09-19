@@ -352,7 +352,7 @@ enum class State : uint8_t {
 |--------|---------|-------|
 | `MENU` | `Menu` | Confirma con `ACTION_LEFT` (`confirm()`). |
 | `NUEVO`, `CONTINUAR`, `DIFICULTAD`, `SONIDO` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. |
-| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). |
+| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición solo desliza la entrada entrante (la saliente desaparece al limpiar la pantalla cada frame, sin restos de glifos ni `_prev`). |
 
 ### Patrón de ventana
 
@@ -635,6 +635,13 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   `D:\Documents\ESP32S3\Snake_II`, leer `PROYECTO.md`, respetar las reglas de la
   sección 0 y revisar `git status`/`git log --oneline -10` antes de empezar) para
   copiar y pegar tal cual en la nueva sesión, sin escribir nada más.
+- **[2026-09-18] `Credits`: transición sin restos (se elimina `_prev`/`wipeOld`)**:
+  al cambiar de opción aparecían **puntos negros** dentro del cuadro de selección
+  (restos de glifos del texto previo, de ancho distinto). Se limpia por completo el
+  texto saliente al iniciar la transición: `drawBand` solo pinta la entrada entrante
+  (bloque de fondo + texto) deslizándose hasta centrarse. Se eliminan el miembro
+  `_prev` (`Credits.h`/`Credits.cpp`, incluidos sus usos en constructor, `begin()` y
+  `navigate()`) y el método `wipeOld`.
 
 ---
 
