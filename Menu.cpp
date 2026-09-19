@@ -207,8 +207,8 @@ void Menu::drawDiamonds() {
       s.fillTriangle(x + 4, DIA_TOP, x, DIA_TOP + DIA_SIZE / 2,
                      x + 4, DIA_TOP + DIA_SIZE, SSD1306_WHITE);
     } else {
-      // Solo la punta (triángulo superior), bajada hasta las filas libres del
-      // pie: base en la 53 (pegada a las 54..55), vértice en la 50
+      // Solo la punta (triángulo superior), apoyada sobre la línea separadora:
+      // base en la 53 (sobre la línea de la 54), vértice en la 50
       int16_t baseY = DIA_TOP + DIA_SIZE;  // 53
       int16_t y = baseY - 3;               // 50
       _display.screen().fillTriangle(x + 4, y, x, baseY, x + 8, baseY,
@@ -241,15 +241,21 @@ void Menu::print() {
   _display.screen().fillRect(0, 0, _display.getWidth(), BODY_TOP, SSD1306_BLACK);
   _display.drawTextAligned("Snake II", CENTER, TEXT_12x16, REGION_HEADER);
 
-  // Limpiar las 2 filas libres (54..55) + la fila del pie (56..63)
-  _display.screen().fillRect(0, 54, _display.getWidth(), 10, SSD1306_BLACK);
+  // Limpiar la banda del pie: línea (54) + filas libres (55..56) + texto (57..63)
+  _display.screen().fillRect(0, PIE_LINE_ROW, _display.getWidth(), 10, SSD1306_BLACK);
 
-  // Pie: Top y versión
+  // Línea horizontal de 1 px, a 2 px sobre el pie
+  _display.screen().drawFastHLine(0, PIE_LINE_ROW, _display.getWidth(), SSD1306_WHITE);
+
+  // Pie: Top y versión, bajados 1 px (fila 57)
   char buf[16];
   sprintf(buf, "Top: %u pts", _topScore);
 
-  _display.drawTextAligned(buf, LEFT_DOWN, TEXT_6x8, REGION_BODY);
-  _display.drawTextAligned(_version, RIGHT_DOWN, TEXT_6x8, REGION_BODY);
+  TextPos tPos = _display.getTextPos(buf, LEFT_DOWN, TEXT_6x8, REGION_BODY);
+  _display.drawText(buf, tPos.x, PIE_TOP, TEXT_6x8);
+
+  TextPos vPos = _display.getTextPos(_version, RIGHT_DOWN, TEXT_6x8, REGION_BODY);
+  _display.drawText(_version, vPos.x, PIE_TOP, TEXT_6x8);
 }
 
 // ========================================================

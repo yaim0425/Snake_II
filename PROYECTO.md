@@ -266,9 +266,11 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
 
 - **Título:** "Snake II", `TEXT_12x16`, centrado en `REGION_HEADER`. Se dibuja al
   inicio, luego se limpia la banda (0..16) con negro y se redibuja.
-- **Pie:** "Top: X pts" (`LEFT_DOWN`) y versión (`RIGHT_DOWN`) en `TEXT_6x8`.
-  Se limpian con negro las filas `54..63` (2 filas libres `54..55` sobre el pie
-  `56..64` + la fila del pie) antes de escribir el pie. Las 2 filas sobre el pie
+- **Pie:** "Top: X pts" (`LEFT_DOWN`) y versión (`RIGHT_DOWN`) en `TEXT_6x8`,
+  **bajado 1 px** (fila 57, `PIE_TOP = 57`). Se limpian con negro las filas
+  `54..63` antes de dibujar. Una **línea horizontal de 1 px** de grosor,
+  `drawFastHLine`, en la fila `54` (`PIE_LINE_ROW`), a **2 px sobre el pie**
+  (filas libres `55..56` entre la línea y el texto). Las 2 filas sobre el pie
   quedan siempre limpias.
 - **Cuadro de selección:** **fijo** y de **ancho completo** (128 px),
   `BOX_TOP = 25`, `BOX_HEIGHT = 18` (banda 25..42). Con el rombo activo de punta
@@ -286,13 +288,13 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
   (`drawChar` de la librería *no* recorta en X); el canvas se vuelca a la banda
   del cuadro con un blit (chip blanco `255`, texto negro `1`, resto transparente).
   Colores del canvas: `CHIP_WHITE = 255`, `CHIP_TEXT = 1`.
-- **Rombos de posición:** banda `45..53`, pegada a las 2 filas libres `54..55` del
-  pie (`DIA_TOP = 45`). Solo el **seleccionado** es un **rombo simétrico
+- **Rombos de posición:** banda `45..53`, pegada a la línea separadora en la `54`
+  (antes de la fila del pie, `DIA_TOP = 45`). Solo el **seleccionado** es un **rombo simétrico
   completo** de 9 filas (dibujado con dos `fillTriangle`, como el alimento del
   juego): punta superior en la `45`, hombros en la `49` y **punta inferior en la
-  `53`** (visible, justo sobre las libres `54..55`). Los **no seleccionados** son
-  solo la **punta** (triángulo superior), **bajada hasta las filas libres del
-  pie**: base en la `53` y vértice en la `50`. Reparto uniforme en el ancho
+  `53`** (visible, justo sobre la línea separadora `54`). Los **no seleccionados** son
+  solo la **punta** (triángulo superior), **bajada hasta la línea separadora**:
+  base en la `53` y vértice en la `50`. Reparto uniforme en el ancho
   (`cx = (i+1)·128/(n+1)`). Si se **mantiene** seleccionado sin navegar
   `BLINK_HOLD = 500 ms`, el rombo **parpadea** alternando cada
   `BLINK_TOGGLE = 250 ms`. Antes de dibujarlos se limpia con negro la banda
@@ -458,6 +460,11 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   rombo activo de punta en la `45`, quedan **2 filas libres** (`44..43`) sobre el
   rombo y el cuadro arranca en la **fila 3** desde la punta (`42`) hacia arriba:
   `BOX_TOP` pasa a 25 (banda 25..42) y `TEXT_SEL_TOP` a 26.
+- **[2026-09-18] `Menu`: pie bajado y línea separadora**: el texto del pie baja
+  1 px (fila `57`, `PIE_TOP`) y se dibuja una **línea horizontal de 1 px** en la
+  fila `54` (`PIE_LINE_ROW`) a **2 px sobre el pie** (2 filas libres `55..56`
+  entre la línea y el texto). El pie se escribe con `drawText` en la posición
+  calculada por `getTextPos` (en vez de `drawTextAligned`).
 
 ---
 

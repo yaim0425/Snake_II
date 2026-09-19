@@ -91,13 +91,17 @@ private:
   static constexpr uint32_t ANIM_TICK = 15;
   static constexpr int8_t ANIM_STEP   = 2;
 
-  // Rombos de posición: banda 45..53, pegada a las 2 filas libres 54..55 del pie.
+  // Rombos de posición: banda 45..53, apoyada en la línea separadora 54 del pie.
   static constexpr int16_t DIA_TOP  = 45;  // punta superior del rombo (rombo simétrico 45..53)
   static constexpr uint8_t DIA_SIZE = 8;   // rombo: punta 45, hombros 49, punta inferior 53
 
   // Parpadeo del rombo seleccionado tras mantenerlo
   static constexpr uint32_t BLINK_HOLD   = 500;
   static constexpr uint32_t BLINK_TOGGLE = 250;
+
+  // Pie del Body: línea separadora y texto (el texto baja 1 px: 56 -> 57)
+  static constexpr int16_t PIE_LINE_ROW = 54;  // línea horizontal 1 px, a 2 px sobre el pie
+  static constexpr int16_t PIE_TOP      = 57;  // texto "Top"/versión (antes fila 56)
 
   // ========================================================
   // Métodos internos
