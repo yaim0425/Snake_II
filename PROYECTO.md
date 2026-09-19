@@ -570,6 +570,9 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
 - **[2026-09-18] `Credits`: bloque bajado 4 px y sin hint**: el título "Snake II"
   y la versión se escriben 4 px más abajo (`getTextPos` + `+4` en Y, con
   `drawText`); se elimina el texto "ACTION_UP: volver" del pie de la ventana.
+- **[2026-09-18] `Credits`: línea separadora sobre el pie**: se dibuja una
+  **línea horizontal de 1 px** en la fila `54` (`PIE_LINE_ROW`), a **2 px sobre el
+  pie** (igual que en el menú principal), limpiando antes la banda del pie.
 
 ---
 

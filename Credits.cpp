@@ -1,6 +1,12 @@
 #include "Credits.h"
 
 // ========================================================
+// Geometría del pie (coincide con el menú principal)
+// ========================================================
+// Línea separadora en la 54, a 2 px sobre el pie (que empieza en la 57).
+static constexpr int16_t PIE_LINE_ROW = 54;
+
+// ========================================================
 // Constructor
 // ========================================================
 
@@ -44,6 +50,10 @@ void Credits::print() {
 
   TextPos vPos = _display.getTextPos(_version, CENTER, TEXT_6x8, REGION_BODY);
   _display.drawText(_version, vPos.x, vPos.y + 4, TEXT_6x8);
+
+  // Limpiar la banda del pie y dibujar la línea separadora de 1 px
+  s.fillRect(0, PIE_LINE_ROW, _display.getWidth(), 10, SSD1306_BLACK);
+  s.drawFastHLine(0, PIE_LINE_ROW, _display.getWidth(), SSD1306_WHITE);
 }
 
 // ========================================================
