@@ -280,9 +280,9 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
 - **Animación lateral (carousel):** al navegar, la opción **anterior no
   desaparece**: la **entrante** (nueva seleccionada) se desliza hasta centrarse
   en el cuadro y la **previa** (`_prev`), dibujada centrada, **se borra
-  progresivamente desde la dirección contraria** a la entrada (barrido/wipe:
-  `MOVE_RIGHT` → la previa se borra de izquierda a derecha; `MOVE_LEFT` → de
-  derecha a izquierda). Sentido: derecha (`MOVE_RIGHT`) → la entrante entra por la derecha
+  progresivamente en el mismo sentido** del deslizamiento (barrido/wipe junto con
+  la entrante): `MOVE_RIGHT` → la previa se borra de derecha a izquierda
+  (la entrante avanza igual); `MOVE_LEFT` → de izquierda a derecha. Sentido: derecha (`MOVE_RIGHT`) → la entrante entra por la derecha
   (siguiente opción); izquierda (`MOVE_LEFT`) → entra por la izquierda (anterior).
   Movimiento `2 px / 15 ms`, salto total `SLIDE_DIST = 48 px`. Si llega otro pulso
   a mitad de la animación, la transición se reinicia desde el lado correspondiente.
@@ -475,9 +475,10 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   del período, en vez de `BLINK_TOGGLE` par/impar).
 - **[2026-09-18] `Menu`: transición con barrido (wipe)**: la opción anterior ya no
   desaparece al instante: se guarda en `_prev` y, durante la transición, se dibuja
-  centrada y se **borra desde la dirección contraria** a la entrada de la nueva
-  (la entrante se desliza desde su lado mientras la previa se barre en sentido
-  opuesto con `fillRect` transparente sobre el canvas).
+  centrada y se **borra en el mismo sentido del deslizamiento de la entrante**
+  (la previa se barre junto con la entrante, barrido con `fillRect` transparente
+  sobre el canvas: `MOVE_RIGHT` de derecha a izquierda, `MOVE_LEFT` de izquierda
+  a derecha).
 
 ---
 

@@ -97,11 +97,11 @@ void Menu::wipeOld(int16_t offX) {
   int16_t front = (int16_t)((uint32_t)(SLIDE_DIST - a) * w / SLIDE_DIST);
 
   if (_dir > 0)
-    // nueva entra por la derecha: se borra desde la izquierda
-    _chipBox.fillRect(0, 0, front, BOX_HEIGHT, 0);
-  else
-    // nueva entra por la izquierda: se borra desde la derecha
+    // nueva entra por la derecha: el barrido corre de derecha a izquierda
     _chipBox.fillRect(w - front, 0, front, BOX_HEIGHT, 0);
+  else
+    // nueva entra por la izquierda: el barrido corre de izquierda a derecha
+    _chipBox.fillRect(0, 0, front, BOX_HEIGHT, 0);
 }
 
 // ========================================================
