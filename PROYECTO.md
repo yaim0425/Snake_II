@@ -19,9 +19,21 @@ Programación orientada a objetos: cada clase en su archivo `.h` y `.cpp`.
 
 ### Frase para iniciar una nueva sesión
 
-Para no empezar desde cero, el usuario debe decir exactamente:
+Para no empezar desde cero, **copiar y pegar tal cual** el siguiente bloque en la
+nueva sesión (no hay que escribir nada más):
 
-> **"Lee PROYECTO.md y continúa desde donde quedamos"**
+```
+Trabaja en el proyecto Snake II (ESP32-S3, Arduino IDE) ubicado en
+D:\Documents\ESP32S3\Snake_II.
+
+Lee PROYECTO.md completo y continúa desde donde quedamos, respetando sus
+reglas de trabajo (sección 0): no hagas nada sin una orden explícita mía,
+actualiza PROYECTO.md antes de cada commit e incluye ese cambio en el mismo
+commit.
+
+Antes de empezar, revisa el estado de git (git status y git log --oneline -10)
+para retomar el contexto exacto de los últimos cambios.
+```
 
 ---
 
@@ -618,6 +630,11 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   finalmente se vuelca con `blitBand` (texto y fondo a los colores de cada
   banda). `begin()` reinicia la animación y `update()` la avanza (`navigate()` +
   `animate()`).
+- **[2026-09-18] Frase de nueva sesión lista para copiar/pegar**: la sección 0
+  pasa a incluir un **bloque de código** con la frase completa (ruta del proyecto
+  `D:\Documents\ESP32S3\Snake_II`, leer `PROYECTO.md`, respetar las reglas de la
+  sección 0 y revisar `git status`/`git log --oneline -10` antes de empezar) para
+  copiar y pegar tal cual en la nueva sesión, sin escribir nada más.
 
 ---
 
