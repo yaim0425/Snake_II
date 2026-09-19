@@ -573,6 +573,10 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
 - **[2026-09-18] `Credits`: línea separadora sobre el pie**: se dibuja una
   **línea horizontal de 1 px** en la fila `54` (`PIE_LINE_ROW`), a **2 px sobre el
   pie** (igual que en el menú principal), limpiando antes la banda del pie.
+- **[2026-09-18] `InfoWindow`: sin hint y línea separadora**: se elimina el texto
+  "ACTION_UP: volver" del pie y se dibuja la **línea horizontal de 1 px** en la
+  fila `54` (`PIE_LINE_ROW`), a **2 px sobre el pie** (igual que en `Credits` y el
+  menú principal).
 
 ---
 
