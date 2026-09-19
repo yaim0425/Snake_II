@@ -81,7 +81,8 @@ void Credits::print() {
   int16_t roleH = _display.getTextHeight(TEXT_12x16);
   int16_t roleY = BODY_TOP + (PIE_TOP - BODY_TOP - roleH) / 2;
   uint8_t roleX = (w - _display.getTextWidth(role, TEXT_12x16)) / 2;
-  _display.drawHighlight(role, roleX, roleY, TEXT_12x16);
+  _display.screen().fillRect(0, roleY - 1, w, roleH + 2, SSD1306_WHITE);
+  _display.drawTextInverted(role, roleX, roleY, TEXT_12x16);
 
   // Nombre (tamaño 1) des-seleccionado (plano), centrado en el pie del Body
   const char* name = ROLE_NAME[_entry][1];

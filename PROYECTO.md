@@ -340,7 +340,7 @@ enum class State : uint8_t {
 |--------|---------|-------|
 | `MENU` | `Menu` | Confirma con `ACTION_LEFT` (`confirm()`). |
 | `NUEVO`, `CONTINUAR`, `DIFICULTAD`, `SONIDO` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. |
-| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` (rol tamaño 2 **seleccionado** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). |
+| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). |
 
 ### Patrón de ventana
 
@@ -603,6 +603,11 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   (de la fila `16` a la anterior al pie, `PIE_TOP = 54`). El **nombre
   (tamaño 1)** queda **des-seleccionado** (texto plano blanco) y se centra en el
   pie del Body (`PIE_TOP + 1`).
+- **[2026-09-18] `Credits`: cuadro de selección de borde a borde**: el cuadro
+  blanco que resalta el rol (tamaño 2) pasa a ocupar **todo el ancho de la
+  pantalla** (`fillRect(0, roleY-1, ancho, roleH+2)` en blanco) con el texto
+  centrado en invertido (`drawTextInverted`), en lugar del `drawHighlight` que
+  solo rodeaba el texto.
 
 ---
 
