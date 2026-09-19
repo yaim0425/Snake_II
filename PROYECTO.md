@@ -271,7 +271,9 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
   `56..64` + la fila del pie) antes de escribir el pie. Las 2 filas sobre el pie
   quedan siempre limpias.
 - **Cuadro de selección:** **fijo** y de **ancho completo** (128 px),
-  `BOX_TOP = 16`, `BOX_HEIGHT = 18` (banda 16..33, límite superior del Body). **No se mueve**;
+  `BOX_TOP = 25`, `BOX_HEIGHT = 18` (banda 25..42). Con el rombo activo de punta
+  en la `45`: quedan **2 filas libres** (`44..43`) sobre el rombo y el cuadro
+  arranca en la **fila 3** desde la punta (`42`) hacia arriba. **No se mueve**;
   el tamaño del texto (tamaño 2) tampoco cambia.
 - **Animación lateral (carousel):** al navegar, la opción **anterior desaparece**
   (ya no se dibuja) y la **entrante** (nueva seleccionada) se desliza hasta centrarse
@@ -452,6 +454,10 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   inferior queda en la fila `53` (visible). La punta de las opciones no
   seleccionadas tiene ahora la base en `DIA_TOP+DIA_RISE+3` (fila 50), con más
   aire hasta el pie.
+- **[2026-09-18] `Menu`: cuadro de selección referenciado al rombo activo**: con el
+  rombo activo de punta en la `45`, quedan **2 filas libres** (`44..43`) sobre el
+  rombo y el cuadro arranca en la **fila 3** desde la punta (`42`) hacia arriba:
+  `BOX_TOP` pasa a 25 (banda 25..42) y `TEXT_SEL_TOP` a 26.
 
 ---
 
