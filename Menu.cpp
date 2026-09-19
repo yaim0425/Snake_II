@@ -199,18 +199,18 @@ void Menu::drawDiamonds() {
           ((millis() / BLINK_TOGGLE) & 1) == 0)
         continue;  // fase apagada: no se dibuja
 
-      // Rombo completo de 8 filas (46..53): punta inferior en la 53, visible
-      // (no alcanza la limpieza del pie que empieza en la 54)
+      // Rombo simétrico de 9 filas (45..53), como el alimento del juego:
+      // punta superior 45, hombros 49, punta inferior 53 (visible)
       Adafruit_SSD1306& s = _display.screen();
-      s.fillTriangle(x + 4, DIA_TOP, x + 8, DIA_TOP + 3,
-                     x + 4, DIA_TOP + 7, SSD1306_WHITE);
-      s.fillTriangle(x + 4, DIA_TOP, x, DIA_TOP + 3,
-                     x + 4, DIA_TOP + 7, SSD1306_WHITE);
+      s.fillTriangle(x + 4, DIA_TOP, x + 8, DIA_TOP + DIA_SIZE / 2,
+                     x + 4, DIA_TOP + DIA_SIZE, SSD1306_WHITE);
+      s.fillTriangle(x + 4, DIA_TOP, x, DIA_TOP + DIA_SIZE / 2,
+                     x + 4, DIA_TOP + DIA_SIZE, SSD1306_WHITE);
     } else {
       // Solo la punta (triángulo superior), bajada hasta las filas libres del
       // pie: base en la 53 (pegada a las 54..55), vértice en la 50
-      int16_t y = DIA_TOP + DIA_SIZE / 2;
-      int16_t baseY = DIA_TOP + DIA_SIZE - 1;
+      int16_t baseY = DIA_TOP + DIA_SIZE;  // 53
+      int16_t y = baseY - 3;               // 50
       _display.screen().fillTriangle(x + 4, y, x, baseY, x + 8, baseY,
                                      SSD1306_WHITE);
     }
@@ -232,8 +232,8 @@ void Menu::print() {
   paintOption(_selected, _slideX);
   blitChip();
 
-  // Limpiar la banda de rombos (45..53): 1 px libre + 8 px del rombo
-  _display.screen().fillRect(0, DIA_TOP - 1, _display.getWidth(),
+  // Limpiar la banda de rombos (45..53)
+  _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),
                              DIA_SIZE + 1, SSD1306_BLACK);
   drawDiamonds();
 
