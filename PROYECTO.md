@@ -284,14 +284,13 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
   (`drawChar` de la librería *no* recorta en X); el canvas se vuelca a la banda
   del cuadro con un blit (chip blanco `255`, texto negro `1`, resto transparente).
   Colores del canvas: `CHIP_WHITE = 255`, `CHIP_TEXT = 1`.
-- **Rombos de posición:** solo el **seleccionado** es un **rombo completo** de
-  `8` filas (dibujado con dos `fillTriangle`, como el alimento del juego), con la
-  punta superior en `DIA_TOP = 46` (banda `46..53`). Las 2 filas de píxeles sobre
-  él son la `45` (aire) y la `44` (base del cuadro); la **punta inferior queda en
-  la fila `53`, visible**, justo sobre las 2 filas libres `54..55` del pie. Los
-  **no seleccionados** son solo la **punta** (triángulo superior), `1 px` más bajos
-  (`DIA_RISE`, punta en la `47`) y con la base en la fila `50` (sobra aire hasta
-  el pie). Reparto uniforme en el ancho (`cx = (i+1)·128/(n+1)`). Si se
+- **Rombos de posición:** banda `46..53`, pegada a las 2 filas libres `54..55` del
+  pie (`DIA_TOP = 46`). Solo el **seleccionado** es un **rombo completo** de `8`
+  filas (dibujado con dos `fillTriangle`, como el alimento del juego): punta
+  superior en la `46` y **punta inferior en la `53`** (visible, justo sobre las
+  libres `54..55`). Los **no seleccionados** son solo la **punta** (triángulo
+  superior), **bajada hasta las filas libres del pie**: base en la `53` y vértice
+  en la `50`. Reparto uniforme en el ancho (`cx = (i+1)·128/(n+1)`). Si se
   **mantiene** seleccionado sin navegar `BLINK_HOLD = 500 ms`, el rombo
   **parpadea** alternando cada `BLINK_TOGGLE = 250 ms`. Antes de dibujarlos se
   limpia con negro la banda `45..53` (`fillRect(0, DIA_TOP-1, ancho, DIA_SIZE+1)`).
@@ -420,6 +419,10 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
 - **[2026-09-18] `Menu`: cuadro de selección subido al límite del Body (fila 16)**:
   `BOX_TOP` pasa a 16 (banda 16..33, pegado al límite superior del cuerpo) y el texto
   a `TEXT_SEL_TOP = 17`.
+- **[2026-09-18] `Menu`: puntas de opciones no seleccionadas bajadas al pie**: los
+  triángulos superiores (puntas) de las opciones no seleccionadas se bajan hasta
+  las 2 filas libres del pie: base en la fila `53` (pegada a las `54..55`) y
+  vértice en la `50` (`DIA_TOP + DIA_SIZE/2`). Se elimina la constante `DIA_RISE`.
 - **[2026-09-18] `Menu`: punta inferior del rombo seleccionado visible**: el rombo
   completo se dibujaba en 9 filas (46..54) y su vértice inferior (fila 54) era
   borrado por la limpieza del pie. Ahora ocupa 8 filas (46..53): triángulos con
