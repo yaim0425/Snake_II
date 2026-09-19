@@ -297,7 +297,7 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
   base en la `53` y vértice en la `50`. Reparto uniforme en el ancho
   (`cx = (i+1)·128/(n+1)`). Si se **mantiene** seleccionado sin navegar
 `BLINK_HOLD = 500 ms`, el rombo **parpadea** mostrándose el **75%** de cada
-  período y oculto el **25%** (período `BLINK_PERIOD = 250 ms`, fase oculta = primer
+  período y oculto el **25%** (período `BLINK_PERIOD = 1000 ms`, fase oculta = primer
   25%). Antes de dibujarlos se limpia con negro la banda
   `45..53` (`fillRect(0, DIA_TOP, ancho, DIA_SIZE+1)`).
 - Primera y última opción no conectadas (navegación con límites).
@@ -468,7 +468,7 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   calculada por `getTextPos` (en vez de `drawTextAligned`).
 - **[2026-09-18] `Menu`: parpadeo del rombo activo 75/25**: el rombo seleccionado
   ya no alterna 50/50; ahora es **visible el 75%** de cada período y **oculto el
-  25%** (`BLINK_PERIOD = 250 ms`, `BLINK_OFF_PCT = 25`, fase oculta = primer 25%
+  25%** (`BLINK_PERIOD = 1000 ms`, `BLINK_OFF_PCT = 25`, fase oculta = primer 25%
   del período, en vez de `BLINK_TOGGLE` par/impar).
 
 ---

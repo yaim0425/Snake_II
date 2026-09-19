@@ -97,7 +97,7 @@ private:
 
   // Parpadeo del rombo seleccionado tras mantenerlo: visible 75%, oculto 25%
   static constexpr uint32_t BLINK_HOLD    = 500;  // mantener sin navegar para parpadear
-  static constexpr uint32_t BLINK_PERIOD  = 250;  // período completo del parpadeo (ms)
+  static constexpr uint32_t BLINK_PERIOD  = 1000;  // período completo del parpadeo (ms)
   static constexpr uint8_t  BLINK_OFF_PCT = 25;   // % del período en que está oculto
 
   // Pie del Body: línea separadora y texto (el texto baja 1 px: 56 -> 57)
