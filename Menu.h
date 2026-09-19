@@ -116,7 +116,6 @@ private:
   void animate();
   int16_t textCenterX(const char* text) const;
   void paintOption(int8_t index, int16_t offX);   // dibuja la opción en el canvas
-  void wipeOld(int16_t offX);                      // borra lo anterior desde la dirección contraria
   void blitChip();                                 // vuelca el canvas a la pantalla
   void drawDiamonds();
 
@@ -138,7 +137,6 @@ private:
   const char* const* _optionTexts;
 
   int8_t _selected;   // opción actual (objetivo central)
-  int8_t _prev;       // opción previa (se borra desde la dirección contraria)
   int8_t _dir;        // +1 siguiente (entra por la derecha), -1 anterior (izquierda)
   int16_t _slideX;    // desplazamiento de la opción entrante (objetivo 0)
   uint32_t _animLast;

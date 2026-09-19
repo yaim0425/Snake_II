@@ -642,6 +642,14 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   (bloque de fondo + texto) deslizándose hasta centrarse. Se eliminan el miembro
   `_prev` (`Credits.h`/`Credits.cpp`, incluidos sus usos en constructor, `begin()` y
   `navigate()`) y el método `wipeOld`.
+- **[2026-09-18] `Menu`: transición sin restos (se elimina `_prev`/`wipeOld`)**: al
+  pasar de `Continuar` a `Dificultad` (y entre opciones de distinto ancho) aparecían
+  **puntos negros** en las últimas filas del cuadro de selección (restos de glifos de
+  la opción saliente, de ancho distinto). Se aplica el mismo arreglo que en `Credits`:
+  la pantalla se limpia cada frame, así que solo se desliza hasta centrarse la opción
+  **entrante** (`paintOption(_selected, _slideX)`); la saliente desaparece sin dejar
+  restos. Se eliminan `_prev` (`Menu.h`/`Menu.cpp`, incluidos sus usos en constructor,
+  `begin()`, `setOptions()`, `navigate()` y `print()`) y los métodos `wipeOld`.
 
 ---
 

@@ -37,7 +37,6 @@ Menu::Menu(Display& display, Buttons& buttons, uint8_t topScore,
     _optionCount(DEFAULT_OPTIONS),
     _optionTexts(DEFAULT_OPTION_TEXT),
     _selected(OPC_NUEVO),
-    _prev(OPC_NUEVO),
     _dir(1),
     _slideX(0),
     _animLast(0),
@@ -50,8 +49,6 @@ Menu::Menu(Display& display, Buttons& buttons, uint8_t topScore,
 
 void Menu::begin() {
   _slideX = 0;
-  _prev = _selected;
-  _animLast = millis();
   _holdStart = millis();
 }
 
@@ -71,7 +68,6 @@ void Menu::setOptions(const char* const* texts, uint8_t count) {
   if (_selected >= (int8_t)count) _selected = count - 1;
 
   _slideX = 0;
-  _prev = _selected;
   _holdStart = millis();
 }
 
@@ -86,26 +82,6 @@ void Menu::update() {
 }
 
 // ========================================================
-// Borrado de la opción previa (dirección contraria a la entrante)
-// ========================================================
-
-void Menu::wipeOld(int16_t offX) {
-  int16_t w = _display.getWidth();
-  uint16_t a = (offX < 0) ? (uint16_t)(-offX) : (uint16_t)offX;
-  if (a >= SLIDE_DIST) return;           // aún no arranca el barrido
-
-  // Progreso del barrido (0 al inicio, w al final)
-  int16_t front = (int16_t)((uint32_t)(SLIDE_DIST - a) * w / SLIDE_DIST);
-
-  if (_dir > 0)
-    // nueva entra por la derecha: el barrido corre de derecha a izquierda
-    _chipBox.fillRect(w - front, 0, front, BOX_HEIGHT, 0);
-  else
-    // nueva entra por la izquierda: el barrido corre de izquierda a derecha
-    _chipBox.fillRect(0, 0, front, BOX_HEIGHT, 0);
-}
-
-// ========================================================
 // Navegación
 // ========================================================
 
@@ -115,13 +91,11 @@ void Menu::navigate() {
 
   // Solo MOVE_LEFT y MOVE_RIGHT (primera y última no conectadas)
   if (_buttons.pressed(Buttons::MOVE_LEFT) && _selected > 0) {
-    _prev = _selected;
     _selected--;
     moved = true;
   }
 
   if (_buttons.pressed(Buttons::MOVE_RIGHT) && _selected < _optionCount - 1) {
-    _prev = _selected;
     _selected++;
     moved = true;
   }
@@ -254,13 +228,10 @@ void Menu::print() {
   _display.screen().fillRect(0, BOX_TOP, _display.getWidth(), BOX_HEIGHT,
                              SSD1306_WHITE);
 
-  // Opciones en transición: la previa (centrada) se borra desde la dirección
-  // contraria a la entrante; la nueva se desliza hasta centrarse
+  // Opciones en transición: el cuadro es fijo (borde a borde) y la pantalla se
+  // limpia cada frame, así que solo se desliza hasta centrarse la opción
+  // entrante; la saliente desaparece sin dejar restos de glifos
   _chipBox.fillScreen(0);
-  if (_prev != _selected) {
-    paintOption(_prev, 0);
-    wipeOld(_slideX);
-  }
   paintOption(_selected, _slideX);
   blitChip();
 
