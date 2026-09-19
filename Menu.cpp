@@ -1,3 +1,4 @@
+#include "esp32-hal.h"
 #include "Menu.h"
 
 #include <stdio.h>
@@ -158,6 +159,7 @@ void Menu::animate() {
 
   if ((_dir > 0 && _slideX < 0) || (_dir < 0 && _slideX > 0))
     _slideX = 0;
+
 }
 
 // ========================================================
@@ -294,6 +296,11 @@ void Menu::print() {
 
 int8_t Menu::selected() const {
   return _selected;
+}
+
+int8_t Menu::confirm() const {
+  if (_buttons.actionRightPressed()) return _selected;
+  return -1;
 }
 
 void Menu::setTopScore(uint8_t value) {

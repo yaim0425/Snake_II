@@ -67,7 +67,9 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú inicial con carousel lateral y rombos de posición). Completa. |
-| `Snake_II.ino` | Actualmente: arranca y ejecuta el menú inicial (`Menu`). |
+| `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos, vuelve al menú con `ACTION_UP`). Completa. |
+| `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad, Sonido). Completa. |
+| `Snake_II.ino` | Dispatcher: variable global `AppState` + despachador por estado; todas las ventanas corren en `loop()`. |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
 | `GameBuzzer.h` | Clase del buzzer del juego original (sin cambios). |
 | `PROYECTO.md` | Este documento. |
@@ -249,6 +251,7 @@ Menu(Display& display, Buttons& buttons, uint8_t topScore = 0, const char* versi
 | `void update()` | Lee botones, navega con `MOVE_RIGHT`/`MOVE_LEFT` y anima el deslizamiento lateral; log en Serial al cambiar de opción. |
 | `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Top + versión). |
 | `int8_t selected()` | Índice de la opción seleccionada. |
+| `int8_t confirm()` | Devuelve la opción seleccionada si se confirma con `ACTION_RIGHT` (pulse recién presionado), o `-1`. Es el "activar opción" del menú. |
 | `void setTopScore(uint8_t)` | Actualiza el puntaje máximo mostrado. |
 
 ### Opciones y enum
@@ -304,6 +307,55 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
   25%). Antes de dibujarlos se limpia con negro la banda
   `45..53` (`fillRect(0, DIA_TOP, ancho, DIA_SIZE+1)`).
 - Primera y última opción no conectadas (navegación con límites).
+
+---
+
+## 9. Despachador `AppState` y ventanas
+
+Ubicación: `Snake_II.ino` (despachador), `Menu`, `Credits`, `InfoWindow` (ventanas).
+
+### Estado global
+
+```cpp
+enum AppState : uint8_t {
+  ST_MENU = 0, ST_NUEVO, ST_CONTINUAR, ST_DIFICULTAD, ST_SONIDO, ST_CREDITOS
+};
+AppState state = ST_MENU;
+```
+
+La **variable global `state` es la única que activa una ventana**. Todas las
+ventanas se ejecutan desde `loop()`, y el **despachador** (`switch (state)`) decide
+cuál corre y cuándo cambiar de estado (`changeState()`). Solo el despachador
+modifica `state`.
+
+### Patrón de ventana
+
+Toda ventana implementa:
+
+| Método | Descripción |
+|--------|-------------|
+| `begin()` | Restablece la ventana al entrar (al cambiar de estado). |
+| `update()` | Lee botones (`_buttons.read()`) y maneja sus eventos. |
+| `print()` | Dibuja la ventana en pantalla (aleja del render real). |
+| `done()` | `true` cuando la ventana pide volver al menú. |
+
+El `loop()` hace lo mismo para todas: `update() → display.clear() → print() →
+display.show()` y, si `done()`, `changeState(ST_MENU)`.
+
+### Estados y ventanas actuales
+
+| Estado | Ventana | Notas |
+|--------|---------|-------|
+| `ST_MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
+| `ST_NUEVO`, `ST_CONTINUAR`, `ST_DIFICULTAD`, `ST_SONIDO` | `InfoWindow` | Placeholder "En desarrollo"; se reemplazarán por `Juego`/`Config` reales. |
+| `ST_CREDITOS` | `Credits` | Muestra versión y "Snake II". |
+
+### Reglas del despachador
+
+1. Solo `loop()`/`changeState()` cambian `state`.
+2. Una ventana nunca cambia de estado ni conoce a las demás: expone `done()`.
+3. `ACTION_UP` es el botón común "volver al menú" en todas las ventanas.
+4. `ACTION_RIGHT` activa la opción del menú (su `confirm()`).
 
 ---
 
@@ -479,6 +531,13 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   (la previa se barre junto con la entrante, barrido con `fillRect` transparente
   sobre el canvas: `MOVE_RIGHT` de derecha a izquierda, `MOVE_LEFT` de izquierda
   a derecha).
+- **[2026-09-18] Despachador `AppState` + ventanas**: se crean las clases
+  `Credits` y `InfoWindow` (patrón `begin()/update()/print()/done()`), `Menu`
+  gana `confirm()` (opción activada con `ACTION_RIGHT`), y `Snake_II.ino` pasa a
+  ser un **despachador** con la variable global `state` (`ST_MENU`, `ST_NUEVO`,
+  `ST_CONTINUAR`, `ST_DIFICULTAD`, `ST_SONIDO`, `ST_CREDITOS`). Todas las
+  ventanas corren en `loop()`; solo el despachador cambia `state`;
+  `ACTION_UP` vuelve al menú.
 
 ---
 
