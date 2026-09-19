@@ -11,7 +11,7 @@ public:
   // Configuración
   // ========================================================
 
-  static constexpr uint8_t NUM_ENTRIES = 2;
+  static constexpr uint8_t NUM_ENTRIES = 3;
 
   // ========================================================
   // Constructor
@@ -56,7 +56,7 @@ private:
   // Estado
   // ========================================================
 
-  uint8_t _entry;   // entrada visible (0 = izquierda, 1 = derecha)
+  uint8_t _entry;   // entrada visible (0 = izquierda, 1 = centro, 2 = derecha)
   bool _exit;
 };
 

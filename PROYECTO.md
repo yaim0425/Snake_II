@@ -71,7 +71,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú inicial con carousel lateral y rombos de posición). Completa. |
-| `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 2 entradas navegables, vuelve al menú con `ACTION_UP`). Completa. |
+| `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad, Sonido). Completa. |
 | `App.h` / `App.cpp` | Clase `App` (despachador de ventanas con estado interno; comparte `Display`/`Buttons` por referencia). Completa. |
 | `Snake_II.ino` | Enlace de dependencias: una única `Display` y `Buttons`, instancia de `App`; `setup()` llama `app.begin()`, `loop()` llama `app.update()` y `app.print()`. |
@@ -340,7 +340,7 @@ enum class State : uint8_t {
 |--------|---------|-------|
 | `MENU` | `Menu` | Confirma con `ACTION_LEFT` (`confirm()`). |
 | `NUEVO`, `CONTINUAR`, `DIFICULTAD`, `SONIDO` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. |
-| `CREDITOS` | `Credits` | 2 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` (rol tamaño 2 + nombre tamaño 1 resaltado de lado a lado). |
+| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` (rol tamaño 2 centrado en el Body + nombre tamaño 1 resaltado de lado a lado en el pie del Body). |
 
 ### Patrón de ventana
 
@@ -588,6 +588,15 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   El rol se dibuja centrado y bajado 4 px del tope del Body; el cuadro del nombre
   queda en la fila 40 (altura 10). Se elimina la versión del constructor de
   `Credits` (ya no se muestra) y se actualiza `App.cpp`.
+- **[2026-09-18] `Credits`: 3 entradas con rol central inicial**: la ventana pasa
+  a tener **3 entradas** navegables con `MOVE_LEFT`/`MOVE_RIGHT`:
+  - Izquierda (0): "Dev" (tamaño 2) + "opencode.ai" (tamaño 1).
+  - Centro (1): **"Snake II"** (tamaño 2) + "v0.1" (tamaño 1), **entrada inicial**
+    al entrar en la ventana.
+  - Derecha (2): "Director" (tamaño 2) + "YAIM904" (tamaño 1).
+  El rol (tamaño 2) se **centra en el Body** y se baja 4 px (`CENTER` + 4). El
+  nombre (tamaño 1) va **en el pie del Body** (`HINT_TOP = 54`, altura 10),
+  resaltado de lado a lado (cuadro blanco de ancho completo + texto invertido).
 
 ---
 

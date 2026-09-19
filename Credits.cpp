@@ -3,21 +3,25 @@
 // ========================================================
 // Entradas de crédito (navegables con MOVE_RIGHT/MOVE_LEFT)
 // ========================================================
-// Izquierda (0): Programador / opencode.ai
-// Derecha (1) : Director / YAIM904
+// Izquierda (0)     : Dev / opencode.ai
+// Centro   (1)      : Snake II / v0.1 (inicial)
+// Derecha  (2)      : Director / YAIM904
 
 static const char* const ROLE_NAME[Credits::NUM_ENTRIES][2] = {
-  { "Programador", "opencode.ai" },
-  { "Director",    "YAIM904"     }
+  { "Dev",      "opencode.ai" },
+  { "Snake II", "v0.1"        },
+  { "Director", "YAIM904"     }
 };
 
 // ========================================================
-// Geometría del resaltado (de lado a lado)
+// Geometría
 // ========================================================
-// Cuadro blanco de ancho completo; el texto (tamaño 1) va invertido (negro)
-// centrado dentro del cuadro, con 1 px arriba y 1 px abajo.
-static constexpr int16_t HINT_TOP = 40;    // fila superior del cuadro
-static constexpr uint8_t HINT_HEIGHT = 10; // 8 (texto) + 1 + 1
+// El rol (tamaño 2) se centra en el Body y baja 4 px.
+// El nombre (tamaño 1) va en el pie del Body, resaltado de lado a lado
+// (cuadro blanco de ancho completo, texto invertido centrado).
+static constexpr int16_t ROLE_OFFSET_Y = 4;    // px extra hacia abajo
+static constexpr int16_t HINT_TOP = 54;        // fila superior del cuadro (pie)
+static constexpr uint8_t HINT_HEIGHT = 10;     // 8 (texto) + 1 + 1
 
 // ========================================================
 // Constructor
@@ -26,7 +30,7 @@ static constexpr uint8_t HINT_HEIGHT = 10; // 8 (texto) + 1 + 1
 Credits::Credits(Display& display, Buttons& buttons)
   : _display(display),
     _buttons(buttons),
-    _entry(0),
+    _entry(1),
     _exit(false) {}
 
 // ========================================================
@@ -34,7 +38,7 @@ Credits::Credits(Display& display, Buttons& buttons)
 // ========================================================
 
 void Credits::begin() {
-  _entry = 0;
+  _entry = 1;  // entrada central (Snake II / v0.1)
   _exit = false;
 }
 
@@ -71,12 +75,13 @@ void Credits::print() {
   // Título de la ventana
   _display.drawTextAligned("Creditos", CENTER, TEXT_12x16, REGION_HEADER);
 
-  // Rol (tamaño 2), centrado y bajado 4 px del tope del Body
+  // Rol (tamaño 2) centrado en el Body, bajado 4 px
   const char* role = ROLE_NAME[_entry][0];
-  TextPos rPos = _display.getTextPos(role, CENTER_UP, TEXT_12x16, REGION_BODY);
-  _display.drawText(role, rPos.x, rPos.y + 4, TEXT_12x16);
+  TextPos rPos = _display.getTextPos(role, CENTER, TEXT_12x16, REGION_BODY);
+  _display.drawText(role, rPos.x, rPos.y + ROLE_OFFSET_Y, TEXT_12x16);
 
-  // Nombre (tamaño 1) resaltado de lado a lado (cuadro blanco de ancho completo)
+  // Nombre (tamaño 1) en el pie del Body, resaltado de lado a lado:
+  // cuadro blanco de ancho completo con el texto invertido centrado
   const char* name = ROLE_NAME[_entry][1];
   int16_t w = _display.getWidth();
   int16_t y = HINT_TOP;
