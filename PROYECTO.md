@@ -271,7 +271,7 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
   `56..64` + la fila del pie) antes de escribir el pie. Las 2 filas sobre el pie
   quedan siempre limpias.
 - **Cuadro de selección:** **fijo** y de **ancho completo** (128 px),
-  `BOX_TOP = 22` (0x16), `BOX_HEIGHT = 18` (banda 22..39). **No se mueve**;
+  `BOX_TOP = 16`, `BOX_HEIGHT = 18` (banda 16..33, límite superior del Body). **No se mueve**;
   el tamaño del texto (tamaño 2) tampoco cambia.
 - **Animación lateral (carousel):** al navegar, la opción **anterior desaparece**
   (ya no se dibuja) y la **entrante** (nueva seleccionada) se desliza hasta centrarse
@@ -417,9 +417,9 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   nueva seleccionada se desliza desde un lado hasta centrarse (`_slideX` de
   `±SLIDE_DIST` a 0, `startSlide(dir)` sin parámetro `prev`). La transición se
   reinicia desde el lado correspondiente si llega otro pulso a mitad de la animación.
-- **[2026-09-18] `Menu`: cuadro de selección movido a la fila 0x16 (22)**: `BOX_TOP`
-  pasa de 27 a 22 (banda del cuadro 22..39) y el texto a `TEXT_SEL_TOP = 23` (1 px
-  dentro del cuadro).
+- **[2026-09-18] `Menu`: cuadro de selección subido al límite del Body (fila 16)**:
+  `BOX_TOP` pasa a 16 (banda 16..33, pegado al límite superior del cuerpo) y el texto
+  a `TEXT_SEL_TOP = 17`.
 - **[2026-09-18] `Menu`: punta inferior del rombo seleccionado visible**: el rombo
   completo se dibujaba en 9 filas (46..54) y su vértice inferior (fila 54) era
   borrado por la limpieza del pie. Ahora ocupa 8 filas (46..53): triángulos con

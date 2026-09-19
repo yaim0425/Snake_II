@@ -78,12 +78,13 @@ private:
   // Región del menú dentro del Body: fila 16 hasta una fila antes del pie
   static constexpr int16_t BODY_TOP = 16;
 
-  // Cuadro de selección: fijo, ancho completo; arranca en la fila 0x16 (22)
-  static constexpr int16_t BOX_TOP    = 22;
+  // Cuadro de selección: fijo, ancho completo; arranca en el límite superior
+  // del Body (fila 16)
+  static constexpr int16_t BOX_TOP    = 16;
   static constexpr int16_t BOX_HEIGHT = 18;
 
   // Posición del texto del cuadro (1 px dentro, centrado verticalmente)
-  static constexpr int16_t TEXT_SEL_TOP = 23;
+  static constexpr int16_t TEXT_SEL_TOP = 17;
 
   // Animación lateral (carousel): distancia del salto y velocidad
   static constexpr int16_t SLIDE_DIST = 48;
