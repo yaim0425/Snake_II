@@ -650,6 +650,13 @@ opciones (`Nuevo, Continuar, Dificultad, Sonido, Creditos`) tamaño 2 en una pil
   **entrante** (`paintOption(_selected, _slideX)`); la saliente desaparece sin dejar
   restos. Se eliminan `_prev` (`Menu.h`/`Menu.cpp`, incluidos sus usos en constructor,
   `begin()`, `setOptions()`, `navigate()` y `print()`) y los métodos `wipeOld`.
+- **[2026-09-19] Traducción de todos los textos en pantalla**: las opciones del
+  menú ya estaban en inglés y con ≤10 caracteres (`New`, `Continue`, `Difficulty`,
+  `Sound`, `Credits`). Se traducen los textos restantes que se muestran en la
+  pantalla: los títulos de `InfoWindow` (`App.cpp`: `"New"`, `"Continue"`,
+  `"Difficulty"`, `"Sound"`), el placeholder "En desarrollo" (`InfoWindow.cpp` pasa
+  a `"In development"`) y el encabezado de `Credits` (`Credits.cpp`: `"Creditos"`
+  pasa a `"Credits"`). Los códigos de estado internos (enum) quedan igual.
 
 ---
 
