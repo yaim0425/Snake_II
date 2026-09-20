@@ -46,7 +46,7 @@ void InfoWindow::print() {
   if (_title != nullptr)
     _display.drawTextAligned(_title, CENTER, TEXT_12x16, REGION_HEADER);
 
-  _display.drawTextAligned("En desarrollo", CENTER, TEXT_6x8, REGION_BODY);
+  _display.drawTextAligned("In development", CENTER, TEXT_6x8, REGION_BODY);
 
   // Limpiar la banda del pie y dibujar la línea separadora de 1 px
   s.fillRect(0, PIE_LINE_ROW, _display.getWidth(), 10, SSD1306_BLACK);

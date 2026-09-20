@@ -29,10 +29,10 @@ void App::changeState(State newState) {
 
   switch (_state) {
     case State::MENU:       _menu.begin();                                        break;
-    case State::NUEVO:      _info.begin("Nuevo");                                 break;
-    case State::CONTINUAR:  _info.begin("Continuar");                             break;
-    case State::DIFICULTAD: _info.begin("Dificultad");                            break;
-    case State::SONIDO:     _info.begin("Sonido");                                break;
+    case State::NUEVO:      _info.begin("New");                                  break;
+    case State::CONTINUAR:  _info.begin("Continue");                             break;
+    case State::DIFICULTAD: _info.begin("Difficulty");                           break;
+    case State::SONIDO:     _info.begin("Sound");                                break;
     case State::CREDITOS:   _credits.begin();                                     break;
   }
 }

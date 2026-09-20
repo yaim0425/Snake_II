@@ -178,7 +178,7 @@ void Credits::drawBand(uint8_t slot, int16_t y, uint8_t size, uint16_t fgColor,
 
 void Credits::print() {
   // Título de la ventana
-  _display.drawTextAligned("Creditos", CENTER, TEXT_12x16, REGION_HEADER);
+  _display.drawTextAligned("Credits", CENTER, TEXT_12x16, REGION_HEADER);
 
   // Rol: cuadro blanco de borde a borde (fijo), texto negro
   int16_t w = _display.getWidth();
