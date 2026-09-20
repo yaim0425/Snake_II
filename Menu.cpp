@@ -8,11 +8,11 @@
 // ========================================================
 
 const char* const Menu::DEFAULT_OPTION_TEXT[Menu::DEFAULT_OPTIONS] = {
-  "Nuevo",
-  "Continuar",
-  "Dificultad",
-  "Sonido",
-  "Creditos"
+  "New",
+  "Continue",
+  "Difficulty",
+  "Sound",
+  "Credits"
 };
 
 const char* Menu::optionText(int8_t index) const {
