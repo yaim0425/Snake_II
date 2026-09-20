@@ -13,6 +13,9 @@ Programación orientada a objetos: cada clase en su archivo `.h` y `.cpp`.
   el usuario lo indique.
 - **La IA debe hacer un commit al modificar archivos** (cuando el usuario lo ordene
   o como parte del flujo de trabajo ya autorizado).
+- **Agrupar los cambios en un solo commit por tarea**: los micro-commits por cambio
+  puntual ya no se usan; todo lo relacionado con una misma tarea (código, este
+  documento y, si corresponde, API) queda en un único commit.
 - **La IA debe actualizar este documento (`PROYECTO.md`) antes de hacer el commit**:
   toda modificación de código debe quedar reflejada (secciones/API) y ese cambio a
   `PROYECTO.md` debe incluirse en el mismo commit.
