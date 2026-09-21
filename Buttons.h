@@ -100,23 +100,28 @@ private:
   int8_t _pins[MAX_BUTTONS];
 
   // ========================================================
-  // Estados
+  // Estados (agrupados en bytes: 1 bit por botón, botón 0-7)
   // ========================================================
 
-  // Estado confirmado actual
-  bool _buttons[MAX_BUTTONS];
-
-  // Estado confirmado anterior
-  bool _lastButtons[MAX_BUTTONS];
-
-  // Estado físico sin filtrar (1 bit por botón, agrupado en un byte)
+  // Estado físico sin filtrar (para detectar cambios antes del debounce)
   uint8_t _rawButtons;
 
-  // Se acaba de presionar
-  bool _pressed[MAX_BUTTONS];
+  // Estado confirmado actual (debounce aplicado)
+  uint8_t _buttons;
 
-  // Se acaba de soltar
-  bool _released[MAX_BUTTONS];
+  // Se acaba de presionar (evento de un solo ciclo)
+  uint8_t _pressed;
+
+  // Se acaba de soltar (evento de un solo ciclo)
+  uint8_t _released;
+
+  // ========================================================
+  // Helper: verifica un bit (botón 0-7) en un estado agrupado
+  // ========================================================
+
+  static inline bool isSet(uint8_t estados, uint8_t boton) {
+    return (estados & (1 << boton)) != 0;
+  }
 
   // ========================================================
   // Debounce

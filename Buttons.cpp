@@ -10,17 +10,13 @@ Buttons::Buttons(
   : _buttonDelay(buttonDelay) {
 
   _rawButtons = 0;
+  _buttons = 0;
+  _pressed = 0;
+  _released = 0;
 
   for (uint8_t i = 0; i < MAX_BUTTONS; i++) {
 
     _pins[i] = pins[i];
-
-    _buttons[i] = false;
-    _lastButtons[i] = false;
-
-    _pressed[i] = false;
-    _released[i] = false;
-
     _buttonLast[i] = 0;
   }
 }
@@ -41,17 +37,15 @@ void Buttons::begin() {
   }
 
   // Leer estado inicial (bits agrupados en un byte)
+  _buttons = 0;
+
   for (uint8_t i = 0; i < MAX_BUTTONS; i++) {
 
-    bool state =
-      digitalRead(_pins[i]) == HIGH;
-
-    _buttons[i] = state;
-    _lastButtons[i] = state;
-
-    if (state) _rawButtons |= (uint8_t)(1 << i);
-    else       _rawButtons &= (uint8_t)~(1 << i);
+    if (digitalRead(_pins[i]) == HIGH)
+      _buttons |= (uint8_t)(1 << i);
   }
+
+  _rawButtons = _buttons;
 }
 
 // ========================================================
@@ -63,11 +57,8 @@ void Buttons::read() {
   uint32_t now = millis();
 
   // Limpiar eventos
-  for (uint8_t i = 0; i < MAX_BUTTONS; i++) {
-
-    _pressed[i] = false;
-    _released[i] = false;
-  }
+  _pressed = 0;
+  _released = 0;
 
   // --------------------------------------------
   // Leer los 8 botones agrupados en un byte
@@ -83,58 +74,36 @@ void Buttons::read() {
   }
 
   // --------------------------------------------
+  // Bits que cambiaron físicamente (arrancan su
+  // propio temporizador de debounce)
+  // --------------------------------------------
+
+  uint8_t changed = raw ^ _rawButtons;
+  _rawButtons = raw;
+
+  // --------------------------------------------
   // Debounce por botón sobre el byte
   // --------------------------------------------
 
   for (uint8_t i = 0; i < MAX_BUTTONS; i++) {
 
-    bool state = (raw >> i) & 1;
+    uint8_t bit = (uint8_t)(1 << i);
 
-    // --------------------------------------------
-    // Cambio físico detectado
-    // --------------------------------------------
+    if (changed & bit) _buttonLast[i] = now;
 
-    if (state != ((_rawButtons >> i) & 1)) {
+    if ((now - _buttonLast[i]) < _buttonDelay) continue;
 
-      if (state) _rawButtons |= (uint8_t)(1 << i);
-      else       _rawButtons &= (uint8_t)~(1 << i);
+    bool state = (raw & bit) != 0;   // estado físico deseado
+    bool cur   = (_buttons & bit) != 0;  // estado confirmado anterior
 
-      _buttonLast[i] = now;
-    }
+    if (cur == state) continue;      // estable, sin cambio
 
-    // --------------------------------------------
-    // Debounce
-    // --------------------------------------------
+    if (state) _buttons |= bit;
+    else       _buttons &= (uint8_t)~bit;
 
-    if ((now - _buttonLast[i]) >= _buttonDelay) {
-
-      if (_buttons[i] != state) {
-
-        // Guardar estado anterior
-        _lastButtons[i] = _buttons[i];
-
-        // Aceptar nuevo estado
-        _buttons[i] = state;
-
-        // ----------------------------------------
-        // Pressed
-        // ----------------------------------------
-
-        if (
-          _buttons[i] && !_lastButtons[i]) {
-          _pressed[i] = true;
-        }
-
-        // ----------------------------------------
-        // Released
-        // ----------------------------------------
-
-        if (
-          !_buttons[i] && _lastButtons[i]) {
-          _released[i] = true;
-        }
-      }
-    }
+    // Pressed (0 -> 1) / Released (1 -> 0)
+    if (state && !cur) _pressed |= bit;
+    else               _released |= bit;
   }
 }
 
@@ -143,47 +112,47 @@ void Buttons::read() {
 // ========================================================
 
 bool Buttons::state(uint8_t index) const {
-  return _buttons[index];
+  return isSet(_buttons, index);
 }
 
 bool Buttons::pressed(uint8_t index) const {
-  return _pressed[index];
+  return isSet(_pressed, index);
 }
 
 bool Buttons::released(uint8_t index) const {
-  return _released[index];
+  return isSet(_released, index);
 }
 
 bool Buttons::moveUp() const {
-  return _buttons[MOVE_UP];
+  return isSet(_buttons, MOVE_UP);
 }
 
 bool Buttons::moveRight() const {
-  return _buttons[MOVE_RIGHT];
+  return isSet(_buttons, MOVE_RIGHT);
 }
 
 bool Buttons::moveDown() const {
-  return _buttons[MOVE_DOWN];
+  return isSet(_buttons, MOVE_DOWN);
 }
 
 bool Buttons::moveLeft() const {
-  return _buttons[MOVE_LEFT];
+  return isSet(_buttons, MOVE_LEFT);
 }
 
 bool Buttons::actionUp() const {
-  return _buttons[ACTION_UP];
+  return isSet(_buttons, ACTION_UP);
 }
 
 bool Buttons::actionRight() const {
-  return _buttons[ACTION_RIGHT];
+  return isSet(_buttons, ACTION_RIGHT);
 }
 
 bool Buttons::actionDown() const {
-  return _buttons[ACTION_DOWN];
+  return isSet(_buttons, ACTION_DOWN);
 }
 
 bool Buttons::actionLeft() const {
-  return _buttons[ACTION_LEFT];
+  return isSet(_buttons, ACTION_LEFT);
 }
 
 // ========================================================
@@ -191,35 +160,35 @@ bool Buttons::actionLeft() const {
 // ========================================================
 
 bool Buttons::moveUpPressed() const {
-  return _pressed[MOVE_UP];
+  return isSet(_pressed, MOVE_UP);
 }
 
 bool Buttons::moveRightPressed() const {
-  return _pressed[MOVE_RIGHT];
+  return isSet(_pressed, MOVE_RIGHT);
 }
 
 bool Buttons::moveDownPressed() const {
-  return _pressed[MOVE_DOWN];
+  return isSet(_pressed, MOVE_DOWN);
 }
 
 bool Buttons::moveLeftPressed() const {
-  return _pressed[MOVE_LEFT];
+  return isSet(_pressed, MOVE_LEFT);
 }
 
 bool Buttons::actionUpPressed() const {
-  return _pressed[ACTION_UP];
+  return isSet(_pressed, ACTION_UP);
 }
 
 bool Buttons::actionRightPressed() const {
-  return _pressed[ACTION_RIGHT];
+  return isSet(_pressed, ACTION_RIGHT);
 }
 
 bool Buttons::actionDownPressed() const {
-  return _pressed[ACTION_DOWN];
+  return isSet(_pressed, ACTION_DOWN);
 }
 
 bool Buttons::actionLeftPressed() const {
-  return _pressed[ACTION_LEFT];
+  return isSet(_pressed, ACTION_LEFT);
 }
 
 // ========================================================
@@ -227,33 +196,33 @@ bool Buttons::actionLeftPressed() const {
 // ========================================================
 
 bool Buttons::moveUpReleased() const {
-  return _released[MOVE_UP];
+  return isSet(_released, MOVE_UP);
 }
 
 bool Buttons::moveRightReleased() const {
-  return _released[MOVE_RIGHT];
+  return isSet(_released, MOVE_RIGHT);
 }
 
 bool Buttons::moveDownReleased() const {
-  return _released[MOVE_DOWN];
+  return isSet(_released, MOVE_DOWN);
 }
 
 bool Buttons::moveLeftReleased() const {
-  return _released[MOVE_LEFT];
+  return isSet(_released, MOVE_LEFT);
 }
 
 bool Buttons::actionUpReleased() const {
-  return _released[ACTION_UP];
+  return isSet(_released, ACTION_UP);
 }
 
 bool Buttons::actionRightReleased() const {
-  return _released[ACTION_RIGHT];
+  return isSet(_released, ACTION_RIGHT);
 }
 
 bool Buttons::actionDownReleased() const {
-  return _released[ACTION_DOWN];
+  return isSet(_released, ACTION_DOWN);
 }
 
 bool Buttons::actionLeftReleased() const {
-  return _released[ACTION_LEFT];
+  return isSet(_released, ACTION_LEFT);
 }

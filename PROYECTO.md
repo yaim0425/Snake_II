@@ -53,14 +53,14 @@ Fases pendientes: integración de la clase `Display` en el juego, botones/pulsad
 
 | Elemento  | Pin |
 |-----------|-----|
-| ACTION_UP | 41  |
-| ACTION_RIGHT | 1  |
-| ACTION_DOWN | 2  |
-| ACTION_LEFT | 40 |
-| MOVE_UP   | 37  |
-| MOVE_RIGHT | 39 |
-| MOVE_DOWN | 38  |
-| MOVE_LEFT | 36  |
+| MOVE_UP   | 2   |
+| MOVE_RIGHT | 1  |
+| MOVE_DOWN | 41  |
+| MOVE_LEFT | 40  |
+| ACTION_UP | 42  |
+| ACTION_RIGHT | 39 |
+| ACTION_DOWN | 38  |
+| ACTION_LEFT | 47  |
 | Buzzer    | 14  |
 | OLED SDA  | 8   |
 | OLED SCL  | 9   |
@@ -210,8 +210,8 @@ Ubicación: `Buttons.h` / `Buttons.cpp`. Basada en el diseño de `GameInput` (re
 
 ```cpp
 const int8_t BUTTON_PINS[Buttons::MAX_BUTTONS] = {
-  37, 39, 38, 36,   // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
-  41, 01, 02, 40    // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
+  02, 01, 41, 40,  // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
+  42, 39, 38, 47   // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
 };
 ```
 
@@ -237,14 +237,21 @@ enum Button : uint8_t {
 | `...,Pressed()` | Evento de pulso (true solo en el ciclo en que se presiona). |
 | `...,Released()` | Evento de liberación (true solo en el ciclo en que se suelta). |
 
-### Diseño del debounce
+### Diseño del debounce (estados agrupados en bytes)
 
-- Lee los 8 botones agrupados en un solo byte (`uint8_t _rawButtons`, 1 bit por
-  botón, HIGH = presionado con `INPUT_PULLDOWN`), igual que el `estados` del
-  ejemplo de referencia.
-- Detecta el cambio físico por bit y toma nota del instante.
+- Lee los 8 botones agrupados en bytes (`uint8_t`, 1 bit por botón,
+  HIGH = presionado con `INPUT_PULLDOWN`), igual que el `estados` del
+  ejemplo de referencia: `_rawButtons` (físico sin filtrar), `_buttons`
+  (confirmado), `_pressed`/`_released` (eventos de 1 ciclo).
+- `_lastButtons` ya no existe: los eventos Pressed/Released se detectan
+  comparando el bit del botón con su estado confirmado anterior antes de
+  actualizarlo (no hace falta guardar todo el estado previo).
+- Verificación de bits con el helper privado estático
+  `bool isSet(uint8_t estados, uint8_t boton)` → `estados & (1 << boton)`.
+- Detecta el cambio físico por bit (`raw ^ _rawButtons`) y toma nota del
+  instante por botón.
 - Solo acepta el nuevo estado tras `_buttonDelay` ms de estabilidad.
-- Genera `_pressed`/`_released` de un solo ciclo.
+- Almacenamiento reducido: de 4 arrays `bool[8]` (32 B) + 1 byte a 4 bytes.
 
 ---
 
