@@ -37,12 +37,12 @@ Menu::Menu(Display& display, Buttons& buttons, uint8_t topScore,
     _optionCount(DEFAULT_OPTIONS),
     _optionTexts(DEFAULT_OPTION_TEXT),
     _selected(OPC_NUEVO),
-    _prev(OPC_NUEVO),
     _dir(1),
     _slideX(0),
+    _colAcc(0),
     _animLast(0),
     _holdStart(0),
-    _chipBox(_display.getWidth(), BOX_HEIGHT) {}
+    _chipBox(_display.getWidth(), _display.getTextHeight(TEXT_12x16)) {}
 
 // ========================================================
 // Inicialización
@@ -50,8 +50,9 @@ Menu::Menu(Display& display, Buttons& buttons, uint8_t topScore,
 
 void Menu::begin() {
   _slideX = 0;
-  _prev = _selected;
+  _colAcc = 0;
   _holdStart = millis();
+  loadOption(_selected);
 }
 
 // ========================================================
@@ -69,9 +70,10 @@ void Menu::setOptions(const char* const* texts, uint8_t count) {
 
   if (_selected >= (int8_t)count) _selected = count - 1;
 
-  _prev = _selected;
   _slideX = 0;
+  _colAcc = 0;
   _holdStart = millis();
+  loadOption(_selected);
 }
 
 // ========================================================
@@ -94,18 +96,17 @@ void Menu::navigate() {
 
   // Solo MOVE_LEFT y MOVE_RIGHT (primera y última no conectadas)
   if (_buttons.pressed(Buttons::MOVE_LEFT) && _selected > 0) {
-    _prev = _selected;
     _selected--;
     moved = true;
   }
 
   if (_buttons.pressed(Buttons::MOVE_RIGHT) && _selected < _optionCount - 1) {
-    _prev = _selected;
     _selected++;
     moved = true;
   }
 
   if (moved) {
+    loadOption(_selected);  // la opción se carga (centrada) antes de mostrarse
     startSlide((_selected > before) ? 1 : -1);
     _holdStart = millis();
     Serial.printf("Menu: opcion %d -> %d\n", before, _selected);
@@ -117,51 +118,82 @@ void Menu::navigate() {
 // ========================================================
 
 void Menu::startSlide(int8_t dir) {
-  // La anterior desaparece: la entrante arranca desde un lado
+  // La tira arranca completamente fuera de pantalla y entra desde un lado
   _dir = dir;
-  _slideX = _dir * SLIDE_DIST;
+  _slideX = (_dir > 0) ? (int16_t)_display.getWidth() : -(int16_t)_display.getWidth();
+  _colAcc = 0;
   _animLast = millis();
 }
 
 // ========================================================
-// Animación del deslizamiento lateral
+// Animación: la tira avanza una columna por cada ANIM_TICK ms
+// (acumulado por tiempo, constante aunque el loop sea lento)
 // ========================================================
 
 void Menu::animate() {
-  uint32_t now = millis();
-
   if (_slideX == 0) return;
-  if (now - _animLast < ANIM_TICK) return;
+
+  uint32_t now = millis();
+  uint32_t delta = now - _animLast;
   _animLast = now;
 
-  _slideX -= _dir * ANIM_STEP;
-
-  if ((_dir > 0 && _slideX < 0) || (_dir < 0 && _slideX > 0)) {
-    _slideX = 0;
-    _prev = _selected;  // barrido terminado: ya no se repinta la previa
+  _colAcc += delta;
+  while (_colAcc >= ANIM_TICK) {
+    _colAcc -= ANIM_TICK;
+    if (_dir > 0) {              // entra por la derecha: se mueve hacia la izquierda
+      if (_slideX > 0) _slideX--;
+    } else {                     // entra por la izquierda: se mueve hacia la derecha
+      if (_slideX < 0) _slideX++;
+    }
   }
 }
 
 // ========================================================
-// Barrido: borra la opción previa en el mismo sentido del
-// deslizamiento de la entrante (la previa desaparece con el
-// avance; la entrante dibuja su chip blanco por encima)
+// Cargar la opción en la matriz de 1 bit (128x16, centrada);
+// se compone con el canvas y se copia a _strip
 // ========================================================
 
-void Menu::wipeOld(int16_t offX) {
-  int16_t w = _display.getWidth();
-  uint16_t a = (offX < 0) ? (uint16_t)(-offX) : (uint16_t)offX;
-  if (a >= SLIDE_DIST) return;           // aún no arranca el barrido
+void Menu::loadOption(int8_t index) {
+  const char* text = optionText(index);
+  int16_t x0 = textCenterX(text);
 
-  // Progreso del barrido (0 al inicio, w al final)
-  int16_t front = (int16_t)((uint32_t)(SLIDE_DIST - a) * w / SLIDE_DIST);
+  // Componer la tira: chip blanco de fondo + texto negro (invertido)
+  _chipBox.fillScreen(CHIP_WHITE);
+  _chipBox.setTextSize(TEXT_12x16);
+  _chipBox.setTextColor(CHIP_TEXT, CHIP_WHITE);
+  _chipBox.setCursor(x0, 0);
+  _chipBox.print(text);
 
-  if (_dir > 0)
-    // la entrante entra por la derecha: el barrido corre de derecha a izquierda
-    _chipBox.fillRect(w - front, 0, front, BOX_HEIGHT, 0);
-  else
-    // la entrante entra por la izquierda: el barrido corre de izquierda a derecha
-    _chipBox.fillRect(0, 0, front, BOX_HEIGHT, 0);
+  // Copiar a la matriz de 1 bit: 1 = glifo (negro), 0 = espacio (blanco)
+  for (uint8_t r = 0; r < STRIP_H; r++) {
+    for (uint8_t c = 0; c < STRIP_W; c++) {
+      uint8_t bit = (uint8_t)(1 << (c % 8));
+      if (_chipBox.getPixel(c, r) == CHIP_TEXT)
+        _strip[r][c / 8] |= bit;
+      else
+        _strip[r][c / 8] &= (uint8_t)~bit;
+    }
+  }
+}
+
+// ========================================================
+// Dibujar la tira: solo las columnas visibles de la matriz.
+// Los espacios vacíos quedan blancos (cuadro de fondo), por
+// lo que todas las opciones ocupan el mismo ancho de 128 px
+// ========================================================
+
+void Menu::drawStrip() {
+  Adafruit_SSD1306& s = _display.screen();
+
+  for (uint8_t r = 0; r < STRIP_H; r++) {
+    for (int16_t sx = 0; sx < (int16_t)_display.getWidth(); sx++) {
+      int16_t sc = sx - _slideX;                // columna de la matriz (borde izq. = _slideX)
+      if (sc < 0 || sc >= (int16_t)STRIP_W) continue;
+
+      if (_strip[r][sc / 8] & (uint8_t)(1 << (sc % 8)))
+        s.drawPixel(sx, TEXT_SEL_TOP + r, SSD1306_BLACK);
+    }
+  }
 }
 
 // ========================================================
@@ -171,44 +203,6 @@ void Menu::wipeOld(int16_t offX) {
 int16_t Menu::textCenterX(const char* text) const {
   return (int16_t)((_display.getWidth() -
                     _display.getTextWidth(text, TEXT_12x16)) / 2);
-}
-
-// ========================================================
-// Dibujar una opción en el canvas del cuadro
-// ========================================================
-
-void Menu::paintOption(int8_t index, int16_t offX) {
-  const char* text = optionText(index);
-  uint8_t w = _display.getTextWidth(text, TEXT_12x16);
-  int16_t x = textCenterX(text) + offX;
-
-  // Totalmente fuera de la pantalla
-  if (x + w < 0 || x >= _display.getWidth()) return;
-
-  // Chip blanco (rebasa +2 px en X) + texto invertido (negro)
-  _chipBox.fillRect(x - 2, 0, w + 4, BOX_HEIGHT, CHIP_WHITE);
-  _chipBox.setTextSize(TEXT_12x16);
-  _chipBox.setTextColor(CHIP_TEXT, CHIP_WHITE);
-  _chipBox.setCursor(x, TEXT_SEL_TOP - BOX_TOP);
-  _chipBox.print(text);
-}
-
-// ========================================================
-// Volcar el canvas del cuadro a la pantalla
-// ========================================================
-
-void Menu::blitChip() {
-  Adafruit_SSD1306& s = _display.screen();
-
-  for (uint8_t py = 0; py < BOX_HEIGHT; py++) {
-    for (uint8_t px = 0; px < _display.getWidth(); px++) {
-      uint8_t v = _chipBox.getPixel(px, py);
-      if (v == CHIP_WHITE)
-        s.drawPixel(px, BOX_TOP + py, SSD1306_WHITE);
-      else if (v == CHIP_TEXT)
-        s.drawPixel(px, BOX_TOP + py, SSD1306_BLACK);
-    }
-  }
 }
 
 // ========================================================
@@ -256,17 +250,10 @@ void Menu::print() {
   _display.screen().fillRect(0, BOX_TOP, _display.getWidth(), BOX_HEIGHT,
                              SSD1306_WHITE);
 
-  // Opciones en transición: el cuadro es fijo (borde a borde). La opción
-  // previa (centrada) se borra progresivamente con el barrido en el mismo
-  // sentido del deslizamiento; la entrante se desliza hasta centrarse y su
-  // chip blanco cubre lo que iba dejando la previa, sin restos de glifos
-  _chipBox.fillScreen(0);
-  if (_prev != _selected) {
-    paintOption(_prev, 0);
-    wipeOld(_slideX);
-  }
-  paintOption(_selected, _slideX);
-  blitChip();
+  // Opciones: la opción fue cargada centrada en la matriz de 1 bit. La tira
+  // (128 px, espacios vacíos incluidos) se desliza columna a columna sobre el
+  // cuadro blanco fijo hasta centrarse: solo se dibujan sus glifos negros
+  drawStrip();
 
   // Limpiar la banda de rombos (45..53)
   _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),

@@ -79,7 +79,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 |---------|-----------|
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
-| `Menu.h` / `Menu.cpp` | Clase `Menu` (menú inicial con carousel lateral y rombos de posición). Completa. |
+| `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit y rombos de posición). Completa. |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad, Sonido). Completa. |
 | `Snake_II.ino` | Enlace de dependencias **+ clase `App` integrada** (despachador de ventanas con estado interno; comparte `Display`/`Buttons` por referencia). Una única `Display` y `Buttons`, instancia de `App`; `setup()` llama `app.begin()`, `loop()` llama `app.update()` y `app.print()`. |
@@ -278,7 +278,7 @@ enum Option : uint8_t {
 El enum documenta los índices de las 5 opciones por defecto. La cantidad real es
 variable (`setOptions`), con `MAX_OPTIONS = 8`.
 
-### Diseño del menú (carousel)
+### Diseño del menú (scroller de 1 bit)
 
 - **Título:** "Snake II", `TEXT_12x16`, centrado en `REGION_HEADER`. Se dibuja al
   inicio, luego se limpia la banda (0..16) con negro y se redibuja.
@@ -293,25 +293,18 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
   en la `45`: quedan **2 filas libres** (`44..43`) sobre el rombo y el cuadro
   arranca en la **fila 3** desde la punta (`42`) hacia arriba. **No se mueve**;
   el tamaño del texto (tamaño 2) tampoco cambia.
-- **Animación lateral (carousel):** al navegar, la opción **anterior no
-  desaparece**: la **entrante** (nueva seleccionada) se desliza hasta centrarse
-  en el cuadro y la **previa** (`_prev`), dibujada centrada, **se borra
-  progresivamente en el mismo sentido** del deslizamiento (barrido/wipe junto con
-  la entrante): `MOVE_RIGHT` → la previa se borra de derecha a izquierda
-  (la entrante avanza igual); `MOVE_LEFT` → de izquierda a derecha. Sentido: derecha (`MOVE_RIGHT`) → la entrante entra por la derecha
-  (siguiente opción); izquierda (`MOVE_LEFT`) → entra por la izquierda (anterior).
-  Movimiento `2 px / 15 ms`, salto total `SLIDE_DIST = 48 px`. Si llega otro pulso
-  a mitad de la animación, la transición se reinicia desde el lado correspondiente.
-  El barrido se hace en el canvas (`wipeOld`, relleno con `0` = transparente)
-  sin restos de glifos: la previa se pinta centrada, el barrido la borra en el
-  sentido del deslizamiento y la entrante pinta su chip blanco/texto por encima.
-  Al terminar la animación `_prev` se iguala a `_selected` (en reposo solo se
-  dibuja la opción seleccionada).
-- **Recorte del texto deslizante:** las opciones se dibujan en un `GFXcanvas8`
-  (128×18, `_chipBox`) que recorta los caracteres parciales en ambos bordes
-  (`drawChar` de la librería *no* recorta en X); el canvas se vuelca a la banda
-  del cuadro con un blit (chip blanco `255`, texto negro `1`, resto transparente).
-  Colores del canvas: `CHIP_WHITE = 255`, `CHIP_TEXT = 1`.
+- **Animación (scroller de 1 bit):** cada opción se compone **antes** de
+  mostrarse en una **matriz de 128×16 de 1 bit** (`_strip[16][16]`, `1` = glifo
+  negro, `0` = espacio blanco) **centrada**, mediante el canvas auxiliar
+  `_chipBox` (128×16) que dibuja el texto (`loadOption`). Al navegar con
+  `MOVE_RIGHT` la tira entra por la **derecha** (se mueve a la izquierda); con
+  `MOVE_LEFT` entra por la **izquierda**. La tira completa arranca **fuera de
+  pantalla** y se desliza **una columna por cada `ANIM_TICK` ms** (`animate`,
+  acumulado por tiempo: la velocidad no depende del loop; vuelo total
+  ≈ `128 × 4 ms ≈ 0,5 s`). Se **muestran también los espacios vacíos**: al
+  dibujar solo los glifos negros de las columnas visibles sobre el cuadro blanco
+  fijo (borde a borde), todas las opciones quedan con el **mismo ancho de
+  128 px** (`drawStrip`).
 - **Rombos de posición:** banda `45..53`, pegada a la línea separadora en la `54`
   (antes de la fila del pie, `DIA_TOP = 45`). Solo el **seleccionado** es un **rombo simétrico
   completo** de 9 filas (dibujado con dos `fillTriangle`, como el alimento del

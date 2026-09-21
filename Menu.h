@@ -89,10 +89,12 @@ private:
   // Posición del texto del cuadro (1 px dentro, centrado verticalmente)
   static constexpr int16_t TEXT_SEL_TOP = 26;
 
-  // Animación lateral (carousel): distancia del salto y velocidad
-  static constexpr int16_t SLIDE_DIST = 48;
-  static constexpr uint32_t ANIM_TICK = 15;
-  static constexpr int8_t ANIM_STEP   = 2;
+  // Animación (scroller de 1 bit): la tira completa (128 px de matriz) se
+  // desliza UNA columna por cada ANIM_TICK ms (acumulado por tiempo, la
+  // velocidad no depende de la velocidad del loop). Vuelo total ~128*ANIM_TICK
+  static constexpr uint8_t  STRIP_W    = 128;  // columnas de la tira (= ancho de pantalla)
+  static constexpr uint8_t  STRIP_H    = 16;   // filas de la tira (= alto del texto 12x16)
+  static constexpr uint32_t ANIM_TICK  = 4;    // ms por columna de desplazamiento (~0,5 s total)
 
   // Rombos de posición: banda 45..53, apoyada en la línea separadora 54 del pie.
   static constexpr int16_t DIA_TOP  = 45;  // punta superior del rombo (rombo simétrico 45..53)
@@ -114,10 +116,9 @@ private:
   void navigate();
   void startSlide(int8_t dir);
   void animate();
-  void wipeOld(int16_t offX);              // barrido: borra la previa en el sentido del deslizamiento
+  void loadOption(int8_t index);               // compone la opción centrada en la matriz de 1 bit
+  void drawStrip();                            // dibuja las columnas visibles de la matriz sobre el cuadro
   int16_t textCenterX(const char* text) const;
-  void paintOption(int8_t index, int16_t offX);   // dibuja la opción en el canvas
-  void blitChip();                                 // vuelca el canvas a la pantalla
   void drawDiamonds();
 
   // ========================================================
@@ -138,13 +139,14 @@ private:
   const char* const* _optionTexts;
 
   int8_t _selected;   // opción actual (objetivo central)
-  int8_t _prev;       // opción previa (dibujada centrada y borrada con barrido)
   int8_t _dir;        // +1 siguiente (entra por la derecha), -1 anterior (izquierda)
-  int16_t _slideX;    // desplazamiento de la opción entrante (objetivo 0)
+  int16_t _slideX;    // borde izquierdo de la tira en pantalla (objetivo 0 = centrada)
+  uint32_t _colAcc;   // acumulador de tiempo para avanzar columnas
   uint32_t _animLast;
   uint32_t _holdStart;
 
-  GFXcanvas8 _chipBox;  // ventana del cuadro (recorta el texto al deslizar)
+  uint8_t _strip[STRIP_H][STRIP_W / 8];  // matriz 128x16 de 1 bit: 1 = glifo negro, 0 = blanco
+  GFXcanvas8 _chipBox;                   // canvas de composición (128x16) para cargar la opción
 };
 
 #endif
