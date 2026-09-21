@@ -109,8 +109,8 @@ private:
   // Estado confirmado anterior
   bool _lastButtons[MAX_BUTTONS];
 
-  // Estado físico sin filtrar
-  bool _rawButtons[MAX_BUTTONS];
+  // Estado físico sin filtrar (1 bit por botón, agrupado en un byte)
+  uint8_t _rawButtons;
 
   // Se acaba de presionar
   bool _pressed[MAX_BUTTONS];

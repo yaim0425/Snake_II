@@ -239,7 +239,10 @@ enum Button : uint8_t {
 
 ### Diseño del debounce
 
-- Lee en bruto (`_rawButtons`), detecta el cambio físico y toma nota del instante.
+- Lee los 8 botones agrupados en un solo byte (`uint8_t _rawButtons`, 1 bit por
+  botón, HIGH = presionado con `INPUT_PULLDOWN`), igual que el `estados` del
+  ejemplo de referencia.
+- Detecta el cambio físico por bit y toma nota del instante.
 - Solo acepta el nuevo estado tras `_buttonDelay` ms de estabilidad.
 - Genera `_pressed`/`_released` de un solo ciclo.
 

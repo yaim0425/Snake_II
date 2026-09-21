@@ -8,13 +8,15 @@ Buttons::Buttons(
   const int8_t* pins,
   uint32_t buttonDelay)
   : _buttonDelay(buttonDelay) {
+
+  _rawButtons = 0;
+
   for (uint8_t i = 0; i < MAX_BUTTONS; i++) {
 
     _pins[i] = pins[i];
 
     _buttons[i] = false;
     _lastButtons[i] = false;
-    _rawButtons[i] = false;
 
     _pressed[i] = false;
     _released[i] = false;
@@ -38,7 +40,7 @@ void Buttons::begin() {
     _buttonLast[i] = millis();
   }
 
-  // Leer estado inicial
+  // Leer estado inicial (bits agrupados en un byte)
   for (uint8_t i = 0; i < MAX_BUTTONS; i++) {
 
     bool state =
@@ -46,7 +48,9 @@ void Buttons::begin() {
 
     _buttons[i] = state;
     _lastButtons[i] = state;
-    _rawButtons[i] = state;
+
+    if (state) _rawButtons |= (uint8_t)(1 << i);
+    else       _rawButtons &= (uint8_t)~(1 << i);
   }
 }
 
@@ -65,19 +69,35 @@ void Buttons::read() {
     _released[i] = false;
   }
 
-  // Leer botones
+  // --------------------------------------------
+  // Leer los 8 botones agrupados en un byte
+  // (bit i = botón i, HIGH = presionado)
+  // --------------------------------------------
+
+  uint8_t raw = 0;
+
   for (uint8_t i = 0; i < MAX_BUTTONS; i++) {
 
-    bool state =
-      digitalRead(_pins[i]) == HIGH;
+    if (digitalRead(_pins[i]) == HIGH)
+      raw |= (uint8_t)(1 << i);
+  }
+
+  // --------------------------------------------
+  // Debounce por botón sobre el byte
+  // --------------------------------------------
+
+  for (uint8_t i = 0; i < MAX_BUTTONS; i++) {
+
+    bool state = (raw >> i) & 1;
 
     // --------------------------------------------
     // Cambio físico detectado
     // --------------------------------------------
 
-    if (state != _rawButtons[i]) {
+    if (state != ((_rawButtons >> i) & 1)) {
 
-      _rawButtons[i] = state;
+      if (state) _rawButtons |= (uint8_t)(1 << i);
+      else       _rawButtons &= (uint8_t)~(1 << i);
 
       _buttonLast[i] = now;
     }
@@ -88,13 +108,13 @@ void Buttons::read() {
 
     if ((now - _buttonLast[i]) >= _buttonDelay) {
 
-      if (_buttons[i] != _rawButtons[i]) {
+      if (_buttons[i] != state) {
 
         // Guardar estado anterior
         _lastButtons[i] = _buttons[i];
 
         // Aceptar nuevo estado
-        _buttons[i] = _rawButtons[i];
+        _buttons[i] = state;
 
         // ----------------------------------------
         // Pressed
