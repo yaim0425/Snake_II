@@ -114,6 +114,7 @@ private:
   void navigate();
   void startSlide(int8_t dir);
   void animate();
+  void wipeOld(int16_t offX);              // barrido: borra la previa en el sentido del deslizamiento
   int16_t textCenterX(const char* text) const;
   void paintOption(int8_t index, int16_t offX);   // dibuja la opción en el canvas
   void blitChip();                                 // vuelca el canvas a la pantalla
@@ -137,6 +138,7 @@ private:
   const char* const* _optionTexts;
 
   int8_t _selected;   // opción actual (objetivo central)
+  int8_t _prev;       // opción previa (dibujada centrada y borrada con barrido)
   int8_t _dir;        // +1 siguiente (entra por la derecha), -1 anterior (izquierda)
   int16_t _slideX;    // desplazamiento de la opción entrante (objetivo 0)
   uint32_t _animLast;

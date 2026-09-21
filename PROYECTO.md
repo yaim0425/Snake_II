@@ -302,6 +302,11 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
   (siguiente opción); izquierda (`MOVE_LEFT`) → entra por la izquierda (anterior).
   Movimiento `2 px / 15 ms`, salto total `SLIDE_DIST = 48 px`. Si llega otro pulso
   a mitad de la animación, la transición se reinicia desde el lado correspondiente.
+  El barrido se hace en el canvas (`wipeOld`, relleno con `0` = transparente)
+  sin restos de glifos: la previa se pinta centrada, el barrido la borra en el
+  sentido del deslizamiento y la entrante pinta su chip blanco/texto por encima.
+  Al terminar la animación `_prev` se iguala a `_selected` (en reposo solo se
+  dibuja la opción seleccionada).
 - **Recorte del texto deslizante:** las opciones se dibujan en un `GFXcanvas8`
   (128×18, `_chipBox`) que recorta los caracteres parciales en ambos bordes
   (`drawChar` de la librería *no* recorta en X); el canvas se vuelca a la banda
