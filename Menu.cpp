@@ -309,7 +309,7 @@ int8_t Menu::selected() const {
 }
 
 int8_t Menu::confirm() const {
-  if (_buttons.actionLeftPressed()) return _selected;
+  if (_buttons.actionRightPressed()) return _selected;
   return -1;
 }
 

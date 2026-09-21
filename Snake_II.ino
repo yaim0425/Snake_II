@@ -68,7 +68,7 @@ public:
 
         _menu.update();
 
-        // Confirmar opción (ACTION_LEFT) -> cambiar de ventana
+        // Confirmar opción (ACTION_RIGHT) -> cambiar de ventana
         int8_t sel = _menu.confirm();
         if (sel >= 0) {
           switch (sel) {

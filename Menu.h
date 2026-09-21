@@ -60,7 +60,7 @@ public:
   int8_t selected() const;
   void setTopScore(uint8_t value);
 
-  // Devuelve la opción elegida si se confirma (ACTION_LEFT), o -1
+  // Devuelve la opción elegida si se confirma (ACTION_RIGHT), o -1
   int8_t confirm() const;
 
 private:
