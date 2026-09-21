@@ -3,6 +3,7 @@
 
 #include "Display.h"
 #include "Buttons.h"
+#include "Boot.h"
 #include "Menu.h"
 #include "Credits.h"
 #include "InfoWindow.h"
@@ -31,8 +32,8 @@ public:
   // Constructor (recibe las ventanas ya construidas y sin anidar)
   // ========================================================
 
-  Engine(Display& display, Buttons& buttons, Menu& menu, Credits& credits,
-         InfoWindow& info);
+  Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
+         Credits& credits, InfoWindow& info);
 
   // ========================================================
   // Inicialización (estado inicial: menú). Se llama desde setup().
@@ -65,7 +66,8 @@ private:
   // ========================================================
 
   enum class State : uint8_t {
-    MENU = 0,
+    BOOT = 0,
+    MENU,
     NUEVO,
     CONTINUAR,
     DIFICULTAD,
@@ -88,6 +90,7 @@ private:
   Display& _display;
   Buttons& _buttons;
 
+  Boot& _boot;
   Menu& _menu;
   Credits& _credits;
   InfoWindow& _info;

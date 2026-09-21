@@ -39,17 +39,18 @@ En desarrollo por partes. La clase `Display` está completa. `Snake_II.ino` es e
 `setup()`.
 
 Arquitectura:
-- **Ventanas hermanas (no anidadas):** `Menu`, `Credits` e `InfoWindow` son clases
-  independientes, instancias únicas creadas en `Snake_II.ino` (como `Display` y
-  `Buttons`) y compartidas por referencia. Sus valores persisten entre transiciones.
+- **Ventanas hermanas (no anidadas):** `Boot`, `Menu`, `Credits` e `InfoWindow` son
+  clases independientes, instancias únicas creadas en `Snake_II.ino` (como `Display`
+  y `Buttons`) y compartidas por referencia. Sus valores persisten entre transiciones.
 - **`Engine` = despachador puro:** recibe las ventanas por referencia y NO las
   anida. Su estado interno decide qué ventana se ve; al cambiar de estado llama al
   `begin()` de la ventana entrante. `setup()` llama `display.begin()`,
   `buttons.begin()` y `engine.begin()`; `loop()` solo llama `engine.update()` y
   `engine.print()`.
-- Se muestran el menú inicial, los placeholders "En desarrollo" (Nuevo, Continuar,
-  Dificultad, Sonido) y los créditos. El código del juego original está respaldado
-  (no restaurado) en `Snake_II_juego_backup.txt`.
+- Al iniciar se muestra la animación de arranque (`Boot`, test de píxeles para
+  detectar píxeles dañados) y luego el menú inicial, los placeholders "En
+  desarrollo" (Nuevo, Continuar, Dificultad, Sonido) y los créditos. El código del
+  juego original está respaldado (no restaurado) en `Snake_II_juego_backup.txt`.
 
 La clase `Engine` (despachador de ventanas, antes `App`) está separada del `.ino`
 en `Engine.h` / `Engine.cpp`, y recibe las ventanas **sin anidarlas**.
@@ -89,11 +90,12 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 |---------|-----------|
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
+| `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit y rombos de posición). Completa. |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad, Sonido). Completa. |
 | `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas**: las recibe por referencia y su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Todos los `begin()` se lanzan desde `setup()`. Completa. |
-| `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Menu`/`Credits`/`InfoWindow` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` llama `engine.update()` y `engine.print()`. |
+| `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Menu`/`Credits`/`InfoWindow` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` llama `engine.update()` y `engine.print()`. |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
 | `GameBuzzer.h` | Clase del buzzer del juego original (sin cambios). |
 | `PROYECTO.md` | Este documento. |
@@ -345,10 +347,45 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
 
 ---
 
-## 9. Clase `Engine` — despachador de ventanas
+## 8. Clase `Boot` — API
+
+Ubicación: `Boot.h` / `Boot.cpp`.
+
+### Constructor
+
+```cpp
+Boot(Display& display, Buttons& buttons);
+```
+
+### Métodos
+
+| Método | Descripción |
+|--------|-------------|
+| `void begin()` | Reinicia la animación: desplazamiento 0, temporizadores a cero y flag de salida apagado. |
+| `void update()` | Lee botones; cualquier botón la termina. Autoavance de 1 px cada `ANIM_TICK = 30 ms` (acumulador por tiempo) y duración total `TOTAL_MS = 4000 ms`. Al terminar pone `done() = true`. |
+| `void print()` | Dibuja las dos bandas de líneas verticales. |
+| `bool done()` | `true` cuando la animación terminó (Engine pasa al menú). |
+
+### Animación (franjas verticales)
+
+- **Bandas completas:** `TITULO` = filas **0..15** y `CUERPO` = filas **16..63**
+  (sin márgenes, como las regiones de la pantalla).
+- **Líneas:** verticales de `BAR_W = 3 px` de grosor separadas `BAR_SPACING = 8 px`,
+  dibujadas con `fillRect` directo sobre el OLED.
+- **Rebalse:** al llegar al borde derecho la línea se parte en dos tramos (`drawBar`:
+  tramo derecho + tramo por la izquierda) para que no se corte en seco.
+- **Movimiento:** `_shift` avanza 1 px cada `ANIM_TICK = 30 ms` (ciclo completo de
+  8 px). En `TITULO` las líneas se mueven **de izquierda a derecha**; en `CUERPO`
+  **de derecha a izquierda**.
+- **Duración:** `TOTAL_MS = 4000 ms` o cualquier botón, lo que ocurra primero; luego
+  `Engine` entra al menú.
+
+---
+
+## 10. Clase `Engine` — despachador de ventanas
 
 Separada del `.ino` en `Engine.h` / `Engine.cpp` (antes `App`). **No anida las
-ventanas**: `Menu`, `Credits`, `InfoWindow` (y el futuro `Juego`) son clases
+ventanas**: `Boot`, `Menu`, `Credits`, `InfoWindow` (y el futuro `Juego`) son clases
 independientes, instancias únicas creadas en `Snake_II.ino` y pasadas a `Engine`
 por referencia, igual que `Display` y `Buttons`.
 
@@ -358,13 +395,13 @@ por referencia, igual que `Display` y `Buttons`.
 decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()`
 de la ventana entrante). `loop()` no participa en las transiciones: solo llama a
 `engine.update()` y `engine.print()`. `setup()` inicia el hardware y llama a
-`engine.begin()` (primera transición → `menu.begin()`).
+`engine.begin()` (primera transición → `boot.begin()`).
 
 ### Constructor
 
 ```cpp
-Engine(Display& display, Buttons& buttons, Menu& menu, Credits& credits,
-       InfoWindow& info);
+Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
+       Credits& credits, InfoWindow& info);
 ```
 
 ### Reglas de esta arquitectura
@@ -385,12 +422,13 @@ Engine(Display& display, Buttons& buttons, Menu& menu, Credits& credits,
 
 ```cpp
 enum class State : uint8_t {
-  MENU = 0, NUEVO, CONTINUAR, DIFICULTAD, SONIDO, CREDITOS
+  BOOT = 0, MENU, NUEVO, CONTINUAR, DIFICULTAD, SONIDO, CREDITOS
 };
 ```
 
 | Estado | Ventana | Notas |
 |--------|---------|-------|
+| `BOOT` | `Boot` | Animación de arranque (test de píxeles). Al terminar (`done()`) pasa al `MENU`. Cualquier botón avanza/salta cada patrón. |
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
 | `NUEVO`, `CONTINUAR`, `DIFICULTAD`, `SONIDO` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. |
 | `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo scroller de 1 bit que el menú** con **dos bandas sincronizadas**: rol (128×16) y nombre (128×8) se componen por separado (`loadEntry`, canvas `_composer` 128×16 → matriz `_strip[16][16]`) y deslizan a la vez con el **mismo `_slideX`** (aparecen al mismo tiempo). Cada banda es un **canvas persistente** (`_chipBoxRole`/`_chipBoxName`) que la tira sobrescribe **columna a columna** con sus espacios de fondo, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). La animación **arranca desde el borde**: `startSlide` pone `_slideX = ±ancho` (fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (`ANIM_TICK = 4`, como el menú, ≈0,5 s y constante aunque el loop sea lento). |
@@ -399,7 +437,7 @@ enum class State : uint8_t {
 
 | Método | Descripción |
 |--------|-------------|
-| `void begin()` | Primera transición: entra al menú (`changeState(State::MENU)`). Se llama desde `setup()`. |
+| `void begin()` | Primera transición: entra al test de píxeles (`changeState(State::BOOT)`). Se llama desde `setup()`. |
 | `void update()` | Lee/actualiza la ventana activa y gestiona las transiciones de estado. |
 | `void print()` | Limpia (`display.clear()`) y dibuja solo la ventana activa. |
 | `void setTopScore(uint8_t)` | Reenvía al menú para conservar el puntaje máximo entre sesiones. |
@@ -425,9 +463,10 @@ Toda ventana implementa:
 
 ---
 
-## 8. Cómo compilar/probar
+## 11. Cómo compilar/probar
 
 - IDE: Arduino IDE, placa `ESP32-S3 (Dev Module)` (verificar puerto).
 - Librerías: Adafruit GFX + Adafruit_SSD1306.
-- La demo actual (`Snake_II.ino`) no requiere botones ni buzzer (usa solo `Display`).
+- La demo actual (`Snake_II.ino`) usa solo `Display` y `Buttons` (la `Boot` usa
+  botones solo para saltar patrones; el buzzer no se usa todavía).
 - Con SDA=8 y SCL=9, dirección 0x3C.

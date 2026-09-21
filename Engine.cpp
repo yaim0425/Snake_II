@@ -4,11 +4,12 @@
 // Constructor: guarda las ventanas ya construidas (no las anida)
 // ========================================================
 
-Engine::Engine(Display& display, Buttons& buttons, Menu& menu, Credits& credits,
-               InfoWindow& info)
-  : _state(State::MENU),
+Engine::Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
+               Credits& credits, InfoWindow& info)
+  : _state(State::BOOT),
     _display(display),
     _buttons(buttons),
+    _boot(boot),
     _menu(menu),
     _credits(credits),
     _info(info) {}
@@ -18,7 +19,7 @@ Engine::Engine(Display& display, Buttons& buttons, Menu& menu, Credits& credits,
 // ========================================================
 
 void Engine::begin() {
-  changeState(State::MENU);
+  changeState(State::BOOT);
 }
 
 // ========================================================
@@ -28,6 +29,13 @@ void Engine::begin() {
 void Engine::update() {
 
   switch (_state) {
+
+    case State::BOOT: {
+
+      _boot.update();
+      if (_boot.done()) changeState(State::MENU);
+      break;
+    }
 
     case State::MENU: {
 
@@ -75,6 +83,7 @@ void Engine::print() {
   _display.clear();
 
   switch (_state) {
+    case State::BOOT:       _boot.print();                                 break;
     case State::MENU:       _menu.print();                                 break;
     case State::NUEVO:
     case State::CONTINUAR:
@@ -100,6 +109,7 @@ void Engine::changeState(State newState) {
   _state = newState;
 
   switch (_state) {
+    case State::BOOT:       _boot.begin();                                 break;
     case State::MENU:       _menu.begin();                                 break;
     case State::NUEVO:      _info.begin("New");                            break;
     case State::CONTINUAR:  _info.begin("Continue");                       break;
