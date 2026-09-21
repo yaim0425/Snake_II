@@ -40,8 +40,11 @@ Credits::Credits(Display& display, Buttons& buttons)
     _dir(1),
     _slideX(0),
     _animLast(0),
+    _colAcc(0),
     _exit(false),
-    _band(_display.getWidth(), _display.getTextHeight(TEXT_12x16)) {}
+    _chipBoxRole(_display.getWidth(), _display.getTextHeight(TEXT_12x16)),
+    _chipBoxName(_display.getWidth(), _display.getTextHeight(TEXT_6x8)),
+    _composer(_display.getWidth(), _display.getTextHeight(TEXT_12x16)) {}
 
 // ========================================================
 // Inicialización (al entrar en la ventana)
@@ -50,6 +53,7 @@ Credits::Credits(Display& display, Buttons& buttons)
 void Credits::begin() {
   _entry = 1;  // entrada central (Snake II / v0.1)
   _slideX = 0;
+  _colAcc = 0;
   _animLast = millis();
   _exit = false;
 }
@@ -96,80 +100,118 @@ void Credits::navigate() {
 // ========================================================
 
 void Credits::startSlide(int8_t dir) {
+  // La tira arranca completamente fuera de pantalla (desde el borde)
+  // y entra por un lado, igual que el menú
   _dir = dir;
-  _slideX = _dir * SLIDE_DIST;
+  _slideX = _dir * (int16_t)_display.getWidth();
+  _colAcc = 0;
   _animLast = millis();
 }
 
 // ========================================================
-// Animación del deslizamiento lateral
+// Animación del deslizamiento lateral: avanza 1 px por cada
+// ANIM_TICK ms acumulado por tiempo (constante aunque el loop
+// sea lento), igual que el menú principal
 // ========================================================
 
 void Credits::animate() {
-  uint32_t now = millis();
-
   if (_slideX == 0) return;
-  if (now - _animLast < ANIM_TICK) return;
+
+  uint32_t now = millis();
+  uint32_t delta = now - _animLast;
   _animLast = now;
 
-  _slideX -= _dir * ANIM_STEP;
-
-  if ((_dir > 0 && _slideX < 0) || (_dir < 0 && _slideX > 0))
-    _slideX = 0;
-}
-
-// ========================================================
-// Pintar un texto en el canvas (bloque de fondo + texto)
-// ========================================================
-
-void Credits::paintText(const char* text, int16_t x, uint8_t size) {
-  uint8_t tw = _display.getTextWidth(text, size);
-  uint8_t th = _display.getTextHeight(size);
-
-  // Bloque de fondo: cubre el texto viejo bajo el entrante
-  _band.fillRect(x - 2, 0, tw + 4, th, CHIP_BG);
-
-  _band.setTextSize(size);
-  _band.setTextColor(CHIP_TEXT, CHIP_BG);
-  _band.setCursor(x, 0);
-  _band.print(text);
-}
-
-// ========================================================
-// Volcar el canvas a la pantalla en una banda
-// ========================================================
-
-void Credits::blitBand(int16_t y, uint8_t size, uint16_t fgColor,
-                       uint16_t bgColor) {
-  Adafruit_SSD1306& s = _display.screen();
-  uint8_t h = _display.getTextHeight(size);
-
-  for (uint8_t py = 0; py < h; py++) {
-    for (uint8_t px = 0; px < _display.getWidth(); px++) {
-      uint8_t v = _band.getPixel(px, py);
-      if (v == CHIP_TEXT)      s.drawPixel(px, y + py, fgColor);
-      else if (v == CHIP_BG)   s.drawPixel(px, y + py, bgColor);
+  _colAcc += delta;
+  while (_colAcc >= ANIM_TICK) {
+    _colAcc -= ANIM_TICK;
+    if (_dir > 0) {              // entra por la derecha: se mueve hacia la izquierda
+      if (_slideX > 0) _slideX--;
+    } else {                     // entra por la izquierda: se mueve hacia la derecha
+      if (_slideX < 0) _slideX++;
     }
   }
 }
 
 // ========================================================
-// Dibujar una banda (rol = 0, nombre = 1) con transición
+// Cargar el rol o el nombre en la matriz de 1 bit (128x16,
+// centrado); se compone en el canvas auxiliar (sin tocar las
+// bandas actuales)
 // ========================================================
 
-void Credits::drawBand(uint8_t slot, int16_t y, uint8_t size, uint16_t fgColor,
-                       uint16_t bgColor) {
-  int16_t w = _display.getWidth();
+void Credits::loadEntry(uint8_t slot) {
+  uint8_t size = (slot == 0) ? TEXT_12x16 : TEXT_6x8;
+  const char* text = ROLE_NAME[_entry][slot];
+  int16_t x0 = (int16_t)((_display.getWidth() -
+                          _display.getTextWidth(text, size)) / 2);
 
-  _band.fillScreen(0);
+  // Componer la tira: chip de fondo + texto invertido
+  _composer.fillScreen(CHIP_BG);
+  _composer.setTextSize(size);
+  _composer.setTextColor(CHIP_TEXT, CHIP_BG);
+  _composer.setCursor(x0, 0);
+  _composer.print(text);
 
-  // Solo la entrada entrante (bloque de fondo + texto) se desliza hasta
-  // centrarse; el texto viejo desaparece porque la pantalla se limpia cada
-  // frame, así no quedan restos de glifos con anchos distintos
-  int16_t curX = (w - _display.getTextWidth(ROLE_NAME[_entry][slot], size)) / 2;
-  paintText(ROLE_NAME[_entry][slot], curX + _slideX, size);
+  // Copiar a la matriz de 1 bit: 1 = glifo, 0 = fondo
+  for (uint8_t r = 0; r < STRIP_H; r++) {
+    for (uint8_t c = 0; c < STRIP_W; c++) {
+      uint8_t bit = (uint8_t)(1 << (c % 8));
+      if (_composer.getPixel(c, r) == CHIP_TEXT)
+        _strip[r][c / 8] |= bit;
+      else
+        _strip[r][c / 8] &= (uint8_t)~bit;
+    }
+  }
+}
 
-  blitBand(y, size, fgColor, bgColor);
+// ========================================================
+// Pintar las columnas visibles de la tira sobre su banda
+// persistente: cada columna de la tira (incluidos sus espacios
+// de fondo) sobrescribe lo que había, así la entrada anterior
+// se mantiene hasta ser borrada por la nueva
+// ========================================================
+
+void Credits::slideStrip(GFXcanvas8& chipBox, uint8_t h) {
+  for (uint8_t r = 0; r < h; r++) {
+    for (uint16_t sx = 0; sx < _display.getWidth(); sx++) {
+      int16_t sc = (int16_t)sx - _slideX;            // columna de la matriz (borde izq. = _slideX)
+      if (sc < 0 || sc >= (int16_t)STRIP_W) continue;
+
+      bool glyph = _strip[r][sc / 8] & (uint8_t)(1 << (sc % 8));
+      chipBox.drawPixel(sx, r, glyph ? CHIP_TEXT : CHIP_BG);
+    }
+  }
+}
+
+// ========================================================
+// Volcar una banda persistente a la pantalla
+// ========================================================
+
+void Credits::blitBand(GFXcanvas8& chipBox, int16_t y, uint8_t h,
+                       uint16_t fgColor, uint16_t bgColor) {
+  Adafruit_SSD1306& s = _display.screen();
+
+  for (uint8_t r = 0; r < h; r++) {
+    for (uint16_t c = 0; c < _display.getWidth(); c++) {
+      uint8_t v = chipBox.getPixel(c, r);
+      s.drawPixel(c, y + r, (v == CHIP_TEXT) ? fgColor : bgColor);
+    }
+  }
+}
+
+// ========================================================
+// Dibujar una banda (rol = 0, nombre = 1) con transición.
+// Ambas bandas deslizan a la vez con el mismo _slideX, por lo
+// que aparecen sincronizadas (mismo offset horizontal)
+// ========================================================
+
+void Credits::drawBand(uint8_t slot, int16_t y, uint8_t size,
+                       uint16_t fgColor, uint16_t bgColor) {
+  GFXcanvas8& chipBox = (slot == 0) ? _chipBoxRole : _chipBoxName;
+  uint8_t h = _display.getTextHeight(size);
+
+  loadEntry(slot);
+  slideStrip(chipBox, h);
+  blitBand(chipBox, y, h, fgColor, bgColor);
 }
 
 // ========================================================

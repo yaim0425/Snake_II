@@ -360,7 +360,7 @@ enum class State : uint8_t {
 |--------|---------|-------|
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
 | `NUEVO`, `CONTINUAR`, `DIFICULTAD`, `SONIDO` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. |
-| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición solo desliza la entrada entrante (la saliente desaparece al limpiar la pantalla cada frame, sin restos de glifos ni `_prev`). |
+| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo scroller de 1 bit que el menú** con **dos bandas sincronizadas**: rol (128×16) y nombre (128×8) se componen por separado (`loadEntry`, canvas `_composer` 128×16 → matriz `_strip[16][16]`) y deslizan a la vez con el **mismo `_slideX`** (aparecen al mismo tiempo). Cada banda es un **canvas persistente** (`_chipBoxRole`/`_chipBoxName`) que la tira sobrescribe **columna a columna** con sus espacios de fondo, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). La animación **arranca desde el borde**: `startSlide` pone `_slideX = ±ancho` (fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (`ANIM_TICK = 4`, como el menú, ≈0,5 s y constante aunque el loop sea lento). |
 
 ### Patrón de ventana
 
