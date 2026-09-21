@@ -5,14 +5,15 @@
 // ========================================================
 
 Engine::Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
-               Credits& credits, InfoWindow& info)
+               Credits& credits, InfoWindow& info, Legend& legend)
   : _state(State::BOOT),
     _display(display),
     _buttons(buttons),
     _boot(boot),
     _menu(menu),
     _credits(credits),
-    _info(info) {}
+    _info(info),
+    _legend(legend) {}
 
 // ========================================================
 // Inicialización (estado inicial: menú). Se llama desde setup().
@@ -33,7 +34,7 @@ void Engine::update() {
     case State::BOOT: {
 
       _boot.update();
-      if (_boot.done()) changeState(State::MENU);
+      if (_boot.done()) changeState(State::LEGEND);
       break;
     }
 
@@ -61,14 +62,21 @@ void Engine::update() {
     case State::SONIDO: {
 
       _info.update();
-      if (_info.done()) changeState(State::MENU);
+      if (_info.done()) changeState(State::LEGEND);
       break;
     }
 
     case State::CREDITOS: {
 
       _credits.update();
-      if (_credits.done()) changeState(State::MENU);
+      if (_credits.done()) changeState(State::LEGEND);
+      break;
+    }
+
+    case State::LEGEND: {
+
+      _legend.update();
+      if (_legend.done()) changeState(State::MENU);
       break;
     }
   }
@@ -90,6 +98,7 @@ void Engine::print() {
     case State::DIFICULTAD:
     case State::SONIDO:     _info.print();                                 break;
     case State::CREDITOS:   _credits.print();                              break;
+    case State::LEGEND:     _legend.print();                               break;
   }
 }
 
@@ -116,5 +125,6 @@ void Engine::changeState(State newState) {
     case State::DIFICULTAD: _info.begin("Difficulty");                     break;
     case State::SONIDO:     _info.begin("Sound");                          break;
     case State::CREDITOS:   _credits.begin();                              break;
+    case State::LEGEND:     _legend.begin();                               break;
   }
 }

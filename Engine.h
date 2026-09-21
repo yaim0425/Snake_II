@@ -7,6 +7,7 @@
 #include "Menu.h"
 #include "Credits.h"
 #include "InfoWindow.h"
+#include "Legend.h"
 
 // ========================================================
 // Engine — despachador de ventanas
@@ -33,7 +34,7 @@ public:
   // ========================================================
 
   Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
-         Credits& credits, InfoWindow& info);
+         Credits& credits, InfoWindow& info, Legend& legend);
 
   // ========================================================
   // Inicialización (estado inicial: menú). Se llama desde setup().
@@ -72,7 +73,8 @@ private:
     CONTINUAR,
     DIFICULTAD,
     SONIDO,
-    CREDITOS
+    CREDITOS,
+    LEGEND
   };
 
   State _state;
@@ -94,6 +96,7 @@ private:
   Menu& _menu;
   Credits& _credits;
   InfoWindow& _info;
+  Legend& _legend;
 };
 
 #endif

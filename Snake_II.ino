@@ -3,10 +3,10 @@
 //
 // Este archivo construye TODAS las clases y las inicia en setup():
 //   - Display y Buttons: hardware (I2C del OLED y pines de los botones).
-//   - Boot, Menu, Credits, InfoWindow: ventanas independientes (hermanas, no
-//     anidadas), instancias únicas para todo el juego. Sus begin() los
-//     llama Engine al entrar en cada estado, y entre transiciones sus
-//     valores se conservan.
+//   - Boot, Menu, Credits, InfoWindow, Legend: ventanas independientes
+//     (hermanas, no anidadas), instancias únicas para todo el juego. Sus
+//     begin() los llama Engine al entrar en cada estado, y entre transiciones
+//     sus valores se conservan.
 //   - Engine: despachador puro. Su estado interno decide qué ventana se ve;
 //     loop() solo llama engine.update() y engine.print().
 //
@@ -19,6 +19,7 @@
 #include "Menu.h"
 #include "Credits.h"
 #include "InfoWindow.h"
+#include "Legend.h"
 #include "Engine.h"
 
 #include <Arduino.h>
@@ -45,9 +46,10 @@ Boot boot(display, buttons);
 Menu menu(display, buttons, 0, "v0.1");
 Credits credits(display, buttons);
 InfoWindow info(display, buttons);
+Legend legend(display, buttons);
 
 // Despachador: recibe las ventanas y decide cuál se ve según su estado.
-Engine engine(display, buttons, boot, menu, credits, info);
+Engine engine(display, buttons, boot, menu, credits, info, legend);
 
 // ====================================================================================
 
