@@ -117,7 +117,8 @@ private:
   void startSlide(int8_t dir);
   void animate();
   void loadOption(int8_t index);               // compone la opción centrada en la matriz de 1 bit
-  void drawStrip();                            // dibuja las columnas visibles de la matriz sobre el cuadro
+  void slideStrip();                           // pinta las columnas visibles de la tira sobre la banda
+  void blitBand();                             // vuelca la banda persistente al cuadro de la pantalla
   int16_t textCenterX(const char* text) const;
   void drawDiamonds();
 
@@ -145,8 +146,9 @@ private:
   uint32_t _animLast;
   uint32_t _holdStart;
 
-  uint8_t _strip[STRIP_H][STRIP_W / 8];  // matriz 128x16 de 1 bit: 1 = glifo negro, 0 = blanco
-  GFXcanvas8 _chipBox;                   // canvas de composición (128x16) para cargar la opción
+  uint8_t _strip[STRIP_H][STRIP_W / 8];  // matriz 128x16 de 1 bit de la opción entrante
+  GFXcanvas8 _chipBox;                   // banda persistente (128x16): lo que está en pantalla
+  GFXcanvas8 _composer;                  // canvas auxiliar (128x16) para cargar la opción
 };
 
 #endif

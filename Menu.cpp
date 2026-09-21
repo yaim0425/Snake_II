@@ -42,7 +42,8 @@ Menu::Menu(Display& display, Buttons& buttons, uint8_t topScore,
     _colAcc(0),
     _animLast(0),
     _holdStart(0),
-    _chipBox(_display.getWidth(), _display.getTextHeight(TEXT_12x16)) {}
+    _chipBox(_display.getWidth(), _display.getTextHeight(TEXT_12x16)),
+    _composer(_display.getWidth(), _display.getTextHeight(TEXT_12x16)) {}
 
 // ========================================================
 // Inicialización
@@ -150,7 +151,7 @@ void Menu::animate() {
 
 // ========================================================
 // Cargar la opción en la matriz de 1 bit (128x16, centrada);
-// se compone con el canvas y se copia a _strip
+// se compone en el canvas auxiliar (sin tocar la banda actual)
 // ========================================================
 
 void Menu::loadOption(int8_t index) {
@@ -158,17 +159,17 @@ void Menu::loadOption(int8_t index) {
   int16_t x0 = textCenterX(text);
 
   // Componer la tira: chip blanco de fondo + texto negro (invertido)
-  _chipBox.fillScreen(CHIP_WHITE);
-  _chipBox.setTextSize(TEXT_12x16);
-  _chipBox.setTextColor(CHIP_TEXT, CHIP_WHITE);
-  _chipBox.setCursor(x0, 0);
-  _chipBox.print(text);
+  _composer.fillScreen(CHIP_WHITE);
+  _composer.setTextSize(TEXT_12x16);
+  _composer.setTextColor(CHIP_TEXT, CHIP_WHITE);
+  _composer.setCursor(x0, 0);
+  _composer.print(text);
 
   // Copiar a la matriz de 1 bit: 1 = glifo (negro), 0 = espacio (blanco)
   for (uint8_t r = 0; r < STRIP_H; r++) {
     for (uint8_t c = 0; c < STRIP_W; c++) {
       uint8_t bit = (uint8_t)(1 << (c % 8));
-      if (_chipBox.getPixel(c, r) == CHIP_TEXT)
+      if (_composer.getPixel(c, r) == CHIP_TEXT)
         _strip[r][c / 8] |= bit;
       else
         _strip[r][c / 8] &= (uint8_t)~bit;
@@ -177,21 +178,38 @@ void Menu::loadOption(int8_t index) {
 }
 
 // ========================================================
-// Dibujar la tira: solo las columnas visibles de la matriz.
-// Los espacios vacíos quedan blancos (cuadro de fondo), por
-// lo que todas las opciones ocupan el mismo ancho de 128 px
+// Pintar las columnas visibles de la tira sobre la banda
+// persistente: cada columna de la tira (incluidos sus espacios
+// blancos) sobrescribe lo que había, así la opción anterior se
+// mantiene hasta ser borrada por la nueva
 // ========================================================
 
-void Menu::drawStrip() {
-  Adafruit_SSD1306& s = _display.screen();
-
+void Menu::slideStrip() {
   for (uint8_t r = 0; r < STRIP_H; r++) {
     for (int16_t sx = 0; sx < (int16_t)_display.getWidth(); sx++) {
       int16_t sc = sx - _slideX;                // columna de la matriz (borde izq. = _slideX)
       if (sc < 0 || sc >= (int16_t)STRIP_W) continue;
 
-      if (_strip[r][sc / 8] & (uint8_t)(1 << (sc % 8)))
-        s.drawPixel(sx, TEXT_SEL_TOP + r, SSD1306_BLACK);
+      bool glyph = _strip[r][sc / 8] & (uint8_t)(1 << (sc % 8));
+      _chipBox.drawPixel(sx, r, glyph ? CHIP_TEXT : CHIP_WHITE);
+    }
+  }
+}
+
+// ========================================================
+// Volcar la banda persistente al cuadro de la pantalla
+// (la banda guarda la opción anterior + la parcial de la nueva:
+// sin borrado, la vieja queda hasta que la nueva la cubre)
+// ========================================================
+
+void Menu::blitBand() {
+  Adafruit_SSD1306& s = _display.screen();
+
+  for (uint8_t r = 0; r < STRIP_H; r++) {
+    for (uint16_t c = 0; c < _display.getWidth(); c++) {
+      uint8_t v = _chipBox.getPixel(c, r);
+      s.drawPixel(c, TEXT_SEL_TOP + r,
+                  (v == CHIP_TEXT) ? SSD1306_BLACK : SSD1306_WHITE);
     }
   }
 }
@@ -250,10 +268,11 @@ void Menu::print() {
   _display.screen().fillRect(0, BOX_TOP, _display.getWidth(), BOX_HEIGHT,
                              SSD1306_WHITE);
 
-  // Opciones: la opción fue cargada centrada en la matriz de 1 bit. La tira
-  // (128 px, espacios vacíos incluidos) se desliza columna a columna sobre el
-  // cuadro blanco fijo hasta centrarse: solo se dibujan sus glifos negros
-  drawStrip();
+  // Opciones: la banda persistente (lo que ya está en pantalla) se mantiene
+  // intacta; la tira nueva desliza y sus columnas sobrescriben la banda hasta
+  // reemplazarla por completo. La opción anterior permanece hasta ser borrada
+  slideStrip();
+  blitBand();
 
   // Limpiar la banda de rombos (45..53)
   _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),

@@ -296,15 +296,18 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
 - **Animación (scroller de 1 bit):** cada opción se compone **antes** de
   mostrarse en una **matriz de 128×16 de 1 bit** (`_strip[16][16]`, `1` = glifo
   negro, `0` = espacio blanco) **centrada**, mediante el canvas auxiliar
-  `_chipBox` (128×16) que dibuja el texto (`loadOption`). Al navegar con
-  `MOVE_RIGHT` la tira entra por la **derecha** (se mueve a la izquierda); con
-  `MOVE_LEFT` entra por la **izquierda**. La tira completa arranca **fuera de
-  pantalla** y se desliza **una columna por cada `ANIM_TICK` ms** (`animate`,
-  acumulado por tiempo: la velocidad no depende del loop; vuelo total
-  ≈ `128 × 4 ms ≈ 0,5 s`). Se **muestran también los espacios vacíos**: al
-  dibujar solo los glifos negros de las columnas visibles sobre el cuadro blanco
-  fijo (borde a borde), todas las opciones quedan con el **mismo ancho de
-  128 px** (`drawStrip`).
+  `_composer` (128×16) que dibuja el texto (`loadOption`). La **banda del
+  cuadro** es un **canvas persistente** (`_chipBox`, 128×16): conserva lo que
+  está en pantalla entre frames, así la opción anterior **se mantiene hasta ser
+  borrada** por la nueva (`slideStrip` sobrescribe columna a columna la banda
+  con la tira entrante, incluidos sus espacios blancos; `blitBand` la vuelca a
+  la pantalla). Al navegar con `MOVE_RIGHT` la tira entra por la **derecha** (se
+  mueve a la izquierda); con `MOVE_LEFT` por la **izquierda**. Arranca **fuera
+  de pantalla** y avanza **una columna por cada `ANIM_TICK` ms** (`animate`,
+  acumulado por tiempo; vuelo total ≈ `128 × 4 ms ≈ 0,5 s`). Si se navega a
+  mitad de la animación, la banda conserva lo que había y la nueva tira se
+  superpone (pueden verse varias opciones a la vez). Todas las opciones quedan
+  con el **mismo ancho de 128 px** (espacios vacíos incluidos).
 - **Rombos de posición:** banda `45..53`, pegada a la línea separadora en la `54`
   (antes de la fila del pie, `DIA_TOP = 45`). Solo el **seleccionado** es un **rombo simétrico
   completo** de 9 filas (dibujado con dos `fillTriangle`, como el alimento del
