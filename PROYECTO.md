@@ -35,14 +35,24 @@ D:\Documents\ESP32S3\Snake_II.
 ## 1. Estado actual del proyecto
 
 En desarrollo por partes. La clase `Display` está completa. `Snake_II.ino` es el
-**enlace de dependencias**: crea UNA única instancia de `Display` (y de `Buttons`)
-y la comparte por referencia con la clase `App`, que es el **despachador** de
-ventanas (estado interno + transición con `begin()` de la ventana entrante).
-Se muestran el menú inicial, los placeholders "En desarrollo" (Nuevo, Continuar,
-Dificultad, Sonido) y los créditos. El código del juego original está respaldado
-(no restaurado) en `Snake_II_juego_backup.txt`.
+**enlace de dependencias (wiring)**: construye TODAS las clases y las inicia en
+`setup()`.
 
-La clase `App` está **integrada en `Snake_II.ino`** (antes en `App.h`/`App.cpp`).
+Arquitectura:
+- **Ventanas hermanas (no anidadas):** `Menu`, `Credits` e `InfoWindow` son clases
+  independientes, instancias únicas creadas en `Snake_II.ino` (como `Display` y
+  `Buttons`) y compartidas por referencia. Sus valores persisten entre transiciones.
+- **`Engine` = despachador puro:** recibe las ventanas por referencia y NO las
+  anida. Su estado interno decide qué ventana se ve; al cambiar de estado llama al
+  `begin()` de la ventana entrante. `setup()` llama `display.begin()`,
+  `buttons.begin()` y `engine.begin()`; `loop()` solo llama `engine.update()` y
+  `engine.print()`.
+- Se muestran el menú inicial, los placeholders "En desarrollo" (Nuevo, Continuar,
+  Dificultad, Sonido) y los créditos. El código del juego original está respaldado
+  (no restaurado) en `Snake_II_juego_backup.txt`.
+
+La clase `Engine` (despachador de ventanas, antes `App`) está separada del `.ino`
+en `Engine.h` / `Engine.cpp`, y recibe las ventanas **sin anidarlas**.
 
 Fases pendientes: integración de la clase `Display` en el juego, botones/pulsadores
 (`Buttons` ya integrado), buzzer, menú, lógica de la serpiente.
@@ -82,7 +92,8 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit y rombos de posición). Completa. |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad, Sonido). Completa. |
-| `Snake_II.ino` | Enlace de dependencias **+ clase `App` integrada** (despachador de ventanas con estado interno; comparte `Display`/`Buttons` por referencia). Una única `Display` y `Buttons`, instancia de `App`; `setup()` llama `app.begin()`, `loop()` llama `app.update()` y `app.print()`. |
+| `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas**: las recibe por referencia y su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Todos los `begin()` se lanzan desde `setup()`. Completa. |
+| `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Menu`/`Credits`/`InfoWindow` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` llama `engine.update()` y `engine.print()`. |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
 | `GameBuzzer.h` | Clase del buzzer del juego original (sin cambios). |
 | `PROYECTO.md` | Este documento. |
@@ -334,19 +345,41 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
 
 ---
 
-## 9. Clase `App` — despachador de ventanas
+## 9. Clase `Engine` — despachador de ventanas
 
-Integrada en `Snake_II.ino` (antes en `App.h` / `App.cpp`). Todas las ventanas
-(`Menu`, `Credits`, `InfoWindow`) se comparten **la misma instancia** de
-`Display` y `Buttons`.
+Separada del `.ino` en `Engine.h` / `Engine.cpp` (antes `App`). **No anida las
+ventanas**: `Menu`, `Credits`, `InfoWindow` (y el futuro `Juego`) son clases
+independientes, instancias únicas creadas en `Snake_II.ino` y pasadas a `Engine`
+por referencia, igual que `Display` y `Buttons`.
 
 ### Responsabilidad
 
-`App` es el **despachador**: su **estado interno** (`enum class State`) decide qué
-ventana corre y cuándo cambiar de ventana (`changeState()`, que llama al `begin()`
+`Engine` es el **despachador puro**: su **estado interno** (`enum class State`)
+decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()`
 de la ventana entrante). `loop()` no participa en las transiciones: solo llama a
-`app.update()` y `app.print()`. `Snake_II.ino` crea una única `Display` y una
-única `Buttons` y las pasa a `App` por referencia.
+`engine.update()` y `engine.print()`. `setup()` inicia el hardware y llama a
+`engine.begin()` (primera transición → `menu.begin()`).
+
+### Constructor
+
+```cpp
+Engine(Display& display, Buttons& buttons, Menu& menu, Credits& credits,
+       InfoWindow& info);
+```
+
+### Reglas de esta arquitectura
+
+1. **Todas las clases se inician en `setup()`** y se usan en `loop()`/`Engine`.
+   Los constructores son livianos (solo guardan referencias); el trabajo real va
+   en `begin()`/`update()`. Los `begin()` de las ventanas los llama `changeState()`
+   al entrar (la primera se lanza dentro de `setup()` vía `engine.begin()`).
+2. **No se anidan las partes del juego:** `Juego` NO va dentro de `Menu` ni de
+   `Engine`. Cada ventana es una clase propia con el patrón
+   `begin()/update()/print()/done()`; `Engine` solo las despacha.
+3. **El estado determina qué se ve** (solo `Engine` conoce `State`) **y los valores
+   se conservan**: las ventanas son instancias persistentes (hermanas, no se
+   recrean), así sus miembros sobreviven entre transiciones; el `begin()` solo
+   reinicia lo que se requiere al entrar.
 
 ### Estados internos
 
@@ -362,20 +395,29 @@ enum class State : uint8_t {
 | `NUEVO`, `CONTINUAR`, `DIFICULTAD`, `SONIDO` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. |
 | `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo scroller de 1 bit que el menú** con **dos bandas sincronizadas**: rol (128×16) y nombre (128×8) se componen por separado (`loadEntry`, canvas `_composer` 128×16 → matriz `_strip[16][16]`) y deslizan a la vez con el **mismo `_slideX`** (aparecen al mismo tiempo). Cada banda es un **canvas persistente** (`_chipBoxRole`/`_chipBoxName`) que la tira sobrescribe **columna a columna** con sus espacios de fondo, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). La animación **arranca desde el borde**: `startSlide` pone `_slideX = ±ancho` (fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (`ANIM_TICK = 4`, como el menú, ≈0,5 s y constante aunque el loop sea lento). |
 
+### Métodos
+
+| Método | Descripción |
+|--------|-------------|
+| `void begin()` | Primera transición: entra al menú (`changeState(State::MENU)`). Se llama desde `setup()`. |
+| `void update()` | Lee/actualiza la ventana activa y gestiona las transiciones de estado. |
+| `void print()` | Limpia (`display.clear()`) y dibuja solo la ventana activa. |
+| `void setTopScore(uint8_t)` | Reenvía al menú para conservar el puntaje máximo entre sesiones. |
+
 ### Patrón de ventana
 
 Toda ventana implementa:
 
 | Método | Descripción |
 |--------|-------------|
-| `begin()` | Restablece la ventana al entrar. `App` lo llama solo en `changeState()`. |
+| `begin()` | Restablece la ventana al entrar. `Engine` lo llama solo en `changeState()`. |
 | `update()` | Lee botones (`_buttons.read()`) y maneja sus eventos. |
-| `print()` | Dibuja la ventana (App hace `display.clear()` antes de cada `print()`). |
+| `print()` | Dibuja la ventana (Engine hace `display.clear()` antes de cada `print()`). |
 | `done()` | `true` cuando la ventana pide volver al menú. |
 
 ### Reglas del despachador
 
-1. Solo `App` cambia de estado (nadie más conoce `State`).
+1. Solo `Engine` cambia de estado (nadie más conoce `State`).
 2. Una ventana nunca cambia de estado ni conoce a las demás: expone `done()`.
 3. `ACTION_UP` es el botón común "volver al menú" en todas las ventanas.
 4. `ACTION_RIGHT` activa la opción del menú (su `confirm()`).

@@ -1,14 +1,16 @@
 // ====================================================================================
-// SNAKE II — Enlace de dependencias
+// SNAKE II — Enlace de dependencias (wiring)
 //
-// Una única instancia de Display (y de Buttons) es la misma para todo el juego:
-// se crean aquí y se comparten por referencia con la clase App.
+// Este archivo construye TODAS las clases y las inicia en setup():
+//   - Display y Buttons: hardware (I2C del OLED y pines de los botones).
+//   - Menu, Credits, InfoWindow: ventanas independientes (hermanas, no
+//     anidadas), instancias únicas para todo el juego. Sus begin() los
+//     llama Engine al entrar en cada estado, y entre transiciones sus
+//     valores se conservan.
+//   - Engine: despachador puro. Su estado interno decide qué ventana se ve;
+//     loop() solo llama engine.update() y engine.print().
 //
-// App es el despachador: decide qué ventana corre según su estado interno y hace
-// la transición (con begin() de la ventana entrante) sin que loop() participe.
-// loop() solo llama a app.update() y app.print().
-//
-// La clase App (App.h / App.cpp) está integrada en este archivo.
+// La clase Engine está en Engine.h / Engine.cpp.
 // ====================================================================================
 
 #include "Display.h"
@@ -16,6 +18,7 @@
 #include "Menu.h"
 #include "Credits.h"
 #include "InfoWindow.h"
+#include "Engine.h"
 
 #include <Arduino.h>
 
@@ -25,159 +28,34 @@ const int8_t BUTTON_PINS[Buttons::MAX_BUTTONS] = {
   42, 39, 38, 47   // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
 };
 
-// Instancias únicas compartidas por todo el juego
+// ====================================================================================
+// Instancias únicas (construidas antes de setup(), iniciadas en setup())
+// ====================================================================================
+
+// Hardware
 Display display;
+
+// Entrada
 Buttons buttons(BUTTON_PINS);
 
-// ====================================================================================
-// Clase App — despachador de ventanas (integrada en el .ino)
-// ====================================================================================
+// Ventanas: clases independientes (hermanas, compartidas por referencia).
+// Persisten entre estados: sus valores se conservan.
+Menu menu(display, buttons, 0, "v0.1");
+Credits credits(display, buttons);
+InfoWindow info(display, buttons);
 
-class App {
-public:
-
-  // ========================================================
-  // Constructor (recibe UNA única instancia de Display y Buttons)
-  // ========================================================
-
-  App(Display& display, Buttons& buttons)
-    : _state(State::MENU),
-      _display(display),
-      _buttons(buttons),
-      _menu(display, buttons, 0, "v0.1"),
-      _credits(display, buttons),
-      _info(display, buttons) {}
-
-  // ========================================================
-  // Inicialización (estado inicial: menú)
-  // ========================================================
-
-  void begin() {
-    changeState(State::MENU);
-  }
-
-  // ========================================================
-  // Actualizar (ventana activa + transiciones)
-  // ========================================================
-
-  void update() {
-
-    switch (_state) {
-
-      case State::MENU: {
-
-        _menu.update();
-
-        // Confirmar opción (ACTION_RIGHT) -> cambiar de ventana
-        int8_t sel = _menu.confirm();
-        if (sel >= 0) {
-          switch (sel) {
-            case Menu::OPC_NUEVO:      changeState(State::NUEVO);      break;
-            case Menu::OPC_CONTINUAR:  changeState(State::CONTINUAR);  break;
-            case Menu::OPC_DIFICULTAD: changeState(State::DIFICULTAD); break;
-            case Menu::OPC_SONIDO:     changeState(State::SONIDO);     break;
-            case Menu::OPC_CREDITOS:   changeState(State::CREDITOS);   break;
-          }
-        }
-        break;
-      }
-
-      case State::NUEVO:
-      case State::CONTINUAR:
-      case State::DIFICULTAD:
-      case State::SONIDO: {
-
-        _info.update();
-        if (_info.done()) changeState(State::MENU);
-        break;
-      }
-
-      case State::CREDITOS: {
-
-        _credits.update();
-        if (_credits.done()) changeState(State::MENU);
-        break;
-      }
-    }
-  }
-
-  // ========================================================
-  // Dibujar (limpiar y dibujar la ventana activa)
-  // ========================================================
-
-  void print() {
-
-    _display.clear();
-
-    switch (_state) {
-      case State::MENU:       _menu.print();                                        break;
-      case State::NUEVO:
-      case State::CONTINUAR:
-      case State::DIFICULTAD:
-      case State::SONIDO:     _info.print();                                        break;
-      case State::CREDITOS:   _credits.print();                                     break;
-    }
-  }
-
-private:
-
-  // ========================================================
-  // Estado interno (variable global de activación)
-  // ========================================================
-
-  enum class State : uint8_t {
-    MENU = 0,
-    NUEVO,
-    CONTINUAR,
-    DIFICULTAD,
-    SONIDO,
-    CREDITOS
-  };
-
-  State _state;
-
-  // ========================================================
-  // Transición (fija el estado y llama a begin() de la ventana)
-  // ========================================================
-
-  void changeState(State newState) {
-    _state = newState;
-
-    switch (_state) {
-      case State::MENU:       _menu.begin();                                        break;
-      case State::NUEVO:      _info.begin("New");                                  break;
-      case State::CONTINUAR:  _info.begin("Continue");                             break;
-      case State::DIFICULTAD: _info.begin("Difficulty");                           break;
-      case State::SONIDO:     _info.begin("Sound");                                break;
-      case State::CREDITOS:   _credits.begin();                                     break;
-    }
-  }
-
-  // ========================================================
-  // Ventanas (comparten la misma Display)
-  // ========================================================
-
-  Display& _display;
-  Buttons& _buttons;
-
-  Menu _menu;
-  Credits _credits;
-  InfoWindow _info;
-};
-
-// ====================================================================================
-
-App app(display, buttons);
+// Despachador: recibe las ventanas y decide cuál se ve según su estado.
+Engine engine(display, buttons, menu, credits, info);
 
 // ====================================================================================
 
 void setup() {
   Serial.begin(115200);
 
+  // Iniciar hardware y entrar al primer estado (menú -> menu.begin())
   display.begin();
   buttons.begin();
-
-  app.begin();
+  engine.begin();
 
   Serial.println("Snake II");
 }
@@ -185,8 +63,8 @@ void setup() {
 // ====================================================================================
 
 void loop() {
-  app.update();
-  app.print();
+  engine.update();
+  engine.print();
   display.show();
 }
 
