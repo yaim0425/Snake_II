@@ -65,11 +65,11 @@ Fases pendientes: integración de la clase `Display` en el juego, botones/pulsad
 |-----------|-----|
 | MOVE_UP   | 2   |
 | MOVE_RIGHT | 1  |
-| MOVE_DOWN | 41  |
-| MOVE_LEFT | 40  |
-| ACTION_UP | 42  |
-| ACTION_RIGHT | 39 |
-| ACTION_DOWN | 38  |
+| MOVE_DOWN | 42  |
+| MOVE_LEFT | 41  |
+| ACTION_UP | 38  |
+| ACTION_RIGHT | 40 |
+| ACTION_DOWN | 39  |
 | ACTION_LEFT | 47  |
 | Buzzer    | 14  |
 | OLED SDA  | 8   |
@@ -221,8 +221,8 @@ Ubicación: `Buttons.h` / `Buttons.cpp`. Basada en el diseño de `GameInput` (re
 
 ```cpp
 const int8_t BUTTON_PINS[Buttons::MAX_BUTTONS] = {
-  02, 01, 41, 40,  // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
-  42, 39, 38, 47   // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
+  02, 01, 42, 41,  // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
+  38, 40, 39, 47   // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
 };
 ```
 
