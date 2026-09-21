@@ -17,8 +17,8 @@
 
 // Pines de los botones (orden del enum Button)
 const int8_t BUTTON_PINS[Buttons::MAX_BUTTONS] = {
-  37, 39, 38, 36,  // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
-  41, 01, 02, 40   // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
+  02, 01, 41, 40,  // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
+  37, 39, 38, 36   // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
 };
 
 // Instancias únicas compartidas por todo el juego

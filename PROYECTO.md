@@ -28,14 +28,6 @@ nueva sesión (no hay que escribir nada más):
 ```
 Trabaja en el proyecto Snake II (ESP32-S3, Arduino IDE) ubicado en
 D:\Documents\ESP32S3\Snake_II.
-
-Lee PROYECTO.md completo y continúa desde donde quedamos, respetando sus
-reglas de trabajo (sección 0): no hagas nada sin una orden explícita mía,
-actualiza PROYECTO.md antes de cada commit e incluye ese cambio en el mismo
-commit.
-
-Antes de empezar, revisa el estado de git (git status y git log --oneline -10)
-para retomar el contexto exacto de los últimos cambios.
 ```
 
 ---
@@ -67,7 +59,7 @@ Fases pendientes: integración de la clase `Display` en el juego, botones/pulsad
 | MOVE_RIGHT | 39 |
 | MOVE_DOWN | 38  |
 | MOVE_LEFT | 36  |
-| Buzzer    | 11  |
+| Buzzer    | 14  |
 | OLED SDA  | 8   |
 | OLED SCL  | 9   |
 
