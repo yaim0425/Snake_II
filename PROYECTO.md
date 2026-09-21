@@ -42,6 +42,8 @@ Se muestran el menú inicial, los placeholders "En desarrollo" (Nuevo, Continuar
 Dificultad, Sonido) y los créditos. El código del juego original está respaldado
 (no restaurado) en `Snake_II_juego_backup.txt`.
 
+La clase `App` está **integrada en `Snake_II.ino`** (antes en `App.h`/`App.cpp`).
+
 Fases pendientes: integración de la clase `Display` en el juego, botones/pulsadores
 (`Buttons` ya integrado), buzzer, menú, lógica de la serpiente.
 
@@ -80,8 +82,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú inicial con carousel lateral y rombos de posición). Completa. |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad, Sonido). Completa. |
-| `App.h` / `App.cpp` | Clase `App` (despachador de ventanas con estado interno; comparte `Display`/`Buttons` por referencia). Completa. |
-| `Snake_II.ino` | Enlace de dependencias: una única `Display` y `Buttons`, instancia de `App`; `setup()` llama `app.begin()`, `loop()` llama `app.update()` y `app.print()`. |
+| `Snake_II.ino` | Enlace de dependencias **+ clase `App` integrada** (despachador de ventanas con estado interno; comparte `Display`/`Buttons` por referencia). Una única `Display` y `Buttons`, instancia de `App`; `setup()` llama `app.begin()`, `loop()` llama `app.update()` y `app.print()`. |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
 | `GameBuzzer.h` | Clase del buzzer del juego original (sin cambios). |
 | `PROYECTO.md` | Este documento. |
@@ -324,8 +325,9 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
 
 ## 9. Clase `App` — despachador de ventanas
 
-Ubicación: `App.h` / `App.cpp`. Todas las ventanas (`Menu`, `Credits`,
-`InfoWindow`) se comparten **la misma instancia** de `Display` y `Buttons`.
+Integrada en `Snake_II.ino` (antes en `App.h` / `App.cpp`). Todas las ventanas
+(`Menu`, `Credits`, `InfoWindow`) se comparten **la misma instancia** de
+`Display` y `Buttons`.
 
 ### Responsabilidad
 
