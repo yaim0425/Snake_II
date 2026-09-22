@@ -3,6 +3,7 @@
 
 #include "Display.h"
 #include "Buttons.h"
+#include "Sound.h"
 #include <Adafruit_GFX.h>
 
 class Credits {
@@ -18,7 +19,7 @@ public:
   // Constructor
   // ========================================================
 
-  Credits(Display& display, Buttons& buttons);
+  Credits(Display& display, Buttons& buttons, Sound& sound);
 
   // ========================================================
   // Inicialización (al entrar en la ventana)
@@ -74,6 +75,7 @@ private:
 
   Display& _display;
   Buttons& _buttons;
+  Sound& _sound;
 
   // ========================================================
   // Estado

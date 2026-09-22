@@ -63,9 +63,9 @@ en `Engine.h` / `Engine.cpp`, y recibe las ventanas **sin anidarlas**.
 
 Fases pendientes: integración de la clase `Display` en el juego, botones/pulsadores
 (`Buttons` ya integrado), buzzer (las clases `Buzzer`/`Sound` están creadas y
-conectadas al menú y a las transiciones del `Engine`; faltan los efectos del juego
-—comer, GO, game over— hasta que exista la lógica de la serpiente), menú, lógica de
-la serpiente.
+conectadas al menú, a los créditos, a las transiciones del `Engine` y a la ventana
+"Sound"; faltan los efectos del juego —comer, GO, game over— hasta que exista la
+lógica de la serpiente), menú, lógica de la serpiente.
 
 ---
 
@@ -102,9 +102,9 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
 | `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: Back/Pause, Select, None, None; cualquier botón la cierra con un sonido según el botón pulsado: MOVE = CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM). Completa. |
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit y rombos de posición). Completa. |
-| `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral, vuelve al menú con `ACTION_UP`). Completa. |
+| `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral y `SFX_CLICK` al navegar, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad). Completa. |
-| `SoundWindow.h` / `SoundWindow.cpp` | Clase `SoundWindow` (opción "Sound" del menú: On/Off vía `Sound::setEnabled`; `ACTION_RIGHT` alterna, `ACTION_UP` vuelve al menú). Completa. |
+| `SoundWindow.h` / `SoundWindow.cpp` | Clase `SoundWindow` (opción "Sound" del menú: **On/Off lado a lado**, el activo resaltado, vía `Sound::setEnabled`; `ACTION_RIGHT` alterna, `ACTION_UP` vuelve al menú). Completa. |
 | `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas**: las recibe por referencia y su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Todos los `begin()` se lanzan desde `setup()`. Completa. |
 | `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`InfoWindow` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` llama `engine.update()` y `engine.print()`. |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
@@ -535,7 +535,7 @@ SoundWindow(Display& display, Buttons& buttons, Sound& sound);
 |--------|-------------|
 | `void begin()` | Reinicia el flag de salida. |
 | `void update()` | Lee botones: `ACTION_RIGHT` alterna On/Off (reproduce `SFX_CONFIRM` al encender, para comprobar el audio); `ACTION_UP` pone `done() = true`. |
-| `void print()` | Título "Sound" en el Header (como el menú) y el estado actual ("On"/"Off") resaltado y centrado en el Body. |
+| `void print()` | Título "Sound" en el Header (como el menú) y las opciones **"On" y "Off" lado a lado** (par centrado en el Body, separación fija): el estado activo va **resaltado** (cuadro blanco + texto negro) y el otro texto plano. |
 | `bool done()` | `true` cuando se pidió volver al menú. |
 
 ---
@@ -592,7 +592,7 @@ enum class State : uint8_t {
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
 | `NUEVO`, `CONTINUAR`, `DIFICULTAD` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. Al salir (`done()`) suena `SFX_BACK` y pasa directo a `MENU`. |
 | `SONIDO` | `SoundWindow` | Opción "Sound" real: `ACTION_RIGHT` alterna On/Off (`SFX_CONFIRM` al encender), `ACTION_UP` vuelve al menú (`SFX_BACK`). |
-| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo scroller de 1 bit que el menú** con **dos bandas sincronizadas**: rol (128×16) y nombre (128×8) se componen por separado (`loadEntry`, canvas `_composer` 128×16 → matriz `_strip[16][16]`) y deslizan a la vez con el **mismo `_slideX`** (aparecen al mismo tiempo). Cada banda es un **canvas persistente** (`_chipBoxRole`/`_chipBoxName`) que la tira sobrescribe **columna a columna** con sus espacios de fondo, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). La animación **arranca desde el borde**: `startSlide` pone `_slideX = ±ancho` (fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (`ANIM_TICK = 4`, como el menú, ≈0,5 s y constante aunque el loop sea lento). Al salir (`done()`) pasa directo a `MENU`. |
+| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo scroller de 1 bit que el menú** con **dos bandas sincronizadas**: rol (128×16) y nombre (128×8) se componen por separado (`loadEntry`, canvas `_composer` 128×16 → matriz `_strip[16][16]`) y deslizan a la vez con el **mismo `_slideX`** (aparecen al mismo tiempo). Cada banda es un **canvas persistente** (`_chipBoxRole`/`_chipBoxName`) que la tira sobrescribe **columna a columna** con sus espacios de fondo, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). La animación **arranca desde el borde**: `startSlide` pone `_slideX = ±ancho` (fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (`ANIM_TICK = 4`, como el menú, ≈0,5 s y constante aunque el loop sea lento). Al navegar suena `SFX_CLICK` y al salir (`done()`) suena `SFX_BACK` (lo toca el `Engine`) y pasa directo a `MENU`. |
 
 ### Métodos
 
@@ -629,9 +629,9 @@ Toda ventana implementa:
 - IDE: Arduino IDE, placa `ESP32-S3 (Dev Module)` (verificar puerto).
 - Librerías: Adafruit GFX + Adafruit_SSD1306.
 - La demo actual (`Snake_II.ino`) usa `Display`, `Buttons` y el sonido integrado:
-  al navegar el menú suena `SFX_CLICK`, al confirmar `SFX_CONFIRM`, al volver al
-  menú `SFX_BACK`, la `Legend` suena según el botón pulsado (MOVE = CLICK,
-  ACTION_UP = BACK, ACTION_RIGHT = CONFIRM) y la opción "Sound" alterna On/Off en
-  `SoundWindow`. Los efectos del juego (comer, GO, game over) quedan para la lógica
-  de la serpiente.
+  al navegar el menú y los créditos suena `SFX_CLICK`, al confirmar `SFX_CONFIRM`,
+  al volver al menú `SFX_BACK`, la `Legend` suena según el botón pulsado (MOVE =
+  CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM) y la opción "Sound" alterna
+  On/Off lado a lado en `SoundWindow`. Los efectos del juego (comer, GO, game over)
+  quedan para la lógica de la serpiente.
 - Con SDA=8 y SCL=9, dirección 0x3C.

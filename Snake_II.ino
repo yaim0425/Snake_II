@@ -55,7 +55,7 @@ SoundWindow soundWindow(display, buttons, sound);
 // Persisten entre estados: sus valores se conservan.
 Boot boot(display, buttons);
 Menu menu(display, buttons, sound, 0, "v0.1");
-Credits credits(display, buttons);
+Credits credits(display, buttons, sound);
 InfoWindow info(display, buttons);
 Legend legend(display, buttons, sound);
 

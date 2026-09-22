@@ -33,9 +33,10 @@ static constexpr int16_t PIE_TOP = 54;    // fila superior del pie del Body
 // Constructor
 // ========================================================
 
-Credits::Credits(Display& display, Buttons& buttons)
+Credits::Credits(Display& display, Buttons& buttons, Sound& sound)
   : _display(display),
     _buttons(buttons),
+    _sound(sound),
     _entry(1),
     _dir(1),
     _slideX(0),
@@ -88,6 +89,7 @@ void Credits::navigate() {
   }
 
   if (moved) {
+    _sound.play(Sound::SFX_CLICK);
     startSlide((_entry > before) ? 1 : -1);
     Serial.printf("Credits: opcion %u -> %u\n", before, _entry);
   }
