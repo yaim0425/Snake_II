@@ -25,6 +25,7 @@ Legend::Legend(Display& display, Buttons& buttons, Sound& sound)
     _selected(0),
     _setTime(0),
     _redraw(true),
+    _lastActive(0),
     _lastText(-1) {}
 
 // ========================================================
@@ -36,6 +37,7 @@ void Legend::begin() {
   _selected = 0;
   _setTime = millis();
   _redraw = true;
+  _lastActive = 0;
   _lastText = -1;
 }
 
@@ -137,6 +139,17 @@ void Legend::print() {
   s.fillRect(acx - DIA_SIZE / 2, acy - DIA_SIZE / 2,
              DIA_SIZE + 1, DIA_SIZE + 1, SSD1306_BLACK);
   drawDiamond(acx, acy, blinkVisible());
+
+  // El rombo que dejó de ser activo debe quedar completo. Si el cambio lo
+  // pilló en su fase oculta del parpadeo, su zona quedó borrada y nadie la
+  // volvería a dibujar: se restaura el rombo completo como estático.
+  if (_lastActive != (int8_t)_selected) {
+    int16_t px;
+    int16_t py;
+    diamondCenter((uint8_t)_lastActive, px, py);
+    drawDiamond(px, py, true);
+    _lastActive = (int8_t)_selected;
+  }
 }
 
 // ========================================================

@@ -466,7 +466,10 @@ Legend(Display& display, Buttons& buttons, Sound& sound);
   ACTION son **estáticos** (se dibujan una sola vez al entrar, tras el `clear()`
   completo). Por frame solo se borra/redibuja la **zona del rombo activo**
   (cuadro 9x9 alrededor de su centro, para el parpadeo) y el **texto del pie**
-  (banda `54..63`) únicamente cuando cambia el rombo activo.
+  (banda `54..63`) únicamente cuando cambia el rombo activo. Al cambiar el rombo
+  activo, el que **deja de serlo** se restaura completo (`drawDiamond(..., true)`):
+  si el cambio lo pilla en su **fase oculta de parpadeo**, su zona quedó borrada y
+  nadie la volvería a dibujar (evita rombos desaparecidos).
 
 ---
 
@@ -721,7 +724,7 @@ llama a `display.clear()`, lo decide cada ventana.
    | `Boot` | — (primer frame: clear completo) | Franjas: se borran **solo las columnas que cada franja deja de ocupar** (las coincidentes se mantienen) y se dibujan las nuevas; si no cambió el desplazamiento no se dibuja nada. |
    | `Menu` / submenú `SoundWindow` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53) |
    | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas) |
-   | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo |
+   | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
    | `InfoWindow` | Todo (dibuja una sola vez) | — |
 
 4. `SoundWindow` reutiliza el submenú `Menu`, así que hereda el mismo esquema
