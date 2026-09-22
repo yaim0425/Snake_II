@@ -111,11 +111,10 @@ void Menu::setSelected(int8_t index) {
 }
 
 // ========================================================
-// Actualizar
+// Actualizar (consume los eventos de botones leídos en loop())
 // ========================================================
 
 void Menu::update() {
-  _buttons.read();
   navigate();
   animate();
 }

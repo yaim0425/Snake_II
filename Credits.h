@@ -28,7 +28,7 @@ public:
   void begin();
 
   // ========================================================
-  // Actualizar (lee botones, navega y anima)
+  // Actualizar (consume eventos de botones, navega y anima)
   // ========================================================
 
   void update();

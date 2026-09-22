@@ -26,11 +26,10 @@ void InfoWindow::begin(const char* title) {
 }
 
 // ========================================================
-// Actualizar (lee botones y eventos)
+// Actualizar (consume los eventos de botones leídos en loop())
 // ========================================================
 
 void InfoWindow::update() {
-  _buttons.read();
   if (_buttons.actionUpPressed()) _exit = true;
 }
 

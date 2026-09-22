@@ -60,11 +60,10 @@ void Credits::begin() {
 }
 
 // ========================================================
-// Actualizar (lee botones, navega y anima)
+// Actualizar (consume eventos de botones, navega y anima)
 // ========================================================
 
 void Credits::update() {
-  _buttons.read();
   navigate();
   animate();
 }

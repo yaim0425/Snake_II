@@ -22,7 +22,7 @@ public:
   void begin(const char* title);
 
   // ========================================================
-  // Actualizar (lee botones y eventos)
+  // Actualizar (consume los eventos de botones leídos en loop())
   // ========================================================
 
   void update();

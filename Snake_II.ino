@@ -81,6 +81,8 @@ void setup() {
 // ====================================================================================
 
 void loop() {
+  buttons.read();     // una sola lectura de botones por frame (de esta lectura
+                      // consumen los eventos todas las ventanas despachadas por Engine)
   engine.update();
   engine.print();
   sound.update();

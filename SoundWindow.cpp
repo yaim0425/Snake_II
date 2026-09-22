@@ -36,7 +36,7 @@ void SoundWindow::begin() {
 // Actualizar: el submenú navega (MOVE_LEFT/MOVE_RIGHT, con
 // SFX_CLICK) y anima el deslizamiento como el menú principal;
 // aquí se aplica la opción (ACTION_RIGHT) y se vuelve al menú
-// (ACTION_UP). Los eventos se leen dentro de menu.update().
+// (ACTION_UP). Los eventos de botones se leen una sola vez en loop().
 // ========================================================
 
 void SoundWindow::update() {

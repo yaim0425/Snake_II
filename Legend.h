@@ -43,7 +43,7 @@ public:
   void begin();
 
   // ========================================================
-  // Actualizar (lee botones y avanza el ciclo de parpadeo)
+  // Actualizar (consume eventos de botones ya leídos y avanza el ciclo de parpadeo)
   // ========================================================
 
   void update();

@@ -56,7 +56,7 @@ public:
   void setSelected(int8_t index);
 
   // ========================================================
-  // Actualizar (lee botones, navega y anima)
+  // Actualizar (consume eventos de botones, navega y anima)
   // ========================================================
 
   void update();

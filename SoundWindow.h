@@ -37,7 +37,7 @@ public:
   void begin();
 
   // ========================================================
-  // Actualizar (lee botones y eventos)
+  // Actualizar (consume los eventos de botones leídos en loop())
   // ========================================================
 
   void update();

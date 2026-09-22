@@ -46,8 +46,9 @@ Arquitectura:
 - **`Engine` = despachador puro:** recibe las ventanas por referencia y NO las
   anida. Su estado interno decide qué ventana se ve; al cambiar de estado llama al
   `begin()` de la ventana entrante. `setup()` llama `display.begin()`,
-  `buttons.begin()` y `engine.begin()`; `loop()` solo llama `engine.update()` y
-  `engine.print()`.
+  `buttons.begin()` y `engine.begin()`; `loop()` hace la **única lectura de botones
+  del frame** (`buttons.read()`, antes de `engine.update()`) y luego llama
+  `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`.
 - Al iniciar se muestra la animación de arranque (`Boot`, franjas verticales),
   luego el panel de botones (`Legend`, pad MOVE con flechas + 4 rombos de ACTION
   que parpadean uno a la vez) y
@@ -106,7 +107,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad). Completa. |
 | `SoundWindow.h` / `SoundWindow.cpp` | Clase `SoundWindow` (opción "Sound" del menú: **"On" y "Off" se muestran y animan igual que las opciones del Menú principal** —submenú `Menu` embebido: cuadro deslizante con scroller de 1 bit y rombos de posición, navegación con `MOVE_LEFT`/`MOVE_RIGHT`, `ACTION_RIGHT` aplica—; `ACTION_UP` vuelve al menú). Completa. |
 | `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas**: las recibe por referencia y su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Todos los `begin()` se lanzan desde `setup()`. Completa. |
-| `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`InfoWindow` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` llama `engine.update()` y `engine.print()`. |
+| `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`InfoWindow` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` hace la **única lectura de botones del frame** (`buttons.read()`) y llama `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`. |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
 | `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). Completa. |
 | `Sound.h` / `Sound.cpp` | Clase `Sound` (secuencias de los efectos del juego sobre `Buzzer`, con `setEnabled` para silenciar). Completa. |
@@ -256,7 +257,7 @@ enum Button : uint8_t {
 |--------|-------------|
 | `Buttons(const int8_t* pins, uint32_t buttonDelay = 30)` | Constructor, recibe los pines y el tiempo de debounce en ms. |
 | `void begin()` | Configura `INPUT_PULLDOWN` y lee el estado inicial. |
-| `void read()` | Leer físicamente, aplicar debounce y generar eventos. Llamar una vez por `loop()`. |
+| `void read()` | Leer físicamente, aplicar debounce y generar eventos. **Se llama una sola vez por `loop()`** (en `loop()`, antes de `engine.update()`); las ventanas solo consultan `state`/`pressed`/`released` sin volver a leer. |
 | `bool state(index)` / `pressed(index)` / `released(index)` | Acceso por índice (0-7) útil para ciclos genéricos. |
 | `moveUp() / moveRight() / moveDown() / moveLeft()` | Estado actual (mantenido). |
 | `actionUp() / actionRight() / actionDown() / actionLeft()` | Estado actual (mantenido). |
@@ -540,7 +541,7 @@ SoundWindow(Display& display, Buttons& buttons, Sound& sound);
 | Método | Descripción |
 |--------|-------------|
 | `void begin()` | Reinicia el flag de salida y fija la selección inicial del submenú según el estado actual de `Sound` (0 = On, 1 = Off). |
-| `void update()` | Actualiza el submenú (lee botones, navega con `MOVE_LEFT`/`MOVE_RIGHT` como el menú —`SFX_CLICK`, primera/última no conectadas— y anima el deslizamiento); `ACTION_RIGHT` aplica la opción seleccionada (`SFX_CONFIRM` cuando queda encendido, para comprobar el audio); `ACTION_UP` pone `done() = true`. Los eventos se leen dentro de `menu.update()`. |
+| `void update()` | Actualiza el submenú (consume eventos de botones ya leídos, navega con `MOVE_LEFT`/`MOVE_RIGHT` como el menú —`SFX_CLICK`, primera/última no conectadas— y anima el deslizamiento); `ACTION_RIGHT` aplica la opción seleccionada (`SFX_CONFIRM` cuando queda encendido, para comprobar el audio); `ACTION_UP` pone `done() = true`. Los botones se leen una sola vez en `loop()`. |
 | `void print()` | Delega en el submenú: mismo dibujo que el menú (título `"Sound"`, cuadro de selección con la opción deslizante, rombos de posición y línea del pie; el texto "Top"/versión está oculto). |
 | `bool done()` | `true` cuando se pidió volver al menú. |
 
@@ -593,6 +594,12 @@ Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
    se conservan**: las ventanas son instancias persistentes (hermanas, no se
    recrean), así sus miembros sobreviven entre transiciones; el `begin()` solo
    reinicia lo que se requiere al entrar.
+4. **La lectura de botones está centralizada:** el hardware se lee **una sola vez
+   por frame** en `loop()` (`buttons.read()`, principio de responsabilidad única).
+   Ninguna ventana llama a `read()` en su `update()`: todas consumen los eventos
+   `pressed`/`released` de esa misma lectura, así es seguro que varias partes del
+   sistema (ventana activa + HUD futuro, etc.) compartan el estado del mismo frame
+   sin que ninguno "se coma" los eventos de un ciclo.
 
 ### Estados internos
 
@@ -627,7 +634,7 @@ Toda ventana implementa:
 | Método | Descripción |
 |--------|-------------|
 | `begin()` | Restablece la ventana al entrar. `Engine` lo llama solo en `changeState()`. |
-| `update()` | Lee botones (`_buttons.read()`) y maneja sus eventos. |
+| `update()` | Maneja los eventos de botones (leídos una sola vez por `loop()` en `buttons.read()`; la ventana no llama a `read()`). |
 | `print()` | Dibuja la ventana (Engine hace `display.clear()` antes de cada `print()`). |
 | `done()` | `true` cuando la ventana pide volver al menú. |
 

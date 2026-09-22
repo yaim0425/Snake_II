@@ -36,13 +36,11 @@ void Legend::begin() {
 }
 
 // ========================================================
-// Actualizar (lee botones, reproduce sonido según el botón y
-// avanza el ciclo de parpadeo)
+// Actualizar (consume eventos de botones ya leídos, reproduce
+// sonido según el botón y avanza el ciclo de parpadeo)
 // ========================================================
 
 void Legend::update() {
-  _buttons.read();
-
   // Cualquier botón cierra la leyenda. El sonido depende del
   // botón presionado (prioridad si se pulsan varios a la vez):
   // MOVE = SFX_CLICK, ACTION_UP (Back/Pause) = SFX_BACK,

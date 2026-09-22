@@ -37,7 +37,7 @@ public:
   void begin();
 
   // ========================================================
-  // Actualizar (lee botones y avanza el desplazamiento)
+  // Actualizar (consume eventos de botones ya leídos y avanza el desplazamiento)
   // ========================================================
 
   void update();

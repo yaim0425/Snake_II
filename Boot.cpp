@@ -28,12 +28,10 @@ void Boot::begin() {
 }
 
 // ========================================================
-// Actualizar (lee botones y avanza el desplazamiento)
+// Actualizar (procesa eventos de botones ya leídos y avanza el desplazamiento)
 // ========================================================
 
 void Boot::update() {
-  _buttons.read();
-
   // Cualquier botón termina la animación
   for (uint8_t i = 0; i < Buttons::MAX_BUTTONS; i++) {
     if (_buttons.pressed(i)) {
