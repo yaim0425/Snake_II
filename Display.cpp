@@ -8,12 +8,12 @@
 
 Display::Display(uint8_t sda, uint8_t scl, uint8_t address,
                  uint8_t width, uint8_t height, uint8_t cellSize)
-  : _sda(sda),
+  : _screen(nullptr),
+    _sda(sda),
     _scl(scl),
+    _address(address),
     _width(width),
     _height(height),
-    _screen(nullptr),
-    _address(address),
     _cellSize(cellSize),
     _columns(width / cellSize),
     _rows(height / cellSize) {}

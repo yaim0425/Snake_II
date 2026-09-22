@@ -147,6 +147,12 @@ Display(uint8_t sda = 8, uint8_t scl = 9, uint8_t address = 0x3C,
         uint8_t width = 128, uint8_t height = 64, uint8_t cellSize = 8);
 ```
 
+La lista de inicialización del constructor sigue **el orden de declaración de los
+miembros en `Display.h`** (en C++ los miembros se inicializan en orden de
+declaración, no en el de la lista; un desajuste genera el warning `-Wreorder`).
+Actualmente: `_screen`, `_sda`, `_scl`, `_address`, `_width`, `_height`,
+`_cellSize`, `_columns`, `_rows`.
+
 ### 5.2 Enums y struct
 
 ```cpp
@@ -653,6 +659,10 @@ Toda ventana implementa:
 
 - IDE: Arduino IDE, placa `ESP32-S3 (Dev Module)` (verificar puerto).
 - Librerías: Adafruit GFX + Adafruit_SSD1306.
+- **Warnings de compilación C++ activados** en la máquina de desarrollo vía
+  `platform.local.txt` del core ESP32 (`compiler.cpp.extra_flags=-Wall -Wreorder`)
+  para que desajustes como el orden de inicialización de miembros salten a la vista
+  en la compilación (no entra en el repo: se configura a nivel del paquete del core).
 - La demo actual (`Snake_II.ino`) usa `Display`, `Buttons` y el sonido integrado:
   al navegar el menú y los créditos suena `SFX_CLICK`, al confirmar `SFX_CONFIRM`,
   al volver al menú `SFX_BACK`, la `Legend` suena según el botón pulsado (MOVE =
