@@ -28,10 +28,11 @@ static constexpr uint8_t CHIP_TEXT  = 1;
 // Constructor
 // ========================================================
 
-Menu::Menu(Display& display, Buttons& buttons, uint8_t topScore,
+Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore,
            const char* version)
   : _display(display),
     _buttons(buttons),
+    _sound(sound),
     _topScore(topScore),
     _version(version),
     _optionCount(DEFAULT_OPTIONS),
@@ -107,6 +108,7 @@ void Menu::navigate() {
   }
 
   if (moved) {
+    _sound.play(Sound::SFX_CLICK);
     loadOption(_selected);  // la opción se carga (centrada) antes de mostrarse
     startSlide((_selected > before) ? 1 : -1);
     _holdStart = millis();

@@ -3,6 +3,7 @@
 
 #include "Display.h"
 #include "Buttons.h"
+#include "Sound.h"
 #include <Adafruit_GFX.h>
 
 class Menu {
@@ -26,7 +27,7 @@ public:
   // Constructor
   // ========================================================
 
-  Menu(Display& display, Buttons& buttons, uint8_t topScore = 0,
+  Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore = 0,
        const char* version = "v0.1");
 
   // ========================================================
@@ -128,6 +129,7 @@ private:
 
   Display& _display;
   Buttons& _buttons;
+  Sound& _sound;
 
   // ========================================================
   // Estado

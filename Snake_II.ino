@@ -22,6 +22,7 @@
 #include "Legend.h"
 #include "Buzzer.h"
 #include "Sound.h"
+#include "SoundWindow.h"
 #include "Engine.h"
 
 #include <Arduino.h>
@@ -43,21 +44,24 @@ Display display;
 Buttons buttons(BUTTON_PINS);
 
 // Sonido: Buzzer (hardware, un tono no bloqueante) + Sound
-// (secuencias de los efectos del juego). Aún no se reproducen
-// efectos; la integración con menú/juego queda pendiente.
+// (secuencias de los efectos del juego). SoundWindow es la
+// opción "Sound" del menú (On/Off) y Sound se usa en el menú
+// y en las transiciones del Engine.
 Buzzer buzzer;
 Sound sound(buzzer);
+SoundWindow soundWindow(display, buttons, sound);
 
 // Ventanas: clases independientes (hermanas, compartidas por referencia).
 // Persisten entre estados: sus valores se conservan.
 Boot boot(display, buttons);
-Menu menu(display, buttons, 0, "v0.1");
+Menu menu(display, buttons, sound, 0, "v0.1");
 Credits credits(display, buttons);
 InfoWindow info(display, buttons);
 Legend legend(display, buttons);
 
 // Despachador: recibe las ventanas y decide cuál se ve según su estado.
-Engine engine(display, buttons, boot, menu, credits, info, legend);
+Engine engine(display, buttons, boot, menu, credits, info, legend,
+              sound, soundWindow);
 
 // ====================================================================================
 

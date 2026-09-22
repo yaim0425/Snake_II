@@ -39,10 +39,10 @@ En desarrollo por partes. La clase `Display` está completa. `Snake_II.ino` es e
 `setup()`.
 
 Arquitectura:
-- **Ventanas hermanas (no anidadas):** `Boot`, `Legend`, `Menu`, `Credits` e
-  `InfoWindow` son clases independientes, instancias únicas creadas en
-  `Snake_II.ino` (como `Display` y `Buttons`) y compartidas por referencia. Sus
-  valores persisten entre transiciones.
+- **Ventanas hermanas (no anidadas):** `Boot`, `Legend`, `Menu`, `Credits`,
+  `InfoWindow` y `SoundWindow` son clases independientes, instancias únicas creadas
+  en `Snake_II.ino` (como `Display`, `Buttons`, `Buzzer` y `Sound`) y compartidas
+  por referencia. Sus valores persisten entre transiciones.
 - **`Engine` = despachador puro:** recibe las ventanas por referencia y NO las
   anida. Su estado interno decide qué ventana se ve; al cambiar de estado llama al
   `begin()` de la ventana entrante. `setup()` llama `display.begin()`,
@@ -52,7 +52,8 @@ Arquitectura:
   luego el panel de botones (`Legend`, pad MOVE con flechas + 4 rombos de ACTION
   que parpadean uno a la vez) y
   después el menú inicial, los placeholders "En desarrollo" (Nuevo, Continuar,
-  Dificultad, Sonido) y los créditos. La `Legend` solo se muestra al arranque;
+  Dificultad), la opción `Sound` (ventana `SoundWindow` On/Off real) y los
+  créditos. La `Legend` solo se muestra al arranque;
   al volver al menú desde cualquier ventana se pasa directo a `Menu` (ya no se
   repite la leyenda). El código del juego original está respaldado (no
   restaurado) en `Snake_II_juego_backup.txt`.
@@ -61,9 +62,10 @@ La clase `Engine` (despachador de ventanas, antes `App`) está separada del `.in
 en `Engine.h` / `Engine.cpp`, y recibe las ventanas **sin anidarlas**.
 
 Fases pendientes: integración de la clase `Display` en el juego, botones/pulsadores
-(`Buttons` ya integrado), buzzer (las clases `Buzzer`/`Sound` ya están creadas y
-cableadas en `Snake_II.ino`; falta conectarlas al menú y al juego), menú, lógica de la
-serpiente.
+(`Buttons` ya integrado), buzzer (las clases `Buzzer`/`Sound` están creadas y
+conectadas al menú y a las transiciones del `Engine`; faltan los efectos del juego
+—comer, GO, game over— hasta que exista la lógica de la serpiente), menú, lógica de
+la serpiente.
 
 ---
 
@@ -101,12 +103,13 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: Back/Pause, Select, None, None; cualquier botón la cierra). Completa. |
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit y rombos de posición). Completa. |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral, vuelve al menú con `ACTION_UP`). Completa. |
-| `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad, Sonido). Completa. |
+| `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad). Completa. |
+| `SoundWindow.h` / `SoundWindow.cpp` | Clase `SoundWindow` (opción "Sound" del menú: On/Off vía `Sound::setEnabled`; `ACTION_RIGHT` alterna, `ACTION_UP` vuelve al menú). Completa. |
 | `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas**: las recibe por referencia y su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Todos los `begin()` se lanzan desde `setup()`. Completa. |
 | `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`InfoWindow` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` llama `engine.update()` y `engine.print()`. |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
 | `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). Completa. |
-| `Sound.h` / `Sound.cpp` | Clase `Sound` (secuencias de los efectos del juego sobre `Buzzer`). Completa. |
+| `Sound.h` / `Sound.cpp` | Clase `Sound` (secuencias de los efectos del juego sobre `Buzzer`, con `setEnabled` para silenciar). Completa. |
 | `GameBuzzer.h` | Respaldo de la clase del buzzer del juego original (sin cambios, ya no se usa). |
 | `PROYECTO.md` | Este documento. |
 
@@ -285,7 +288,7 @@ Ubicación: `Menu.h` / `Menu.cpp`.
 ### Constructor
 
 ```cpp
-Menu(Display& display, Buttons& buttons, uint8_t topScore = 0, const char* version = "v0.1");
+Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore = 0, const char* version = "v0.1");
 ```
 
 ### Métodos
@@ -294,7 +297,7 @@ Menu(Display& display, Buttons& buttons, uint8_t topScore = 0, const char* versi
 |--------|-------------|
 | `void begin()` | Restablece el estado de la animación y del parpadeo. |
 | `void setOptions(textos, conteo)` | Fija la lista y la cantidad de opciones (1..`MAX_OPTIONS`=8). El menú (textos y rombos) se adapta al conteo. |
-| `void update()` | Lee botones, navega con `MOVE_RIGHT`/`MOVE_LEFT` y anima el deslizamiento lateral; log en Serial al cambiar de opción. |
+| `void update()` | Lee botones, navega con `MOVE_RIGHT`/`MOVE_LEFT` y anima el deslizamiento lateral; log en Serial al cambiar de opción; toca `SFX_CLICK` al navegar. |
 | `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Top + versión). |
 | `int8_t selected()` | Índice de la opción seleccionada. |
 | `int8_t confirm()` | Devuelve la opción seleccionada si se confirma con `ACTION_RIGHT` (pulse recién presionado), o `-1`. Es el "activar opción" del menú. |
@@ -512,6 +515,30 @@ En `Snake_II.ino`: `Buzzer buzzer;` y `Sound sound(buzzer);` (instancias únicas
 
 ---
 
+## 10.3 Clase `SoundWindow` — API (opción "Sound")
+
+Ubicación: `SoundWindow.h` / `SoundWindow.cpp`. Ventana de la opción "Sound" del
+menú: alterna el sonido del juego On/Off. El estado lo conserva `Sound`
+(`setEnabled`/`enabled`), que está deshabilitado mientras hay un efecto en curso (al
+apagar corta el sonido).
+
+### Constructor
+
+```cpp
+SoundWindow(Display& display, Buttons& buttons, Sound& sound);
+```
+
+### Métodos
+
+| Método | Descripción |
+|--------|-------------|
+| `void begin()` | Reinicia el flag de salida. |
+| `void update()` | Lee botones: `ACTION_RIGHT` alterna On/Off (reproduce `SFX_CONFIRM` al encender, para comprobar el audio); `ACTION_UP` pone `done() = true`. |
+| `void print()` | Título "Sound" en el Header (como el menú) y el estado actual ("On"/"Off") resaltado y centrado en el Body. |
+| `bool done()` | `true` cuando se pidió volver al menú. |
+
+---
+
 ## 11. Clase `Engine` — despachador de ventanas
 
 Separada del `.ino` en `Engine.h` / `Engine.cpp` (antes `App`). **No anida las
@@ -531,7 +558,8 @@ de la ventana entrante). `loop()` no participa en las transiciones: solo llama a
 
 ```cpp
 Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
-       Credits& credits, InfoWindow& info, Legend& legend);
+       Credits& credits, InfoWindow& info, Legend& legend,
+       Sound& sound, SoundWindow& soundWindow);
 ```
 
 ### Reglas de esta arquitectura
@@ -561,7 +589,8 @@ enum class State : uint8_t {
 | `BOOT` | `Boot` | Animación de arranque (franjas). Al terminar (`done()`) pasa a `LEGEND`. Cualquier botón la termina. |
 | `LEGEND` | `Legend` | Panel de botones: pad MOVE con 4 flechas + 4 rombos completos de ACTION en las posiciones de un pad que parpadean MUY rápido uno a la vez (ciclo lento) con la función del rombo activo centrada en el pie. Cualquier botón la cierra → menú. Solo se muestra tras el arranque. |
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
-| `NUEVO`, `CONTINUAR`, `DIFICULTAD`, `SONIDO` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. Al salir (`done()`) pasa directo a `MENU`. |
+| `NUEVO`, `CONTINUAR`, `DIFICULTAD` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. Al salir (`done()`) suena `SFX_BACK` y pasa directo a `MENU`. |
+| `SONIDO` | `SoundWindow` | Opción "Sound" real: `ACTION_RIGHT` alterna On/Off (`SFX_CONFIRM` al encender), `ACTION_UP` vuelve al menú (`SFX_BACK`). |
 | `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo scroller de 1 bit que el menú** con **dos bandas sincronizadas**: rol (128×16) y nombre (128×8) se componen por separado (`loadEntry`, canvas `_composer` 128×16 → matriz `_strip[16][16]`) y deslizan a la vez con el **mismo `_slideX`** (aparecen al mismo tiempo). Cada banda es un **canvas persistente** (`_chipBoxRole`/`_chipBoxName`) que la tira sobrescribe **columna a columna** con sus espacios de fondo, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). La animación **arranca desde el borde**: `startSlide` pone `_slideX = ±ancho` (fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (`ANIM_TICK = 4`, como el menú, ≈0,5 s y constante aunque el loop sea lento). Al salir (`done()`) pasa directo a `MENU`. |
 
 ### Métodos
@@ -569,7 +598,7 @@ enum class State : uint8_t {
 | Método | Descripción |
 |--------|-------------|
 | `void begin()` | Primera transición: entra al test de píxeles (`changeState(State::BOOT)`). Se llama desde `setup()`. |
-| `void update()` | Lee/actualiza la ventana activa y gestiona las transiciones de estado. |
+| `void update()` | Lee/actualiza la ventana activa y gestiona las transiciones de estado. Reproduce los efectos del sonido: `SFX_CONFIRM` al confirmar una opción del menú y `SFX_BACK` al volver a `MENU` desde cualquier ventana. |
 | `void print()` | Limpia (`display.clear()`) y dibuja solo la ventana activa. |
 | `void setTopScore(uint8_t)` | Reenvía al menú para conservar el puntaje máximo entre sesiones. |
 
@@ -598,8 +627,8 @@ Toda ventana implementa:
 
 - IDE: Arduino IDE, placa `ESP32-S3 (Dev Module)` (verificar puerto).
 - Librerías: Adafruit GFX + Adafruit_SSD1306.
-- La demo actual (`Snake_II.ino`) usa solo `Display` y `Buttons` (la `Boot` usa
-  botones solo para saltar patrones; las clases `Buzzer`/`Sound` están cableadas y
-  compilando —`buzzer.begin()`, `sound.begin()` y `sound.update()` en `loop()`— pero
-  aún no se reproduce ningún efecto).
+- La demo actual (`Snake_II.ino`) usa `Display`, `Buttons` y el sonido integrado:
+  al navegar el menú suena `SFX_CLICK`, al confirmar `SFX_CONFIRM`, al volver al
+  menú `SFX_BACK`, y la opción "Sound" alterna On/Off en `SoundWindow`. Los
+  efectos del juego (comer, GO, game over) quedan para la lógica de la serpiente.
 - Con SDA=8 y SCL=9, dirección 0x3C.
