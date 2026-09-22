@@ -49,7 +49,8 @@ Arquitectura:
   `buttons.begin()` y `engine.begin()`; `loop()` solo llama `engine.update()` y
   `engine.print()`.
 - Al iniciar se muestra la animación de arranque (`Boot`, franjas verticales),
-  luego el panel de botones (`Legend`, flechas "Move"/"Action" y Btn1..Btn4) y
+  luego el panel de botones (`Legend`, pad MOVE con flechas + 4 rombos de ACTION
+  que parpadean uno a la vez) y
   después el menú inicial, los placeholders "En desarrollo" (Nuevo, Continuar,
   Dificultad, Sonido) y los créditos. La `Legend` también se muestra al volver al
   menú desde cualquier ventana. El código del juego original está respaldado (no
@@ -94,7 +95,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
-| `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: dos pad direccionales —MOVE a la izquierda, ACTION a la derecha con etiquetas Btn1..Btn4—, se muestra tras el arranque y al volver al menú; cualquier botón la cierra). Completa. |
+| `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: Back/Pause, Select, None, None; cualquier botón la cierra). Completa. |
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit y rombos de posición). Completa. |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad, Sonido). Completa. |
@@ -400,19 +401,30 @@ Legend(Display& display, Buttons& buttons);
 
 | Método | Descripción |
 |--------|-------------|
-| `void begin()` | Reinicia la ventana: apaga el flag de salida. |
-| `void update()` | Lee botones; cualquier botón pone `done() = true`. |
-| `void print()` | Dibuja los dos pad direccionales y los rótulos. |
+| `void begin()` | Reinicia la ventana: apaga el flag de salida, rombo activo = `Btn1`. |
+| `void update()` | Lee botones (cualquier botón pone `done() = true`) y avanza el ciclo: el rombo activo cambia cada `Menu::BLINK_PERIOD` ms. |
+| `void print()` | Dibuja el pad MOVE, los 4 rombos de ACTION y el texto centrado del pie. |
 | `bool done()` | `true` cuando se pidió ir al menú (Engine pasa al menú). |
 
 ### Dibujo (leyenda de botones)
 
 - **Pad MOVE (izquierda):** rombo de 4 flechas sólidas (`drawArrow`) centrado en
   `(PAD_MOVE_X=30, CY=32)`, radio `R=12`, con el rótulo "Move" arriba.
-- **Pad ACTION (derecha):** rombo de 4 flechas centrado en `(PAD_ACTION_X=82,
-  CY=32)` con el rótulo "Action" arriba y una **columna de etiquetas** al lado
-  derecho (`LABEL_X=104`): `Btn1` (↑ = `ACTION_UP`), `Btn2` (→ = `ACTION_RIGHT`),
-  `Btn3` (↓ = `ACTION_DOWN`), `Btn4` (← = `ACTION_LEFT`).
+- **Pad ACTION (derecha):** **4 rombos completos** (`drawDiamond`, SIEMPRE rombo
+  simétrico de `DIA_SIZE=8`, nunca triángulos) colocados en las **posiciones de un
+  pad direccional** alrededor de `(DIA_PAD_X=96, CY)` con radio `DIA_R=12`: ↑
+  (Btn1), → (Btn2), ↓ (Btn3), ← (Btn4); rótulo "Action" arriba centrado sobre el
+  grupo.
+- **Parpadeo (uno a la vez, MUY rápido):** el rombo activo recorre `Btn1 → Btn4`
+  en **ciclo lento** (avanza cada `DWELL_MS=2200` ms); queda fijo `HOLD_MS=900` ms
+  y luego parpadea a alta frecuencia (`BLINK_PERIOD=100` ms, oculto el
+  `BLINK_OFF_PCT=50%` inicial de cada período: ~10 Hz). Los rombos inactivos se
+  quedan fijos y completos.
+- **Texto del pie (centrado, mismo diseño que el menú):** línea en
+  `PIE_LINE_ROW=54` y texto en `PIE_TOP=57` con la función del rombo activo:
+  `Btn1` (↑ = `ACTION_UP`): **"Back / Pause"**, `Btn2` (→ = `ACTION_RIGHT`):
+  **"Select"**, `Btn3` (↓ = `ACTION_DOWN`): **"None"**, `Btn4` (← =
+  `ACTION_LEFT`): **"None"**.
 - **Salida:** cualquier botón cierra la leyenda (`done()`). `Engine` la muestra al
   arranque (después del `Boot`) y al volver al menú desde cualquier ventana.
 
@@ -465,7 +477,7 @@ enum class State : uint8_t {
 | Estado | Ventana | Notas |
 |--------|---------|-------|
 | `BOOT` | `Boot` | Animación de arranque (franjas). Al terminar (`done()`) pasa a `LEGEND`. Cualquier botón la termina. |
-| `LEGEND` | `Legend` | Panel de botones (flechas Move/Action + Btn1..Btn4). Cualquier botón la cierra → menú. Se muestra tras el arranque y al volver al menú desde cualquier ventana. |
+| `LEGEND` | `Legend` | Panel de botones: pad MOVE con 4 flechas + 4 rombos completos de ACTION en las posiciones de un pad que parpadean MUY rápido uno a la vez (ciclo lento) con la función del rombo activo centrada en el pie. Cualquier botón la cierra → menú. Se muestra tras el arranque y al volver al menú desde cualquier ventana. |
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
 | `NUEVO`, `CONTINUAR`, `DIFICULTAD`, `SONIDO` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. Al salir (`done()`) pasa a `LEGEND`. |
 | `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo scroller de 1 bit que el menú** con **dos bandas sincronizadas**: rol (128×16) y nombre (128×8) se componen por separado (`loadEntry`, canvas `_composer` 128×16 → matriz `_strip[16][16]`) y deslizan a la vez con el **mismo `_slideX`** (aparecen al mismo tiempo). Cada banda es un **canvas persistente** (`_chipBoxRole`/`_chipBoxName`) que la tira sobrescribe **columna a columna** con sus espacios de fondo, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). La animación **arranca desde el borde**: `startSlide` pone `_slideX = ±ancho` (fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (`ANIM_TICK = 4`, como el menú, ≈0,5 s y constante aunque el loop sea lento). Al salir (`done()`) pasa a `LEGEND`. |
