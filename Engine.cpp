@@ -62,14 +62,14 @@ void Engine::update() {
     case State::SONIDO: {
 
       _info.update();
-      if (_info.done()) changeState(State::LEGEND);
+      if (_info.done()) changeState(State::MENU);
       break;
     }
 
     case State::CREDITOS: {
 
       _credits.update();
-      if (_credits.done()) changeState(State::LEGEND);
+      if (_credits.done()) changeState(State::MENU);
       break;
     }
 
