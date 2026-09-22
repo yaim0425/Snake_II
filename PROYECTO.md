@@ -52,8 +52,8 @@ Arquitectura:
   luego el panel de botones (`Legend`, pad MOVE con flechas + 4 rombos de ACTION
   que parpadean uno a la vez) y
   después el menú inicial, los placeholders "En desarrollo" (Nuevo, Continuar,
-  Dificultad), la opción `Sound` (ventana `SoundWindow` On/Off real) y los
-  créditos. La `Legend` solo se muestra al arranque;
+  Dificultad), la opción `Sound` (ventana `SoundWindow` On/Off real, cuyas opciones
+  se muestran y animan como las del menú) y los créditos. La `Legend` solo se muestra al arranque;
   al volver al menú desde cualquier ventana se pasa directo a `Menu` (ya no se
   repite la leyenda). El código del juego original está respaldado (no
   restaurado) en `Snake_II_juego_backup.txt`.
@@ -104,7 +104,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit y rombos de posición). Completa. |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral y `SFX_CLICK` al navegar, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad). Completa. |
-| `SoundWindow.h` / `SoundWindow.cpp` | Clase `SoundWindow` (opción "Sound" del menú: **On/Off lado a lado comportándose como las opciones del Menú** —`MOVE_LEFT`/`MOVE_RIGHT` mueven la selección resaltada, `ACTION_RIGHT` aplica—; `ACTION_UP` vuelve al menú). Completa. |
+| `SoundWindow.h` / `SoundWindow.cpp` | Clase `SoundWindow` (opción "Sound" del menú: **"On" y "Off" se muestran y animan igual que las opciones del Menú principal** —submenú `Menu` embebido: cuadro deslizante con scroller de 1 bit y rombos de posición, navegación con `MOVE_LEFT`/`MOVE_RIGHT`, `ACTION_RIGHT` aplica—; `ACTION_UP` vuelve al menú). Completa. |
 | `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas**: las recibe por referencia y su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Todos los `begin()` se lanzan desde `setup()`. Completa. |
 | `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`InfoWindow` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` llama `engine.update()` y `engine.print()`. |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
@@ -302,6 +302,9 @@ Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore = 0, con
 | `int8_t selected()` | Índice de la opción seleccionada. |
 | `int8_t confirm()` | Devuelve la opción seleccionada si se confirma con `ACTION_RIGHT` (pulse recién presionado), o `-1`. Es el "activar opción" del menú. |
 | `void setTopScore(uint8_t)` | Actualiza el puntaje máximo mostrado. |
+| `void setTitle(const char*)` | Cambia el título del Header (submenú de `SoundWindow`). |
+| `void setShowFooter(bool)` | Ocultar/mostrar el texto del pie ("Top"/versión); la línea de la `54` se dibuja siempre. |
+| `void setSelected(int8_t)` | Fija la selección (clamp al rango) y reinicia la animación (al entrar en la ventana). |
 
 ### Opciones y enum
 
@@ -519,10 +522,12 @@ En `Snake_II.ino`: `Buzzer buzzer;` y `Sound sound(buzzer);` (instancias únicas
 ## 10.3 Clase `SoundWindow` — API (opción "Sound")
 
 Ubicación: `SoundWindow.h` / `SoundWindow.cpp`. Ventana de la opción "Sound" del
-menú: **"On" y "Off" se comportan como las opciones del Menú** —se navega con
-`MOVE_LEFT`/`MOVE_RIGHT` (la opción seleccionada va resaltada) y `ACTION_RIGHT`
-aplica la opción seleccionada al sonido. El estado lo conserva `Sound`
-(`setEnabled`/`enabled`).
+menú: **"On" y "Off" se muestran y animan igual que las opciones del Menú
+principal**. `SoundWindow` contiene un submenú `Menu` embebido (instancia propia,
+distinta del menú principal) configurado con las opciones `On`/`Off`, título
+`"Sound"` y **sin pie**. Así reutiliza el mismo cuadro deslizante (scroller de 1
+bit), los rombos de posición y la animación lateral del menú. El estado lo
+conserva `Sound` (`setEnabled`/`enabled`).
 
 ### Constructor
 
@@ -534,10 +539,21 @@ SoundWindow(Display& display, Buttons& buttons, Sound& sound);
 
 | Método | Descripción |
 |--------|-------------|
-| `void begin()` | Reinicia el flag de salida y fija la selección inicial según el estado actual de `Sound` (0 = On, 1 = Off). |
-| `void update()` | Lee botones y navega **como el menú**: `MOVE_LEFT`/`MOVE_RIGHT` cambian la selección (`SFX_CLICK`, primera/última no conectadas); `ACTION_RIGHT` aplica la opción seleccionada (`SFX_CONFIRM` cuando queda encendido, para comprobar el audio); `ACTION_UP` pone `done() = true`. |
-| `void print()` | Título "Sound" en el Header (como el menú) y **"On" y "Off" lado a lado** (par centrado en el Body, separación fija): la opción **seleccionada** va resaltada (cuadro blanco + texto negro) y la otra texto plano. |
+| `void begin()` | Reinicia el flag de salida y fija la selección inicial del submenú según el estado actual de `Sound` (0 = On, 1 = Off). |
+| `void update()` | Actualiza el submenú (lee botones, navega con `MOVE_LEFT`/`MOVE_RIGHT` como el menú —`SFX_CLICK`, primera/última no conectadas— y anima el deslizamiento); `ACTION_RIGHT` aplica la opción seleccionada (`SFX_CONFIRM` cuando queda encendido, para comprobar el audio); `ACTION_UP` pone `done() = true`. Los eventos se leen dentro de `menu.update()`. |
+| `void print()` | Delega en el submenú: mismo dibujo que el menú (título `"Sound"`, cuadro de selección con la opción deslizante, rombos de posición y línea del pie; el texto "Top"/versión está oculto). |
 | `bool done()` | `true` cuando se pidió volver al menú. |
+
+### Extensiones de `Menu` (para el submenú de `SoundWindow`)
+
+`Menu` ganó tres métodos para que un submenú pueda reutilizar su dibujo y
+animación sin tocar el menú principal:
+
+| Método | Descripción |
+|--------|-------------|
+| `void setTitle(const char*)` | Cambia el título del Header (default `"Snake II"`; `SoundWindow` usa `"Sound"`). |
+| `void setShowFooter(bool)` | Ocultar/mostrar el texto del pie ("Top"/versión). La línea separadora de la `54` se dibuja siempre (sostiene los rombos). |
+| `void setSelected(int8_t)` | Fija la selección (clamp al rango de opciones) y reinicia el estado de la animación; la usa `SoundWindow::begin()` para reflejar el estado del sonido. |
 
 ---
 
@@ -633,7 +649,8 @@ Toda ventana implementa:
   al navegar el menú y los créditos suena `SFX_CLICK`, al confirmar `SFX_CONFIRM`,
   al volver al menú `SFX_BACK`, la `Legend` suena según el botón pulsado (MOVE =
   CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM) y en la opción "Sound" las
-  opciones **On/Off se navegan como el menú** (`MOVE_LEFT`/`MOVE_RIGHT` mueven la
-  selección resaltada, `ACTION_RIGHT` la aplica). Los efectos del juego (comer, GO,
+  opciones **On/Off se muestran y animan igual que las del menú** (submenú con
+  cuadro deslizante y rombos de posición; `MOVE_LEFT`/`MOVE_RIGHT` navegan y
+  `ACTION_RIGHT` aplica). Los efectos del juego (comer, GO,
   game over) quedan para la lógica de la serpiente.
 - Con SDA=8 y SCL=9, dirección 0x3C.

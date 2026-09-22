@@ -35,6 +35,8 @@ Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore,
     _sound(sound),
     _topScore(topScore),
     _version(version),
+    _title("Snake II"),
+    _showFooter(true),
     _optionCount(DEFAULT_OPTIONS),
     _optionTexts(DEFAULT_OPTION_TEXT),
     _selected(OPC_NUEVO),
@@ -72,6 +74,36 @@ void Menu::setOptions(const char* const* texts, uint8_t count) {
 
   if (_selected >= (int8_t)count) _selected = count - 1;
 
+  _slideX = 0;
+  _colAcc = 0;
+  _holdStart = millis();
+  loadOption(_selected);
+}
+
+// ========================================================
+// Apariencia (título del Header y pie opcional)
+// ========================================================
+
+void Menu::setTitle(const char* title) {
+  _title = title;
+}
+
+void Menu::setShowFooter(bool show) {
+  _showFooter = show;
+}
+
+// ========================================================
+// Selección inicial (clamp al rango de opciones) y reinicio
+// de la animación. La usa SoundWindow para reflejar el estado
+// del sonido al entrar (0 = On, 1 = Off).
+// ========================================================
+
+void Menu::setSelected(int8_t index) {
+  if (index < 0) index = 0;
+  if (index >= (int8_t)_optionCount) index = (int8_t)_optionCount - 1;
+
+  _selected = index;
+  _dir = 1;
   _slideX = 0;
   _colAcc = 0;
   _holdStart = millis();
@@ -283,7 +315,7 @@ void Menu::print() {
 
   // Limpiar la banda del Header y redibujar el título
   _display.screen().fillRect(0, 0, _display.getWidth(), BODY_TOP, SSD1306_BLACK);
-  _display.drawTextAligned("Snake II", CENTER, TEXT_12x16, REGION_HEADER);
+  _display.drawTextAligned(_title, CENTER, TEXT_12x16, REGION_HEADER);
 
   // Limpiar la banda del pie: línea (54) + filas libres (55..56) + texto (57..63)
   _display.screen().fillRect(0, PIE_LINE_ROW, _display.getWidth(), 10, SSD1306_BLACK);
@@ -291,15 +323,18 @@ void Menu::print() {
   // Línea horizontal de 1 px, a 2 px sobre el pie
   _display.screen().drawFastHLine(0, PIE_LINE_ROW, _display.getWidth(), SSD1306_WHITE);
 
-  // Pie: Top y versión, bajados 1 px (fila 57)
-  char buf[16];
-  sprintf(buf, "Top: %u pts", _topScore);
+  // Pie: Top y versión, bajados 1 px (fila 57). Opcional
+  // (SoundWindow lo oculta: solo deja la línea que sostiene los rombos)
+  if (_showFooter) {
+    char buf[16];
+    sprintf(buf, "Top: %u pts", _topScore);
 
-  TextPos tPos = _display.getTextPos(buf, LEFT_DOWN, TEXT_6x8, REGION_BODY);
-  _display.drawText(buf, tPos.x, PIE_TOP, TEXT_6x8);
+    TextPos tPos = _display.getTextPos(buf, LEFT_DOWN, TEXT_6x8, REGION_BODY);
+    _display.drawText(buf, tPos.x, PIE_TOP, TEXT_6x8);
 
-  TextPos vPos = _display.getTextPos(_version, RIGHT_DOWN, TEXT_6x8, REGION_BODY);
-  _display.drawText(_version, vPos.x, PIE_TOP, TEXT_6x8);
+    TextPos vPos = _display.getTextPos(_version, RIGHT_DOWN, TEXT_6x8, REGION_BODY);
+    _display.drawText(_version, vPos.x, PIE_TOP, TEXT_6x8);
+  }
 }
 
 // ========================================================

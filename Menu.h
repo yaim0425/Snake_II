@@ -43,6 +43,19 @@ public:
   void setOptions(const char* const* texts, uint8_t count);
 
   // ========================================================
+  // Apariencia (título del Header y pie opcional)
+  // ========================================================
+
+  void setTitle(const char* title);
+  void setShowFooter(bool show);
+
+  // ========================================================
+  // Selección inicial (al entrar en la ventana)
+  // ========================================================
+
+  void setSelected(int8_t index);
+
+  // ========================================================
   // Actualizar (lee botones, navega y anima)
   // ========================================================
 
@@ -137,6 +150,9 @@ private:
 
   uint8_t _topScore;
   const char* _version;
+
+  const char* _title;      // título del Header (default "Snake II")
+  bool _showFooter;        // pie "Top"/versión (default true; SoundWindow lo oculta)
 
   uint8_t _optionCount;
   const char* const* _optionTexts;

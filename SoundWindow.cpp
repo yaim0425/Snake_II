@@ -1,7 +1,13 @@
 #include "SoundWindow.h"
 
 // ========================================================
-// Constructor
+// Opciones del submenú (On / Off, como las del menú)
+// ========================================================
+
+static const char* const ON_OFF_OPTIONS[2] = { "On", "Off" };
+
+// ========================================================
+// Constructor: prepara el submenú (título "Sound", sin pie)
 // ========================================================
 
 SoundWindow::SoundWindow(Display& display, Buttons& buttons, Sound& sound)
@@ -9,7 +15,13 @@ SoundWindow::SoundWindow(Display& display, Buttons& buttons, Sound& sound)
     _buttons(buttons),
     _sound(sound),
     _exit(false),
-    _selected(0) {}
+    _menu(display, buttons, sound) {
+
+  // On/Off se muestran y animan como las opciones del menú principal
+  _menu.setOptions(ON_OFF_OPTIONS, 2);
+  _menu.setTitle("Sound");
+  _menu.setShowFooter(false);
+}
 
 // ========================================================
 // Inicialización (al entrar, la selección refleja el estado)
@@ -17,15 +29,18 @@ SoundWindow::SoundWindow(Display& display, Buttons& buttons, Sound& sound)
 
 void SoundWindow::begin() {
   _exit = false;
-  _selected = _sound.enabled() ? 0 : 1;  // 0 = On, 1 = Off
+  _menu.setSelected(_sound.enabled() ? 0 : 1);  // 0 = On, 1 = Off
 }
 
 // ========================================================
-// Actualizar (lee botones y navega como el menú)
+// Actualizar: el submenú navega (MOVE_LEFT/MOVE_RIGHT, con
+// SFX_CLICK) y anima el deslizamiento como el menú principal;
+// aquí se aplica la opción (ACTION_RIGHT) y se vuelve al menú
+// (ACTION_UP). Los eventos se leen dentro de menu.update().
 // ========================================================
 
 void SoundWindow::update() {
-  _buttons.read();
+  _menu.update();
 
   // Volver al menú (botón común de las ventanas)
   if (_buttons.actionUpPressed()) {
@@ -33,66 +48,23 @@ void SoundWindow::update() {
     return;
   }
 
-  // Navegar como el menú: MOVE_LEFT/MOVE_RIGHT cambian la selección
-  // (primera y última no conectadas, sin ciclo)
-  if (_buttons.pressed(Buttons::MOVE_LEFT) && _selected > 0) {
-    _selected--;
-    _sound.play(Sound::SFX_CLICK);
-  }
-
-  if (_buttons.pressed(Buttons::MOVE_RIGHT) && _selected < 1) {
-    _selected++;
-    _sound.play(Sound::SFX_CLICK);
-  }
-
   // Confirmar la opción seleccionada (ACTION_RIGHT, como el menú)
   if (_buttons.actionRightPressed()) {
-    _sound.setEnabled(_selected == 0);
+    int8_t sel = _menu.selected();
+    _sound.setEnabled(sel == 0);
 
     // Al dejar el sonido encendido se oye la confirmación
     // (comprueba que hay audio)
-    if (_selected == 0) _sound.play(Sound::SFX_CONFIRM);
+    if (sel == 0) _sound.play(Sound::SFX_CONFIRM);
   }
 }
 
 // ========================================================
-// Dibujar
+// Dibujar: se delega al submenú (mismo diseño que el menú)
 // ========================================================
 
 void SoundWindow::print() {
-
-  // Título (Header, como el del menú)
-  _display.screen().fillRect(0, 0, _display.getWidth(), 16, SSD1306_BLACK);
-  _display.drawTextAligned("Sound", CENTER, TEXT_12x16, REGION_HEADER);
-
-  // On / Off lado a lado, centrados en el Body: la opción seleccionada
-  // (como en el menú) va resaltada (cuadro blanco + texto negro) y la
-  // otra texto plano. El cuadro del resaltado centra el texto (+2*size px
-  // por lado en X y +1 arriba/abajo en Y), por eso las posiciones se
-  // calculan desde el centro de cada opción.
-  const uint8_t size = TEXT_12x16;
-  const int16_t half = (int16_t)(_display.getWidth() / 2);
-
-  const int16_t onCx  = half - 20;
-  const int16_t offCx = half + 20;
-
-  const int16_t onW  = (int16_t)_display.getTextWidth("On", size);   // 24
-  const int16_t offW = (int16_t)_display.getTextWidth("Off", size);  // 36
-
-  const int16_t onX  = onCx - (int16_t)(onW / 2);
-  const int16_t offX = offCx - (int16_t)(offW / 2);
-
-  const int16_t y = (int16_t)(16 + ((_display.getHeight() - 16) -
-                                    _display.getTextHeight(size)) / 2);
-
-  // La opción seleccionada (como el menú) va resaltada; la otra plana
-  if (_selected == 0) {
-    _display.drawHighlight("On", onX, y, size);
-    _display.drawText("Off", offX, y, size);
-  } else {
-    _display.drawText("On", onX, y, size);
-    _display.drawHighlight("Off", offX, y, size);
-  }
+  _menu.print();
 }
 
 // ========================================================
