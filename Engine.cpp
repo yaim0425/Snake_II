@@ -110,7 +110,9 @@ void Engine::update() {
 
 void Engine::print() {
 
-  _display.clear();
+  // NO hay clear() global: cada ventana limpia la pantalla completa
+  // solo la primera vez que se dibuja (tras su begin()) y luego solo
+  // borra/redibuja sus zonas dinámicas (ver cada ventana).
 
   switch (_state) {
     case State::BOOT:       _boot.print();                                 break;

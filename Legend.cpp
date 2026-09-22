@@ -23,7 +23,9 @@ Legend::Legend(Display& display, Buttons& buttons, Sound& sound)
     _sound(sound),
     _exit(false),
     _selected(0),
-    _setTime(0) {}
+    _setTime(0),
+    _redraw(true),
+    _lastText(-1) {}
 
 // ========================================================
 // Inicialización (al entrar en la ventana)
@@ -33,6 +35,8 @@ void Legend::begin() {
   _exit = false;
   _selected = 0;
   _setTime = millis();
+  _redraw = true;
+  _lastText = -1;
 }
 
 // ========================================================
@@ -77,44 +81,74 @@ void Legend::update() {
 
 // ========================================================
 // Dibujar (pad MOVE + rombos de ACTION + texto del pie)
+//
+// Solo se limpia lo necesario: en el primer frame se hace un
+// clear() completo y se dibujan los rótulos, los pads y los 4
+// rombos fijos (estáticos). Después solo se borra/redibuja:
+//   - el texto del pie, cuando cambia el rombo activo;
+//   - la zona del rombo activo (parpadeo).
+// El resto de la pantalla se mantiene intacto.
 // ========================================================
 
 void Legend::print() {
   Adafruit_SSD1306& s = _display.screen();
+  const int16_t w = _display.getWidth();
 
-  // Pie: borra la banda, línea separadora y texto con la función del rombo
-  // activo (centrado, mismo diseño que el menú)
-  s.fillRect(0, PIE_LINE_ROW, _display.getWidth(),
-             64 - PIE_LINE_ROW, SSD1306_BLACK);
-  s.drawFastHLine(0, PIE_LINE_ROW, _display.getWidth(), SSD1306_WHITE);
+  // Estáticos (una sola vez al entrar)
+  if (_redraw) {
+    _display.clear();
 
-  char buf[24];
-  snprintf(buf, sizeof(buf), "%s: %s", BTN_NAME[_selected],
-           BTN_FUNC[_selected]);
-  int16_t x = (int16_t)((_display.getWidth() -
-                         _display.getTextWidth(buf, TEXT_6x8)) / 2);
-  _display.drawText(buf, x, PIE_TOP, TEXT_6x8);
+    // Rótulo y pad MOVE (izquierda)
+    _display.drawText("Move", 18, SIGN_Y, TEXT_6x8);
+    drawPad(PAD_MOVE_X);
 
-  // Rótulo y pad MOVE (izquierda)
-  _display.drawText("Move", 18, SIGN_Y, TEXT_6x8);
-  drawPad(PAD_MOVE_X);
-
-  // Rótulo y rombos de ACTION (derecha): las posiciones de un pad, el activo
-  // parpadea muy rápido y el resto queda fijo como rombo completo
-  _display.drawText("Action", 78, SIGN_Y, TEXT_6x8);
-  for (uint8_t i = 0; i < 4; i++) {
-    int16_t cx;
-    int16_t cy;
-
-    switch (i) {
-      case 0:  cx = DIA_PAD_X;         cy = CY - DIA_R; break;  // ↑ Btn1
-      case 1:  cx = DIA_PAD_X + DIA_R; cy = CY;         break;  // → Btn2
-      case 2:  cx = DIA_PAD_X;         cy = CY + DIA_R; break;  // ↓ Btn3
-      default: cx = DIA_PAD_X - DIA_R; cy = CY;         break;  // ← Btn4
+    // Rótulo y rombos de ACTION (derecha): las posiciones de un pad
+    _display.drawText("Action", 78, SIGN_Y, TEXT_6x8);
+    for (uint8_t i = 0; i < 4; i++) {
+      int16_t cx;
+      int16_t cy;
+      diamondCenter(i, cx, cy);
+      drawDiamond(cx, cy, true);
     }
 
-    bool blink = (i == _selected);
-    drawDiamond(cx, cy, (!blink) || blinkVisible());
+    _redraw = false;
+  }
+
+  // Pie: solo se borra la banda y se redibuja cuando cambia la función
+  // del rombo activo (mismo diseño que el menú)
+  if (_lastText != (int16_t)_selected) {
+    s.fillRect(0, PIE_LINE_ROW, w, 64 - PIE_LINE_ROW, SSD1306_BLACK);
+    s.drawFastHLine(0, PIE_LINE_ROW, w, SSD1306_WHITE);
+
+    char buf[24];
+    snprintf(buf, sizeof(buf), "%s: %s", BTN_NAME[_selected],
+             BTN_FUNC[_selected]);
+    int16_t x = (int16_t)((w - _display.getTextWidth(buf, TEXT_6x8)) / 2);
+    _display.drawText(buf, x, PIE_TOP, TEXT_6x8);
+
+    _lastText = (int16_t)_selected;
+  }
+
+  // Rombo activo: se borra solo su zona y se redibuja según el parpadeo;
+  // los inactivos ya están fijos en pantalla
+  int16_t acx;
+  int16_t acy;
+  diamondCenter(_selected, acx, acy);
+  s.fillRect(acx - DIA_SIZE / 2, acy - DIA_SIZE / 2,
+             DIA_SIZE + 1, DIA_SIZE + 1, SSD1306_BLACK);
+  drawDiamond(acx, acy, blinkVisible());
+}
+
+// ========================================================
+// Posición del rombo i (centro), según el pad direccional
+// ========================================================
+
+void Legend::diamondCenter(uint8_t i, int16_t& cx, int16_t& cy) const {
+  switch (i) {
+    case 0:  cx = DIA_PAD_X;         cy = CY - DIA_R; break;  // ↑ Btn1
+    case 1:  cx = DIA_PAD_X + DIA_R; cy = CY;         break;  // → Btn2
+    case 2:  cx = DIA_PAD_X;         cy = CY + DIA_R; break;  // ↓ Btn3
+    default: cx = DIA_PAD_X - DIA_R; cy = CY;         break;  // ← Btn4
   }
 }
 

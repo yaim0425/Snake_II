@@ -146,6 +146,7 @@ private:
 
   int8_t _selected;   // opción actual (objetivo central)
   uint32_t _holdStart;  // momento de la última selección (parpadeo del rombo)
+  bool _redraw;         // primer frame tras begin(): clear() completo + estáticos
 
   Scroller _scroller;   // scroller de 1 bit del cuadro de selección (1 banda, texto 12x16)
 };

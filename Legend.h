@@ -111,6 +111,8 @@ private:
   bool _exit;
   uint8_t _selected;  // rombo activo (0..3): recorre Btn1 → Btn4
   uint32_t _setTime;  // momento en que se fijó el rombo activo
+  bool _redraw;       // primer frame tras begin(): clear() completo + estáticos
+  int8_t _lastText;   // texto del pie que se dibujó (para borrar/redibujar solo al cambiar)
 
   // ========================================================
   // Helpers de dibujo
@@ -121,6 +123,9 @@ private:
 
   // Rombo de 4 flechas centrado en (cx, cy)
   void drawPad(int16_t cx);
+
+  // Posición del rombo i (0 = ↑, 1 = →, 2 = ↓, 3 = ←)
+  void diamondCenter(uint8_t i, int16_t& cx, int16_t& cy) const;
 
   // Rombo completo de DIA_SIZE centrado en (cx, cy); si show es false no se dibuja
   void drawDiamond(int16_t cx, int16_t cy, bool show);

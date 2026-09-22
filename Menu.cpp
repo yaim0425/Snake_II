@@ -36,6 +36,7 @@ Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore,
     _optionTexts(DEFAULT_OPTION_TEXT),
     _selected(OPC_NUEVO),
     _holdStart(0),
+    _redraw(true),
     _scroller(display, 1, nullptr) {}
 
 // ========================================================
@@ -46,6 +47,7 @@ void Menu::begin() {
   _scroller.begin();
   _holdStart = millis();
   _scroller.compose(optionText(_selected), TEXT_12x16);
+  _redraw = true;
 }
 
 // ========================================================
@@ -66,6 +68,7 @@ void Menu::setOptions(const char* const* texts, uint8_t count) {
   _scroller.begin();
   _holdStart = millis();
   _scroller.compose(optionText(_selected), TEXT_12x16);
+  _redraw = true;
 }
 
 // ========================================================
@@ -94,6 +97,7 @@ void Menu::setSelected(int8_t index) {
   _scroller.begin();
   _holdStart = millis();
   _scroller.compose(optionText(_selected), TEXT_12x16);
+  _redraw = true;
 }
 
 // ========================================================
@@ -174,42 +178,47 @@ void Menu::drawDiamonds() {
 
 void Menu::print() {
 
-  // Cuadro de selección: fijo, de ancho completo
-  _display.screen().fillRect(0, BOX_TOP, _display.getWidth(), BOX_HEIGHT,
-                             SSD1306_WHITE);
+  // Estáticos (solo al entrar, tras el clear() completo): fondo, cuadro
+  // de selección, header (título) y pie (línea + Top/versión). Se dibujan
+  // UNA sola vez; ya no se borran ni se redibujan en cada frame.
+  if (_redraw) {
+    _display.clear();
 
-  // Opciones: la banda persistente (lo que ya está en pantalla) se mantiene
-  // intacta; la tira nueva desliza y sus columnas sobrescriben la banda hasta
+    // Cuadro de selección: fijo, de ancho completo
+    _display.screen().fillRect(0, BOX_TOP, _display.getWidth(), BOX_HEIGHT,
+                               SSD1306_WHITE);
+
+    // Header: título
+    _display.drawTextAligned(_title, CENTER, TEXT_12x16, REGION_HEADER);
+
+    // Pie: línea separadora + texto (Top/versión), opcional
+    // (SoundWindow lo oculta: solo deja la línea que sostiene los rombos)
+    _display.screen().drawFastHLine(0, PIE_LINE_ROW, _display.getWidth(),
+                                    SSD1306_WHITE);
+    if (_showFooter) {
+      char buf[16];
+      sprintf(buf, "Top: %u pts", _topScore);
+
+      TextPos tPos = _display.getTextPos(buf, LEFT_DOWN, TEXT_6x8, REGION_BODY);
+      _display.drawText(buf, tPos.x, PIE_TOP, TEXT_6x8);
+
+      TextPos vPos = _display.getTextPos(_version, RIGHT_DOWN, TEXT_6x8, REGION_BODY);
+      _display.drawText(_version, vPos.x, PIE_TOP, TEXT_6x8);
+    }
+
+    _redraw = false;
+  }
+
+  // Dinámicos (cada frame): la banda de la opción deslizante y los rombos.
+  // La banda persistente (lo que ya está en pantalla) se mantiene intacta;
+  // la tira nueva desliza y sus columnas sobrescriben la banda hasta
   // reemplazarla por completo. La opción anterior permanece hasta ser borrada
   _scroller.blit(0, TEXT_SEL_TOP, SSD1306_BLACK, SSD1306_WHITE);
 
-  // Limpiar la banda de rombos (45..53)
+  // Solo se borra la banda de rombos (45..53), la única zona dinámica restante
   _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),
                              DIA_SIZE + 1, SSD1306_BLACK);
   drawDiamonds();
-
-  // Limpiar la banda del Header y redibujar el título
-  _display.screen().fillRect(0, 0, _display.getWidth(), BODY_TOP, SSD1306_BLACK);
-  _display.drawTextAligned(_title, CENTER, TEXT_12x16, REGION_HEADER);
-
-  // Limpiar la banda del pie: línea (54) + filas libres (55..56) + texto (57..63)
-  _display.screen().fillRect(0, PIE_LINE_ROW, _display.getWidth(), 10, SSD1306_BLACK);
-
-  // Línea horizontal de 1 px, a 2 px sobre el pie
-  _display.screen().drawFastHLine(0, PIE_LINE_ROW, _display.getWidth(), SSD1306_WHITE);
-
-  // Pie: Top y versión, bajados 1 px (fila 57). Opcional
-  // (SoundWindow lo oculta: solo deja la línea que sostiene los rombos)
-  if (_showFooter) {
-    char buf[16];
-    sprintf(buf, "Top: %u pts", _topScore);
-
-    TextPos tPos = _display.getTextPos(buf, LEFT_DOWN, TEXT_6x8, REGION_BODY);
-    _display.drawText(buf, tPos.x, PIE_TOP, TEXT_6x8);
-
-    TextPos vPos = _display.getTextPos(_version, RIGHT_DOWN, TEXT_6x8, REGION_BODY);
-    _display.drawText(_version, vPos.x, PIE_TOP, TEXT_6x8);
-  }
 }
 
 // ========================================================
@@ -226,5 +235,8 @@ int8_t Menu::confirm() const {
 }
 
 void Menu::setTopScore(uint8_t value) {
-  _topScore = value;
+  if (value != _topScore) {
+    _topScore = value;
+    _redraw = true;  // el pie cambia: se redibija al volver al menú
+  }
 }

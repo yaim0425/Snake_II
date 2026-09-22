@@ -61,6 +61,7 @@ private:
 
   uint8_t _entry;   // entrada visible (0 = izquierda, 1 = centro, 2 = derecha)
   bool _exit;
+  bool _redraw;     // primer frame tras begin(): clear() completo + estáticos
 
   // ========================================================
   // Scroller de 1 bit compartido (igual que el menú): DOS bandas

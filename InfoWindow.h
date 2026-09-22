@@ -46,6 +46,7 @@ private:
 
   const char* _title;
   bool _exit;
+  bool _redraw;  // primer frame tras begin(): clear() completo + dibujar todo
 };
 
 #endif

@@ -91,17 +91,31 @@ private:
   Buttons& _buttons;
 
   uint8_t _shift;       // desplazamiento actual (0..BAR_SPACING-1)
+  uint8_t _prevShift;   // desplazamiento que se dibujó en pantalla
   uint32_t _tickAccum;  // acumulador de tiempo para el avance
   uint32_t _lastMs;     // último millis() leído
   uint32_t _startMs;    // millis() al entrar en la ventana
   bool _done;
+  bool _redraw;         // primer frame: clear() completo + dibujar todo
 
   // ========================================================
-  // Helper
+  // Helpers
   // ========================================================
 
   // Dibuja una línea vertical de BAR_W px (con rebalse por el borde derecho)
   void drawBar(int16_t x, uint8_t top, uint8_t height, int16_t width);
+
+  // Dibuja todas las franjas (TITULO y CUERPO) en el desplazamiento actual
+  void drawBars();
+
+  // Borra SOLO las columnas de las franjas anteriores que no coinciden con
+  // las nuevas (las que coinciden se mantienen; el resto de la pantalla no
+  // se toca)
+  void eraseOldBars();
+
+  // Borra 1 px de cada columna de la franja vieja que no está en la nueva
+  void eraseBarDiff(int16_t oldX, int16_t newX, uint8_t top, uint8_t height,
+                    int16_t width);
 };
 
 #endif

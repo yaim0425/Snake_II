@@ -14,7 +14,8 @@ InfoWindow::InfoWindow(Display& display, Buttons& buttons)
   : _display(display),
     _buttons(buttons),
     _title(nullptr),
-    _exit(false) {}
+    _exit(false),
+    _redraw(true) {}
 
 // ========================================================
 // Inicialización (al entrar en la ventana)
@@ -23,6 +24,7 @@ InfoWindow::InfoWindow(Display& display, Buttons& buttons)
 void InfoWindow::begin(const char* title) {
   _title = title;
   _exit = false;
+  _redraw = true;
 }
 
 // ========================================================
@@ -34,22 +36,24 @@ void InfoWindow::update() {
 }
 
 // ========================================================
-// Dibujar
+// Dibujar (todo es estático: solo se dibuja al entrar)
 // ========================================================
 
 void InfoWindow::print() {
-  Adafruit_SSD1306& s = _display.screen();
+  if (!_redraw) return;
 
-  s.fillRect(0, 0, _display.getWidth(), 48, SSD1306_BLACK);
+  _display.clear();
 
   if (_title != nullptr)
     _display.drawTextAligned(_title, CENTER, TEXT_12x16, REGION_HEADER);
 
   _display.drawTextAligned("In development", CENTER, TEXT_6x8, REGION_BODY);
 
-  // Limpiar la banda del pie y dibujar la línea separadora de 1 px
-  s.fillRect(0, PIE_LINE_ROW, _display.getWidth(), 10, SSD1306_BLACK);
-  s.drawFastHLine(0, PIE_LINE_ROW, _display.getWidth(), SSD1306_WHITE);
+  // Línea separadora del pie, de 1 px
+  _display.screen().drawFastHLine(0, PIE_LINE_ROW, _display.getWidth(),
+                                  SSD1306_WHITE);
+
+  _redraw = false;
 }
 
 // ========================================================

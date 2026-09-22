@@ -49,6 +49,10 @@ Arquitectura:
   `buttons.begin()` y `engine.begin()`; `loop()` hace la **única lectura de botones
   del frame** (`buttons.read()`, antes de `engine.update()`) y luego llama
   `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`.
+- **Renderizado sin `clear()` global:** `Engine::print()` ya **no** limpia la
+  pantalla. Cada ventana hace `display.clear()` **solo en su primer frame** tras
+  su `begin()` y luego no vuelve a borrar lo estático: dibuja su fondo una sola
+  vez y por frame solo borra/redibuja sus zonas dinámicas (ver sección 13).
 - Al iniciar se muestra la animación de arranque (`Boot`, franjas verticales),
   luego el panel de botones (`Legend`, pad MOVE con flechas + 4 rombos de ACTION
   que parpadean uno a la vez) y
@@ -327,16 +331,20 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
 
 ### Diseño del menú (scroller de 1 bit)
 
-- **Título:** "Snake II", `TEXT_12x16`, centrado en `REGION_HEADER`. Se dibuja al
-  inicio, luego se limpia la banda (0..16) con negro y se redibuja.
+- **Título:** "Snake II", `TEXT_12x16`, centrado en `REGION_HEADER`. **Estático:**
+  se dibuja una sola vez al entrar (tras el `clear()` completo) y ya no se limpia
+  ni se redibuja por frame.
 - **Pie:** "Top: X pts" (`LEFT_DOWN`) y versión (`RIGHT_DOWN`) en `TEXT_6x8`,
-  **bajado 1 px** (fila 57, `PIE_TOP = 57`). Se limpian con negro las filas
-  `54..63` antes de dibujar. Una **línea horizontal de 1 px** de grosor,
+  **bajado 1 px** (fila 57, `PIE_TOP = 57`). **Estático:** se dibuja una sola vez
+  al entrar (tras el `clear()` completo; se actualiza solo si `setTopScore`
+  cambia). Una **línea horizontal de 1 px** de grosor,
   `drawFastHLine`, en la fila `54` (`PIE_LINE_ROW`), a **2 px sobre el pie**
   (filas libres `55..56` entre la línea y el texto). Las 2 filas sobre el pie
   quedan siempre limpias.
 - **Cuadro de selección:** **fijo** y de **ancho completo** (128 px),
-  `BOX_TOP = 25`, `BOX_HEIGHT = 18` (banda 25..42). Con el rombo activo de punta
+  `BOX_TOP = 25`, `BOX_HEIGHT = 18` (banda 25..42). **Estático:** el cuadro blanco
+  se dibuja una sola vez al entrar; por frame solo se vuelca la banda de la
+  opción (`26..41`) con el scroller. Con el rombo activo de punta
   en la `45`: quedan **2 filas libres** (`44..43`) sobre el rombo y el cuadro
   arranca en la **fila 3** desde la punta (`42`) hacia arriba. **No se mueve**;
   el tamaño del texto (tamaño 2) tampoco cambia.
@@ -367,8 +375,8 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
   (`cx = (i+1)·128/(n+1)`). Si se **mantiene** seleccionado sin navegar
 `BLINK_HOLD = 500 ms`, el rombo **parpadea** mostrándose el **75%** de cada
   período y oculto el **25%** (período `BLINK_PERIOD = 1000 ms`, fase oculta = primer
-  25%). Antes de dibujarlos se limpia con negro la banda
-  `45..53` (`fillRect(0, DIA_TOP, ancho, DIA_SIZE+1)`).
+  25%). Es la **única zona dinámica** del menú: por frame se limpia solo la banda
+  `45..53` (`fillRect(0, DIA_TOP, ancho, DIA_SIZE+1)`) y se redibujan los rombos.
 - Primera y última opción no conectadas (navegación con límites).
 
 ---
@@ -403,6 +411,11 @@ Boot(Display& display, Buttons& buttons);
 - **Movimiento:** `_shift` avanza 1 px cada `ANIM_TICK = 30 ms` (ciclo completo de
   8 px). En `TITULO` las líneas se mueven **de izquierda a derecha**; en `CUERPO`
   **de derecha a izquierda**.
+- **Limpieza incremental (sin `clear()` por frame):** en el primer frame se hace
+  un `clear()` completo; luego, al avanzar, se borran **solo las columnas que cada
+  franja deja de ocupar** (las columnas que coinciden con la posición nueva se
+  mantienen) y se dibujan las franjas en su nueva posición; el resto de la pantalla
+  no se toca. Si el desplazamiento no cambió, no se dibuja nada.
 - **Duración:** `TOTAL_MS = 4000 ms` o cualquier botón, lo que ocurra primero; luego
   `Engine` entra al menú.
 
@@ -449,6 +462,11 @@ Legend(Display& display, Buttons& buttons, Sound& sound);
 - **Salida:** cualquier botón cierra la leyenda (`done()`) con su sonido según el
   botón. `Engine` solo la muestra al arranque (después del `Boot`); ya no se repite
   al volver al menú.
+- **Renderizado (sin `clear()` por frame):** rótulos, pad MOVE y los 4 rombos de
+  ACTION son **estáticos** (se dibujan una sola vez al entrar, tras el `clear()`
+  completo). Por frame solo se borra/redibuja la **zona del rombo activo**
+  (cuadro 9x9 alrededor de su centro, para el parpadeo) y el **texto del pie**
+  (banda `54..63`) únicamente cuando cambia el rombo activo.
 
 ---
 
@@ -633,7 +651,9 @@ enum class State : uint8_t {
 |--------|-------------|
 | `void begin()` | Primera transición: entra al test de píxeles (`changeState(State::BOOT)`). Se llama desde `setup()`. |
 | `void update()` | Lee/actualiza la ventana activa y gestiona las transiciones de estado. Reproduce los efectos del sonido: `SFX_CONFIRM` al confirmar una opción del menú y `SFX_BACK` al volver a `MENU` desde cualquier ventana (excepto desde `Legend`, que toca su propio sonido según el botón). |
-| `void print()` | Limpia (`display.clear()`) y dibuja solo la ventana activa. |
+| `void print()` | Despacha el dibujo a la ventana activa. **Ya no limpia la
+  pantalla (`display.clear()`)**: cada ventana la usa solo en su primer frame tras
+  `begin()` y luego limpia/redibuja solo sus zonas dinámicas (sección 13). |
 | `void setTopScore(uint8_t)` | Reenvía al menú para conservar el puntaje máximo entre sesiones. |
 
 ### Patrón de ventana
@@ -644,7 +664,7 @@ Toda ventana implementa:
 |--------|-------------|
 | `begin()` | Restablece la ventana al entrar. `Engine` lo llama solo en `changeState()`. |
 | `update()` | Maneja los eventos de botones (leídos una sola vez por `loop()` en `buttons.read()`; la ventana no llama a `read()`). |
-| `print()` | Dibuja la ventana (Engine hace `display.clear()` antes de cada `print()`). |
+| `print()` | Dibuja la ventana. Al entrar hace un `clear()` completo en el primer frame y luego solo limpia/redibuja sus zonas dinámicas. |
 | `done()` | `true` cuando la ventana pide volver al menú. |
 
 ### Reglas del despachador
@@ -674,6 +694,38 @@ Toda ventana implementa:
   `ACTION_RIGHT` aplica). Los efectos del juego (comer, GO,
   game over) quedan para la lógica de la serpiente.
 - Con SDA=8 y SCL=9, dirección 0x3C.
+
+---
+
+## 13. Esquema de renderizado y limpieza (sin `clear()` global)
+
+El juego ya no limpia la pantalla completa en cada frame: `Engine::print()` **no**
+llama a `display.clear()`, lo decide cada ventana.
+
+### Reglas
+
+1. **Clear completo solo al entrar:** cada ventana hace `display.clear()` en su
+   **primer `print()`** después de su `begin()` (flag `_redraw` puesto en
+   `begin()` y apagado tras ese primer dibujo). Ese primer clear elimina la resaca
+   de la ventana anterior y deja el fondo listo. Los métodos que reinician la
+   animación (`Menu::begin/setOptions/setSelected`, `setTopScore` si cambia)
+   también activan ese flag.
+2. **Estáticos una sola vez:** títulos, pies, línea separadora, cuadro de
+   selección, rótulos y pads se dibujan en ese primer frame y **ya no se vuelven a
+   dibujar**; persisten en el buffer (que `display.show()` vuelca completo cada
+   frame).
+3. **Dinámicos por frame, borrando solo lo necesario:**
+
+   | Ventana | Estáticos (una vez) | Dinámicos por frame |
+   |---------|---------------------|---------------------|
+   | `Boot` | — (primer frame: clear completo) | Franjas: se borran **solo las columnas que cada franja deja de ocupar** (las coincidentes se mantienen) y se dibujan las nuevas; si no cambió el desplazamiento no se dibuja nada. |
+   | `Menu` / submenú `SoundWindow` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53) |
+   | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas) |
+   | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo |
+   | `InfoWindow` | Todo (dibuja una sola vez) | — |
+
+4. `SoundWindow` reutiliza el submenú `Menu`, así que hereda el mismo esquema
+   (su `begin()` → `setSelected()` activa el `_redraw` del submenú).
 
 ---
 

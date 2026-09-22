@@ -38,6 +38,7 @@ Credits::Credits(Display& display, Buttons& buttons, Sound& sound)
     _sound(sound),
     _entry(1),
     _exit(false),
+    _redraw(true),
     _scroller(display, 2, BAND_HEIGHTS) {}
 
 // ========================================================
@@ -48,6 +49,7 @@ void Credits::begin() {
   _entry = 1;  // entrada central (Snake II / v0.1)
   _scroller.begin();
   _exit = false;
+  _redraw = true;
 }
 
 // ========================================================
@@ -114,17 +116,28 @@ void Credits::drawBand(uint8_t slot, int16_t y, uint16_t fgColor,
 // ========================================================
 
 void Credits::print() {
-  // Título de la ventana
-  _display.drawTextAligned("Credits", CENTER, TEXT_12x16, REGION_HEADER);
-
-  // Rol: cuadro blanco de borde a borde (fijo), texto negro
   int16_t w = _display.getWidth();
   int16_t roleH = _display.getTextHeight(TEXT_12x16);
   int16_t roleY = BODY_TOP + (PIE_TOP - BODY_TOP - roleH) / 2;
-  _display.screen().fillRect(0, roleY - 1, w, roleH + 2, SSD1306_WHITE);
-  drawBand(0, roleY, SSD1306_BLACK, SSD1306_WHITE);
 
-  // Nombre: texto blanco plano en el pie
+  // Estáticos (solo al entrar, tras el clear() completo): título y el
+  // cuadro blanco del rol. Se dibujan UNA sola vez; ya no se redibujan
+  // en cada frame.
+  if (_redraw) {
+    _display.clear();
+
+    // Título de la ventana
+    _display.drawTextAligned("Credits", CENTER, TEXT_12x16, REGION_HEADER);
+
+    // Rol: cuadro blanco de borde a borde (fijo), texto negro
+    _display.screen().fillRect(0, roleY - 1, w, roleH + 2, SSD1306_WHITE);
+
+    _redraw = false;
+  }
+
+  // Dinámicos (cada frame): el rol y el nombre en sus bandas
+  // persistente (la tira desliza y sobrescribe columna a columna)
+  drawBand(0, roleY, SSD1306_BLACK, SSD1306_WHITE);
   drawBand(1, PIE_TOP + 1, SSD1306_WHITE, SSD1306_BLACK);
 }
 
