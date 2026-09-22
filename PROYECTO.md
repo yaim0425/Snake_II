@@ -56,8 +56,9 @@ Arquitectura:
   Dificultad), la opción `Sound` (ventana `SoundWindow` On/Off real, cuyas opciones
   se muestran y animan como las del menú) y los créditos. La `Legend` solo se muestra al arranque;
   al volver al menú desde cualquier ventana se pasa directo a `Menu` (ya no se
-  repite la leyenda). El código del juego original está respaldado (no
-  restaurado) en `Snake_II_juego_backup.txt`.
+  repite la leyenda). El código del juego original no se mantiene como archivos de
+  respaldo en el repo: queda en el historial de Git (`git show <commit>:Snake_II.ino`,
+  `git show <commit>:GameBuzzer.h`).
 
 La clase `Engine` (despachador de ventanas, antes `App`) está separada del `.ino`
 en `Engine.h` / `Engine.cpp`, y recibe las ventanas **sin anidarlas**.
@@ -109,10 +110,8 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `SoundWindow.h` / `SoundWindow.cpp` | Clase `SoundWindow` (opción "Sound" del menú: **"On" y "Off" se muestran y animan igual que las opciones del Menú principal** —submenú `Menu` embebido: cuadro deslizante con scroller de 1 bit y rombos de posición, navegación con `MOVE_LEFT`/`MOVE_RIGHT`, `ACTION_RIGHT` aplica—; `ACTION_UP` vuelve al menú). Completa. |
 | `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas**: las recibe por referencia y su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Todos los `begin()` se lanzan desde `setup()`. Completa. |
 | `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`InfoWindow` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` hace la **única lectura de botones del frame** (`buttons.read()`) y llama `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`. |
-| `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
 | `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). Completa. |
 | `Sound.h` / `Sound.cpp` | Clase `Sound` (secuencias de los efectos del juego sobre `Buzzer`, con `setEnabled` para silenciar). Completa. |
-| `GameBuzzer.h` | Respaldo de la clase del buzzer del juego original (sin cambios, ya no se usa). |
 | `PROYECTO.md` | Este documento. |
 
 Nota: Arduino solo compila el `.ino` del sketch. El respaldo quedó como `.txt`
