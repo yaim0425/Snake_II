@@ -20,6 +20,8 @@
 #include "Credits.h"
 #include "InfoWindow.h"
 #include "Legend.h"
+#include "Buzzer.h"
+#include "Sound.h"
 #include "Engine.h"
 
 #include <Arduino.h>
@@ -40,6 +42,12 @@ Display display;
 // Entrada
 Buttons buttons(BUTTON_PINS);
 
+// Sonido: Buzzer (hardware, un tono no bloqueante) + Sound
+// (secuencias de los efectos del juego). Aún no se reproducen
+// efectos; la integración con menú/juego queda pendiente.
+Buzzer buzzer;
+Sound sound(buzzer);
+
 // Ventanas: clases independientes (hermanas, compartidas por referencia).
 // Persisten entre estados: sus valores se conservan.
 Boot boot(display, buttons);
@@ -59,6 +67,8 @@ void setup() {
   // Iniciar hardware y entrar al primer estado (menú -> menu.begin())
   display.begin();
   buttons.begin();
+  buzzer.begin();
+  sound.begin();
   engine.begin();
 
   Serial.println("Snake II");
@@ -69,6 +79,7 @@ void setup() {
 void loop() {
   engine.update();
   engine.print();
+  sound.update();
   display.show();
 }
 

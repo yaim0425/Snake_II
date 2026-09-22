@@ -61,7 +61,9 @@ La clase `Engine` (despachador de ventanas, antes `App`) está separada del `.in
 en `Engine.h` / `Engine.cpp`, y recibe las ventanas **sin anidarlas**.
 
 Fases pendientes: integración de la clase `Display` en el juego, botones/pulsadores
-(`Buttons` ya integrado), buzzer, menú, lógica de la serpiente.
+(`Buttons` ya integrado), buzzer (las clases `Buzzer`/`Sound` ya están creadas y
+cableadas en `Snake_II.ino`; falta conectarlas al menú y al juego), menú, lógica de la
+serpiente.
 
 ---
 
@@ -103,7 +105,9 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas**: las recibe por referencia y su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Todos los `begin()` se lanzan desde `setup()`. Completa. |
 | `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`InfoWindow` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` llama `engine.update()` y `engine.print()`. |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
-| `GameBuzzer.h` | Clase del buzzer del juego original (sin cambios). |
+| `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). Completa. |
+| `Sound.h` / `Sound.cpp` | Clase `Sound` (secuencias de los efectos del juego sobre `Buzzer`). Completa. |
+| `GameBuzzer.h` | Respaldo de la clase del buzzer del juego original (sin cambios, ya no se usa). |
 | `PROYECTO.md` | Este documento. |
 
 Nota: Arduino solo compila el `.ino` del sketch. El respaldo quedó como `.txt`
@@ -431,6 +435,83 @@ Legend(Display& display, Buttons& buttons);
 
 ---
 
+## 10. Clase `Buzzer` — API (capa de hardware)
+
+Ubicación: `Buzzer.h` / `Buzzer.cpp`. Reproduce **un solo tono a la vez**, de forma
+**no bloqueante**: `tone()` enciende el tono y marca su duración; `update()` (vía
+`Sound::update()`) lo apaga al agotarse el tiempo. Sin `delay()`, el juego nunca se
+congela. Usa LEDC del núcleo ESP32 (Core 3.x), como el `GameBuzzer` original.
+
+### Constructor
+
+```cpp
+Buzzer(uint8_t pin = 14);
+```
+
+### Métodos
+
+| Método | Descripción |
+|--------|-------------|
+| `bool begin()` | `ledcAttach(pin, 2000, 10)` y silencia. Devuelve si se pudo adjuntar el canal. |
+| `void update()` | Apaga el tono cuando termina su duración. Llamar una vez por `loop()` (ya lo hace `Sound::update()`). |
+| `void tone(freq, durMs = 0)` | Emite un tono (no bloqueante). `durMs > 0` lo apaga solo; `0` = suena hasta `stop()`. `freq = 0` = silencio (espera activa). |
+| `void stop()` | Silencia el buzzer y cancela la duración pendiente. |
+| `bool busy()` | `true` mientras hay un tono/duración en curso. |
+| `bool attached()` | `true` si `begin()` adjuntó el canal LEDC. |
+
+---
+
+## 10.2 Clase `Sound` — API (sonidos del juego)
+
+Ubicación: `Sound.h` / `Sound.cpp`. Compone los efectos de Snake II como **secuencias
+de tonos** (`Note` = `{freq, durMs}`, `0` = silencio) sobre `Buzzer`. Todo es no
+bloqueante: `play()` arranca el efecto y `update()` lo avanza paso a paso cuando
+cada nota termina. Con el sonido desactivado `play()` no hace nada (pensado para la
+opción "Sound" del menú, `setEnabled(false)`).
+
+### Constructor
+
+```cpp
+Sound(Buzzer& buzzer);
+```
+
+### Enum y efectos
+
+```cpp
+enum Sfx : uint8_t {
+  SFX_NONE = 0, SFX_CLICK, SFX_CONFIRM, SFX_BACK,
+  SFX_EAT, SFX_START, SFX_LEVEL_UP, SFX_GAME_OVER
+};
+```
+
+| Efecto | Uso | Secuencia (frecuencias Hz / ms) |
+|--------|-----|---------------------------------|
+| `SFX_CLICK` | Navegar por el menú | 1800/35 |
+| `SFX_CONFIRM` | Activar una opción | 700/50, 1000/80 |
+| `SFX_BACK` | Volver al menú | 900/50, 600/90 |
+| `SFX_EAT` | Comer el alimento | 988/60, 1319/100 |
+| `SFX_START` | GO! al iniciar | 800/60, 1100/60, 1500/150 |
+| `SFX_LEVEL_UP` | Subir de nivel | 523/60, 659/60, 784/60, 1047/120, 1319/180 |
+| `SFX_GAME_OVER` | Muerte de la serpiente | 800/100, 650/100, 500/150, 300/300 |
+
+Los tonos siguen la paleta del `GameBuzzer` original.
+
+### Métodos
+
+| Método | Descripción |
+|--------|-------------|
+| `void begin()` | Silencia y reinicia la secuencia. |
+| `void setEnabled(bool)` / `enabled()` | Activa/desactiva el sonido (opción "Sound"); al desactivar corta el efecto en curso. |
+| `void play(Sfx)` | Arranca la secuencia del efecto (no bloqueante). |
+| `void update()` | Avanza a la siguiente nota (llama `_buzzer.update()` antes). Llamar una vez por `loop()`. |
+| `void stop()` | Corta el efecto en curso y silencia. |
+| `bool playing()` | `true` mientras suena un efecto. |
+
+En `Snake_II.ino`: `Buzzer buzzer;` y `Sound sound(buzzer);` (instancias únicas,
+`buzzer.begin()` y `sound.begin()` en `setup()`, `sound.update()` en `loop()`).
+
+---
+
 ## 11. Clase `Engine` — despachador de ventanas
 
 Separada del `.ino` en `Engine.h` / `Engine.cpp` (antes `App`). **No anida las
@@ -518,5 +599,7 @@ Toda ventana implementa:
 - IDE: Arduino IDE, placa `ESP32-S3 (Dev Module)` (verificar puerto).
 - Librerías: Adafruit GFX + Adafruit_SSD1306.
 - La demo actual (`Snake_II.ino`) usa solo `Display` y `Buttons` (la `Boot` usa
-  botones solo para saltar patrones; el buzzer no se usa todavía).
+  botones solo para saltar patrones; las clases `Buzzer`/`Sound` están cableadas y
+  compilando —`buzzer.begin()`, `sound.begin()` y `sound.update()` en `loop()`— pero
+  aún no se reproduce ningún efecto).
 - Con SDA=8 y SCL=9, dirección 0x3C.
