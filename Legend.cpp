@@ -17,9 +17,10 @@ const char* const Legend::BTN_FUNC[4] = {
 // Constructor
 // ========================================================
 
-Legend::Legend(Display& display, Buttons& buttons)
+Legend::Legend(Display& display, Buttons& buttons, Sound& sound)
   : _display(display),
     _buttons(buttons),
+    _sound(sound),
     _exit(false),
     _selected(0),
     _setTime(0) {}
@@ -35,17 +36,38 @@ void Legend::begin() {
 }
 
 // ========================================================
-// Actualizar (lee botones y avanza el ciclo de parpadeo)
+// Actualizar (lee botones, reproduce sonido según el botón y
+// avanza el ciclo de parpadeo)
 // ========================================================
 
 void Legend::update() {
   _buttons.read();
 
-  for (uint8_t i = 0; i < Buttons::MAX_BUTTONS; i++) {
-    if (_buttons.pressed(i)) {
-      _exit = true;
-      return;
-    }
+  // Cualquier botón cierra la leyenda. El sonido depende del
+  // botón presionado (prioridad si se pulsan varios a la vez):
+  // MOVE = SFX_CLICK, ACTION_UP (Back/Pause) = SFX_BACK,
+  // ACTION_RIGHT (Select) = SFX_CONFIRM,
+  // ACTION_DOWN/ACTION_LEFT (None) = SFX_CLICK
+  bool exit = false;
+
+  if (_buttons.moveUpPressed() || _buttons.moveRightPressed() ||
+      _buttons.moveDownPressed() || _buttons.moveLeftPressed()) {
+    _sound.play(Sound::SFX_CLICK);
+    exit = true;
+  } else if (_buttons.actionUpPressed()) {
+    _sound.play(Sound::SFX_BACK);
+    exit = true;
+  } else if (_buttons.actionRightPressed()) {
+    _sound.play(Sound::SFX_CONFIRM);
+    exit = true;
+  } else if (_buttons.actionDownPressed() || _buttons.actionLeftPressed()) {
+    _sound.play(Sound::SFX_CLICK);
+    exit = true;
+  }
+
+  if (exit) {
+    _exit = true;
+    return;
   }
 
   // El rombo activo cambia cada DWELL_MS (avance lento)

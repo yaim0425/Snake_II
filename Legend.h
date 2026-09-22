@@ -3,6 +3,7 @@
 
 #include "Display.h"
 #include "Buttons.h"
+#include "Sound.h"
 
 // ========================================================
 // Legend — panel de botones (leyenda)
@@ -21,7 +22,10 @@
 //
 // Se muestra al arranque (después de la animación Boot) y al
 // volver al menú desde cualquier ventana. Cualquier botón la
-// cierra (done() = true) y Engine pasa al menú.
+// cierra (done() = true) y Engine pasa al menú; el sonido
+// depende del botón presionado: MOVE = SFX_CLICK,
+// ACTION_UP (Back/Pause) = SFX_BACK, ACTION_RIGHT (Select) =
+// SFX_CONFIRM, ACTION_DOWN/ACTION_LEFT (None) = SFX_CLICK.
 // ========================================================
 
 class Legend {
@@ -30,7 +34,7 @@ public:
   // Constructor
   // ========================================================
 
-  Legend(Display& display, Buttons& buttons);
+  Legend(Display& display, Buttons& buttons, Sound& sound);
 
   // ========================================================
   // Inicialización (al entrar en la ventana)
@@ -102,6 +106,7 @@ private:
 
   Display& _display;
   Buttons& _buttons;
+  Sound& _sound;
 
   bool _exit;
   uint8_t _selected;  // rombo activo (0..3): recorre Btn1 → Btn4

@@ -100,7 +100,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
-| `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: Back/Pause, Select, None, None; cualquier botón la cierra). Completa. |
+| `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: Back/Pause, Select, None, None; cualquier botón la cierra con un sonido según el botón pulsado: MOVE = CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM). Completa. |
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit y rombos de posición). Completa. |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad). Completa. |
@@ -402,7 +402,7 @@ Ubicación: `Legend.h` / `Legend.cpp`.
 ### Constructor
 
 ```cpp
-Legend(Display& display, Buttons& buttons);
+Legend(Display& display, Buttons& buttons, Sound& sound);
 ```
 
 ### Métodos
@@ -410,9 +410,9 @@ Legend(Display& display, Buttons& buttons);
 | Método | Descripción |
 |--------|-------------|
 | `void begin()` | Reinicia la ventana: apaga el flag de salida, rombo activo = `Btn1`. |
-| `void update()` | Lee botones (cualquier botón pone `done() = true`) y avanza el ciclo: el rombo activo cambia cada `Menu::BLINK_PERIOD` ms. |
+| `void update()` | Lee botones y avanza el ciclo. **El sonido depende del botón presionado** (`done() = true`): `MOVE_*` (navegación) = `SFX_CLICK`, `ACTION_UP` (Back/Pause) = `SFX_BACK`, `ACTION_RIGHT` (Select) = `SFX_CONFIRM`, `ACTION_DOWN`/`ACTION_LEFT` (None) = `SFX_CLICK`. El rombo activo cambia cada `DWELL_MS`. |
 | `void print()` | Dibuja el pad MOVE, los 4 rombos de ACTION y el texto centrado del pie. |
-| `bool done()` | `true` cuando se pidió ir al menú (Engine pasa al menú). |
+| `bool done()` | `true` cuando se pidió ir al menú. `Engine` solo cambia de estado; **la Legend ya reprodujo su sonido** (Engine no toca `SFX_BACK` en esta transición). |
 
 ### Dibujo (leyenda de botones)
 
@@ -433,8 +433,9 @@ Legend(Display& display, Buttons& buttons);
   `Btn1` (↑ = `ACTION_UP`): **"Back / Pause"**, `Btn2` (→ = `ACTION_RIGHT`):
   **"Select"**, `Btn3` (↓ = `ACTION_DOWN`): **"None"**, `Btn4` (← =
   `ACTION_LEFT`): **"None"**.
-- **Salida:** cualquier botón cierra la leyenda (`done()`). `Engine` solo la
-  muestra al arranque (después del `Boot`); ya no se repite al volver al menú.
+- **Salida:** cualquier botón cierra la leyenda (`done()`) con su sonido según el
+  botón. `Engine` solo la muestra al arranque (después del `Boot`); ya no se repite
+  al volver al menú.
 
 ---
 
@@ -587,7 +588,7 @@ enum class State : uint8_t {
 | Estado | Ventana | Notas |
 |--------|---------|-------|
 | `BOOT` | `Boot` | Animación de arranque (franjas). Al terminar (`done()`) pasa a `LEGEND`. Cualquier botón la termina. |
-| `LEGEND` | `Legend` | Panel de botones: pad MOVE con 4 flechas + 4 rombos completos de ACTION en las posiciones de un pad que parpadean MUY rápido uno a la vez (ciclo lento) con la función del rombo activo centrada en el pie. Cualquier botón la cierra → menú. Solo se muestra tras el arranque. |
+| `LEGEND` | `Legend` | Panel de botones: pad MOVE con 4 flechas + 4 rombos completos de ACTION en las posiciones de un pad que parpadean MUY rápido uno a la vez (ciclo lento) con la función del rombo activo centrada en el pie. Cualquier botón la cierra → menú (suena el efecto según el botón —CLICK/BACK/CONFIRM—; `Engine` no añade `SFX_BACK`). Solo se muestra tras el arranque. |
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
 | `NUEVO`, `CONTINUAR`, `DIFICULTAD` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. Al salir (`done()`) suena `SFX_BACK` y pasa directo a `MENU`. |
 | `SONIDO` | `SoundWindow` | Opción "Sound" real: `ACTION_RIGHT` alterna On/Off (`SFX_CONFIRM` al encender), `ACTION_UP` vuelve al menú (`SFX_BACK`). |
@@ -598,7 +599,7 @@ enum class State : uint8_t {
 | Método | Descripción |
 |--------|-------------|
 | `void begin()` | Primera transición: entra al test de píxeles (`changeState(State::BOOT)`). Se llama desde `setup()`. |
-| `void update()` | Lee/actualiza la ventana activa y gestiona las transiciones de estado. Reproduce los efectos del sonido: `SFX_CONFIRM` al confirmar una opción del menú y `SFX_BACK` al volver a `MENU` desde cualquier ventana. |
+| `void update()` | Lee/actualiza la ventana activa y gestiona las transiciones de estado. Reproduce los efectos del sonido: `SFX_CONFIRM` al confirmar una opción del menú y `SFX_BACK` al volver a `MENU` desde cualquier ventana (excepto desde `Legend`, que toca su propio sonido según el botón). |
 | `void print()` | Limpia (`display.clear()`) y dibuja solo la ventana activa. |
 | `void setTopScore(uint8_t)` | Reenvía al menú para conservar el puntaje máximo entre sesiones. |
 
@@ -629,6 +630,8 @@ Toda ventana implementa:
 - Librerías: Adafruit GFX + Adafruit_SSD1306.
 - La demo actual (`Snake_II.ino`) usa `Display`, `Buttons` y el sonido integrado:
   al navegar el menú suena `SFX_CLICK`, al confirmar `SFX_CONFIRM`, al volver al
-  menú `SFX_BACK`, y la opción "Sound" alterna On/Off en `SoundWindow`. Los
-  efectos del juego (comer, GO, game over) quedan para la lógica de la serpiente.
+  menú `SFX_BACK`, la `Legend` suena según el botón pulsado (MOVE = CLICK,
+  ACTION_UP = BACK, ACTION_RIGHT = CONFIRM) y la opción "Sound" alterna On/Off en
+  `SoundWindow`. Los efectos del juego (comer, GO, game over) quedan para la lógica
+  de la serpiente.
 - Con SDA=8 y SCL=9, dirección 0x3C.

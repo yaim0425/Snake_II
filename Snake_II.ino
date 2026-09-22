@@ -57,7 +57,7 @@ Boot boot(display, buttons);
 Menu menu(display, buttons, sound, 0, "v0.1");
 Credits credits(display, buttons);
 InfoWindow info(display, buttons);
-Legend legend(display, buttons);
+Legend legend(display, buttons, sound);
 
 // Despachador: recibe las ventanas y decide cuál se ve según su estado.
 Engine engine(display, buttons, boot, menu, credits, info, legend,

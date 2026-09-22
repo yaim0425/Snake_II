@@ -96,7 +96,7 @@ void Engine::update() {
 
       _legend.update();
       if (_legend.done()) {
-        _sound.play(Sound::SFX_BACK);
+        // La Legend ya reprodujo el sonido según el botón presionado
         changeState(State::MENU);
       }
       break;
