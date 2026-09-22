@@ -104,7 +104,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit y rombos de posición). Completa. |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral y `SFX_CLICK` al navegar, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad). Completa. |
-| `SoundWindow.h` / `SoundWindow.cpp` | Clase `SoundWindow` (opción "Sound" del menú: **On/Off lado a lado**, el activo resaltado, vía `Sound::setEnabled`; `ACTION_RIGHT` alterna, `ACTION_UP` vuelve al menú). Completa. |
+| `SoundWindow.h` / `SoundWindow.cpp` | Clase `SoundWindow` (opción "Sound" del menú: **On/Off lado a lado comportándose como las opciones del Menú** —`MOVE_LEFT`/`MOVE_RIGHT` mueven la selección resaltada, `ACTION_RIGHT` aplica—; `ACTION_UP` vuelve al menú). Completa. |
 | `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas**: las recibe por referencia y su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Todos los `begin()` se lanzan desde `setup()`. Completa. |
 | `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`InfoWindow` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` llama `engine.update()` y `engine.print()`. |
 | `Snake_II_juego_backup.txt` | Respaldo del código del juego (Snake_II.ino original). |
@@ -519,9 +519,10 @@ En `Snake_II.ino`: `Buzzer buzzer;` y `Sound sound(buzzer);` (instancias únicas
 ## 10.3 Clase `SoundWindow` — API (opción "Sound")
 
 Ubicación: `SoundWindow.h` / `SoundWindow.cpp`. Ventana de la opción "Sound" del
-menú: alterna el sonido del juego On/Off. El estado lo conserva `Sound`
-(`setEnabled`/`enabled`), que está deshabilitado mientras hay un efecto en curso (al
-apagar corta el sonido).
+menú: **"On" y "Off" se comportan como las opciones del Menú** —se navega con
+`MOVE_LEFT`/`MOVE_RIGHT` (la opción seleccionada va resaltada) y `ACTION_RIGHT`
+aplica la opción seleccionada al sonido. El estado lo conserva `Sound`
+(`setEnabled`/`enabled`).
 
 ### Constructor
 
@@ -533,9 +534,9 @@ SoundWindow(Display& display, Buttons& buttons, Sound& sound);
 
 | Método | Descripción |
 |--------|-------------|
-| `void begin()` | Reinicia el flag de salida. |
-| `void update()` | Lee botones: `ACTION_RIGHT` alterna On/Off (reproduce `SFX_CONFIRM` al encender, para comprobar el audio); `ACTION_UP` pone `done() = true`. |
-| `void print()` | Título "Sound" en el Header (como el menú) y las opciones **"On" y "Off" lado a lado** (par centrado en el Body, separación fija): el estado activo va **resaltado** (cuadro blanco + texto negro) y el otro texto plano. |
+| `void begin()` | Reinicia el flag de salida y fija la selección inicial según el estado actual de `Sound` (0 = On, 1 = Off). |
+| `void update()` | Lee botones y navega **como el menú**: `MOVE_LEFT`/`MOVE_RIGHT` cambian la selección (`SFX_CLICK`, primera/última no conectadas); `ACTION_RIGHT` aplica la opción seleccionada (`SFX_CONFIRM` cuando queda encendido, para comprobar el audio); `ACTION_UP` pone `done() = true`. |
+| `void print()` | Título "Sound" en el Header (como el menú) y **"On" y "Off" lado a lado** (par centrado en el Body, separación fija): la opción **seleccionada** va resaltada (cuadro blanco + texto negro) y la otra texto plano. |
 | `bool done()` | `true` cuando se pidió volver al menú. |
 
 ---
@@ -631,7 +632,8 @@ Toda ventana implementa:
 - La demo actual (`Snake_II.ino`) usa `Display`, `Buttons` y el sonido integrado:
   al navegar el menú y los créditos suena `SFX_CLICK`, al confirmar `SFX_CONFIRM`,
   al volver al menú `SFX_BACK`, la `Legend` suena según el botón pulsado (MOVE =
-  CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM) y la opción "Sound" alterna
-  On/Off lado a lado en `SoundWindow`. Los efectos del juego (comer, GO, game over)
-  quedan para la lógica de la serpiente.
+  CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM) y en la opción "Sound" las
+  opciones **On/Off se navegan como el menú** (`MOVE_LEFT`/`MOVE_RIGHT` mueven la
+  selección resaltada, `ACTION_RIGHT` la aplica). Los efectos del juego (comer, GO,
+  game over) quedan para la lógica de la serpiente.
 - Con SDA=8 y SCL=9, dirección 0x3C.

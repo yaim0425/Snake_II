@@ -8,11 +8,13 @@
 // ========================================================
 // SoundWindow — opción "Sound" del menú
 //
-// Activa/desactiva el sonido del juego:
-//   - ACTION_RIGHT: alterna On/Off (suena el confirm si se
-//     enciende, para comprobar que hay audio).
+// "On" y "Off" se comportan como las opciones del Menú:
+//   - MOVE_LEFT / MOVE_RIGHT: cambian la selección (con SFX_CLICK,
+//     primera/última no conectadas, sin ciclo).
+//   - ACTION_RIGHT: aplica la opción seleccionada al sonido
+//     (SFX_CONFIRM al encender, para comprobar que hay audio).
 //   - ACTION_UP: vuelve al menú.
-// El estado lo conserva la clase Sound (compartida).
+// La selección inicial refleja el estado actual de Sound.
 // ========================================================
 
 class SoundWindow {
@@ -55,6 +57,7 @@ private:
   Sound& _sound;
 
   bool _exit;
+  uint8_t _selected;  // 0 = On, 1 = Off (opción resaltada, como el menú)
 };
 
 #endif

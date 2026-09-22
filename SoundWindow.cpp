@@ -8,18 +8,20 @@ SoundWindow::SoundWindow(Display& display, Buttons& buttons, Sound& sound)
   : _display(display),
     _buttons(buttons),
     _sound(sound),
-    _exit(false) {}
+    _exit(false),
+    _selected(0) {}
 
 // ========================================================
-// Inicialización
+// Inicialización (al entrar, la selección refleja el estado)
 // ========================================================
 
 void SoundWindow::begin() {
   _exit = false;
+  _selected = _sound.enabled() ? 0 : 1;  // 0 = On, 1 = Off
 }
 
 // ========================================================
-// Actualizar (lee botones)
+// Actualizar (lee botones y navega como el menú)
 // ========================================================
 
 void SoundWindow::update() {
@@ -31,13 +33,25 @@ void SoundWindow::update() {
     return;
   }
 
-  // Alternar sonido On/Off (ACTION_RIGHT)
-  if (_buttons.actionRightPressed()) {
-    bool wasOn = _sound.enabled();
-    _sound.setEnabled(!wasOn);
+  // Navegar como el menú: MOVE_LEFT/MOVE_RIGHT cambian la selección
+  // (primera y última no conectadas, sin ciclo)
+  if (_buttons.pressed(Buttons::MOVE_LEFT) && _selected > 0) {
+    _selected--;
+    _sound.play(Sound::SFX_CLICK);
+  }
 
-    // Al encender se oye una confirmación (comprueba que hay audio)
-    if (!wasOn) _sound.play(Sound::SFX_CONFIRM);
+  if (_buttons.pressed(Buttons::MOVE_RIGHT) && _selected < 1) {
+    _selected++;
+    _sound.play(Sound::SFX_CLICK);
+  }
+
+  // Confirmar la opción seleccionada (ACTION_RIGHT, como el menú)
+  if (_buttons.actionRightPressed()) {
+    _sound.setEnabled(_selected == 0);
+
+    // Al dejar el sonido encendido se oye la confirmación
+    // (comprueba que hay audio)
+    if (_selected == 0) _sound.play(Sound::SFX_CONFIRM);
   }
 }
 
@@ -51,11 +65,11 @@ void SoundWindow::print() {
   _display.screen().fillRect(0, 0, _display.getWidth(), 16, SSD1306_BLACK);
   _display.drawTextAligned("Sound", CENTER, TEXT_12x16, REGION_HEADER);
 
-  // On / Off lado a lado, centrados en el Body: el estado activo va
-  // resaltado (cuadro blanco + texto negro) y el otro texto plano.
-  // El cuadro del resaltado centra el texto (+2*size px por lado en X
-  // y +1 arriba/abajo en Y), por eso las posiciones se calculan desde
-  // el centro de cada opción.
+  // On / Off lado a lado, centrados en el Body: la opción seleccionada
+  // (como en el menú) va resaltada (cuadro blanco + texto negro) y la
+  // otra texto plano. El cuadro del resaltado centra el texto (+2*size px
+  // por lado en X y +1 arriba/abajo en Y), por eso las posiciones se
+  // calculan desde el centro de cada opción.
   const uint8_t size = TEXT_12x16;
   const int16_t half = (int16_t)(_display.getWidth() / 2);
 
@@ -71,7 +85,8 @@ void SoundWindow::print() {
   const int16_t y = (int16_t)(16 + ((_display.getHeight() - 16) -
                                     _display.getTextHeight(size)) / 2);
 
-  if (_sound.enabled()) {
+  // La opción seleccionada (como el menú) va resaltada; la otra plana
+  if (_selected == 0) {
     _display.drawHighlight("On", onX, y, size);
     _display.drawText("Off", offX, y, size);
   } else {
