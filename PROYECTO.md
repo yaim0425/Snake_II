@@ -102,8 +102,9 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
 | `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: Back/Pause, Select, None, None; cualquier botón la cierra con un sonido según el botón pulsado: MOVE = CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM). Completa. |
-| `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit y rombos de posición). Completa. |
-| `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral y `SFX_CLICK` al navegar, vuelve al menú con `ACTION_UP`). Completa. |
+| `Scroller.h` / `Scroller.cpp` | Clase `Scroller` (scroller de 1 bit compartido: compone una tira 128x16 y desliza lateralmente N bandas sincronizadas con el mismo desplazamiento; cada banda tiene su canvas persistente y sus colores de frente/fondo; usada por `Menu` con 1 banda y por `Credits` con 2). Completa. |
+| `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit —1 banda del `Scroller` compartido— y rombos de posición). Completa. |
+| `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral —2 bandas sincronizadas del `Scroller` compartido— y `SFX_CLICK` al navegar, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar, Dificultad). Completa. |
 | `SoundWindow.h` / `SoundWindow.cpp` | Clase `SoundWindow` (opción "Sound" del menú: **"On" y "Off" se muestran y animan igual que las opciones del Menú principal** —submenú `Menu` embebido: cuadro deslizante con scroller de 1 bit y rombos de posición, navegación con `MOVE_LEFT`/`MOVE_RIGHT`, `ACTION_RIGHT` aplica—; `ACTION_UP` vuelve al menú). Completa. |
 | `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas**: las recibe por referencia y su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Todos los `begin()` se lanzan desde `setup()`. Completa. |
@@ -340,15 +341,17 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
   en la `45`: quedan **2 filas libres** (`44..43`) sobre el rombo y el cuadro
   arranca en la **fila 3** desde la punta (`42`) hacia arriba. **No se mueve**;
   el tamaño del texto (tamaño 2) tampoco cambia.
-- **Animación (scroller de 1 bit):** cada opción se compone **antes** de
-  mostrarse en una **matriz de 128×16 de 1 bit** (`_strip[16][16]`, `1` = glifo
-  negro, `0` = espacio blanco) **centrada**, mediante el canvas auxiliar
-  `_composer` (128×16) que dibuja el texto (`loadOption`). La **banda del
-  cuadro** es un **canvas persistente** (`_chipBox`, 128×16): conserva lo que
-  está en pantalla entre frames, así la opción anterior **se mantiene hasta ser
-  borrada** por la nueva (`slideStrip` sobrescribe columna a columna la banda
-  con la tira entrante, incluidos sus espacios blancos; `blitBand` la vuelca a
-  la pantalla). Al navegar con `MOVE_RIGHT` la tira entra por la **derecha** (se
+- **Animación (scroller de 1 bit):** en la clase compartida **`Scroller`** (ver
+  sección 14, "Clase `Scroller`"), que `Menu` instancia con **1 banda** (rol único
+  128×16, texto 12x16) y `Credits` con **2 bandas sincronizadas**. Cada opción se
+  compone **antes** de mostrarse en una **matriz de 128×16 de 1 bit**
+  (`_strip[16][16]`, `1` = glifo, `0` = fondo) **centrada**, mediante el canvas
+  auxiliar `_composer` (128×16) que dibuja el texto (`compose`). La **banda del
+  cuadro** es un **canvas persistente** (`_chipBox[band]`, 128×alto): conserva lo
+  que está en pantalla entre frames, así la opción anterior **se mantiene hasta
+  ser borrada** por la nueva (`slideStrip` sobrescribe columna a columna la banda
+  con la tira entrante, incluidos sus fondos; `blit` la vuelca a la pantalla con
+  sus colores). Al navegar con `MOVE_RIGHT` la tira entra por la **derecha** (se
   mueve a la izquierda); con `MOVE_LEFT` por la **izquierda**. Arranca **fuera
   de pantalla** y avanza **una columna por cada `ANIM_TICK` ms** (`animate`,
   acumulado por tiempo; vuelo total ≈ `128 × 4 ms ≈ 0,5 s`). Si se navega a
@@ -623,7 +626,7 @@ enum class State : uint8_t {
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
 | `NUEVO`, `CONTINUAR`, `DIFICULTAD` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. Al salir (`done()`) suena `SFX_BACK` y pasa directo a `MENU`. |
 | `SONIDO` | `SoundWindow` | Opción "Sound" real: `ACTION_RIGHT` alterna On/Off (`SFX_CONFIRM` al encender), `ACTION_UP` vuelve al menú (`SFX_BACK`). |
-| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo scroller de 1 bit que el menú** con **dos bandas sincronizadas**: rol (128×16) y nombre (128×8) se componen por separado (`loadEntry`, canvas `_composer` 128×16 → matriz `_strip[16][16]`) y deslizan a la vez con el **mismo `_slideX`** (aparecen al mismo tiempo). Cada banda es un **canvas persistente** (`_chipBoxRole`/`_chipBoxName`) que la tira sobrescribe **columna a columna** con sus espacios de fondo, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). La animación **arranca desde el borde**: `startSlide` pone `_slideX = ±ancho` (fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (`ANIM_TICK = 4`, como el menú, ≈0,5 s y constante aunque el loop sea lento). Al navegar suena `SFX_CLICK` y al salir (`done()`) suena `SFX_BACK` (lo toca el `Engine`) y pasa directo a `MENU`. |
+| `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo `Scroller` compartido que el menú** pero con **2 bandas sincronizadas** (`BAND_HEIGHTS = {16, 8}` = altos de rol 12x16 y nombre 6x8): rol y nombre se componen por separado en la misma tira (`loadEntry` → `compose`) y deslizan a la vez con el **mismo `_slideX`** interno del `Scroller` (aparecen al mismo tiempo). `drawBand(slot, y, fg, bg)` compone el slot y vuelca su **banda persistente** (`_chipBox[slot]`) con sus colores; la tira la sobrescribe **columna a columna** con sus fondos, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). El deslizamiento **arranca desde el borde** (`startSlide`, fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (igual que el menú, ≈0,5 s). Al navegar suena `SFX_CLICK` y al salir (`done()`) suena `SFX_BACK` (lo toca el `Engine`) y pasa directo a `MENU`. |
 
 ### Métodos
 
@@ -672,3 +675,45 @@ Toda ventana implementa:
   `ACTION_RIGHT` aplica). Los efectos del juego (comer, GO,
   game over) quedan para la lógica de la serpiente.
 - Con SDA=8 y SCL=9, dirección 0x3C.
+
+---
+
+## 14. Clase `Scroller` — API (scroller de 1 bit compartido)
+
+Extraída de la lógica duplicada de `Menu` y `Credits` (tarea 4). Encapsula la
+animación "scroller de 1 bit": compone un texto en una **tira de 128×16 de 1
+bit** y la desliza lateralmente sobre **N bandas sincronizadas** (todas usan el
+**mismo `_slideX`** → aparecen a la vez, mismo offset). Cada banda tiene su
+**canvas persistente** (`GFXcanvas8`), su **alto** (`bandHeights[i]`, por defecto
+`STRIP_H = 16`) y sus **colores** de frente/fondo aplicados al volcar.
+
+- **Constantes:** `STRIP_W = 128` (ancho de pantalla), `STRIP_H = 16` (máx.
+  altura de texto 12x16), `ANIM_TICK = 4` ms por píxel (vuelo ≈ 0,5 s),
+  `CHIP_TEXT = 1` / `CHIP_BG = 255`.
+- **Constructor:** `Scroller(Display& display, uint8_t bands = 1,
+  const uint8_t* bandHeights = nullptr)`. Asigna en heap los arrays de altos y
+  de canvas de banda (**NOTA:** no hay constructor por defecto de `GFXcanvas8`
+  en Adafruit_GFX, y la copia implícita es peligrosa; por eso `_chipBox` es
+  `GFXcanvas8**`). `~Scroller()` libera los canvas y los arrays. La lista de
+  inicialización respeta el **orden de declaración** (regla de la tarea 3).
+- **API:**
+  - `begin()` — reposiciona el deslizamiento (objetivo 0, sin borrar bandas).
+  - `compose(const char* text, uint8_t size)` — dibuja el texto centrado en la
+    tira (canvas auxiliar `_composer` 128×16 → matriz `_strip[16][16]`).
+  - `startSlide(int8_t dir)` — `+1` entra por la derecha, `-1` por la izquierda;
+    arranca desde el borde (`_slideX = ±ancho`).
+  - `animate()` — avanza 1 px por `ANIM_TICK` ms (acumulador por tiempo, llama a
+    `slideStrip` según `_slideX`); a llamar en `update()`.
+  - `blit(uint8_t band, int16_t y, uint16_t fgColor, uint16_t bgColor)` —
+    sobrescribe la banda persistente con la tira entrante (columna a columna,
+    fondos incluidos) y la vuelca a la pantalla en la fila `y`, con `fgColor`
+    para los glifos y `bgColor` para el fondo. A llamar en `print()`.
+- **Usos:** `Menu` = 1 banda (16 px, `blit(0, TEXT_SEL_TOP, NEGRO, BLANCO)`);
+  `Credits` = 2 bandas (`BAND_HEIGHTS = {16, 8}`, rol 12x16 / nombre 6x8, cada
+  `drawBand(slot, y, fg, bg)` compone y vuelca su banda).
+- **Detalle de diseño:** `compose` usa `_display.getTextWidth()` (ya no se
+  duplica la lógica de centrado); `blit` recibe el índice de banda y los
+  colores (el sketch original pedía `blit(Display&, int16_t y, uint8_t h)` pero
+  hacía falta la banda y los colores). `Boot` conserva su propia animación
+  (`ANIM_TICK = 30`, bandas **completas** que avanzan solas por borde) — **no**
+  usa `Scroller`.

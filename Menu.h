@@ -4,7 +4,7 @@
 #include "Display.h"
 #include "Buttons.h"
 #include "Sound.h"
-#include <Adafruit_GFX.h>
+#include "Scroller.h"
 
 class Menu {
 public:
@@ -103,13 +103,6 @@ private:
   // Posición del texto del cuadro (1 px dentro, centrado verticalmente)
   static constexpr int16_t TEXT_SEL_TOP = 26;
 
-  // Animación (scroller de 1 bit): la tira completa (128 px de matriz) se
-  // desliza UNA columna por cada ANIM_TICK ms (acumulado por tiempo, la
-  // velocidad no depende de la velocidad del loop). Vuelo total ~128*ANIM_TICK
-  static constexpr uint8_t  STRIP_W    = 128;  // columnas de la tira (= ancho de pantalla)
-  static constexpr uint8_t  STRIP_H    = 16;   // filas de la tira (= alto del texto 12x16)
-  static constexpr uint32_t ANIM_TICK  = 4;    // ms por columna de desplazamiento (~0,5 s total)
-
   // Rombos de posición: banda 45..53, apoyada en la línea separadora 54 del pie.
   static constexpr int16_t DIA_TOP  = 45;  // punta superior del rombo (rombo simétrico 45..53)
   static constexpr uint8_t DIA_SIZE = 8;   // rombo: punta 45, hombros 49, punta inferior 53
@@ -128,12 +121,6 @@ private:
   // ========================================================
 
   void navigate();
-  void startSlide(int8_t dir);
-  void animate();
-  void loadOption(int8_t index);               // compone la opción centrada en la matriz de 1 bit
-  void slideStrip();                           // pinta las columnas visibles de la tira sobre la banda
-  void blitBand();                             // vuelca la banda persistente al cuadro de la pantalla
-  int16_t textCenterX(const char* text) const;
   void drawDiamonds();
 
   // ========================================================
@@ -158,15 +145,9 @@ private:
   const char* const* _optionTexts;
 
   int8_t _selected;   // opción actual (objetivo central)
-  int8_t _dir;        // +1 siguiente (entra por la derecha), -1 anterior (izquierda)
-  int16_t _slideX;    // borde izquierdo de la tira en pantalla (objetivo 0 = centrada)
-  uint32_t _colAcc;   // acumulador de tiempo para avanzar columnas
-  uint32_t _animLast;
-  uint32_t _holdStart;
+  uint32_t _holdStart;  // momento de la última selección (parpadeo del rombo)
 
-  uint8_t _strip[STRIP_H][STRIP_W / 8];  // matriz 128x16 de 1 bit de la opción entrante
-  GFXcanvas8 _chipBox;                   // banda persistente (128x16): lo que está en pantalla
-  GFXcanvas8 _composer;                  // canvas auxiliar (128x16) para cargar la opción
+  Scroller _scroller;   // scroller de 1 bit del cuadro de selección (1 banda, texto 12x16)
 };
 
 #endif
