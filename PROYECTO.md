@@ -194,7 +194,8 @@ y con cualquier tamaño (`TEXT_6x8`, `TEXT_12x16`, `TEXT_18x24`).
 | `uint8_t getWidth()` / `getHeight()` | Ancho/alto en píxeles (128/64). |
 | `uint8_t getCellSize()` | Píxeles por celda (8). |
 | `uint8_t getColumns()` / `getRows()` | Columnas (16) / filas (8) de la rejilla. |
-| `Adafruit_SSD1306& screen()` | Acceso directo al objeto OLED. |
+| `Adafruit_SSD1306& screen()` | Acceso directo al objeto OLED. **Referencia segura (no-opcional):** si `begin()` falló devuelve un OLED "mudo" en RAM (inicializado la primera vez) en lugar de desreferenciar `nullptr`; comprobar `isReady()` para saber si hay pantalla real. Precondición: `begin()` ya se llamó. |
+| `bool isReady()` | `true` si la pantalla quedó operativa (el OLED respondió en `begin()`); `false` si la inicialización falló (pantalla ausente o sin respuesta por I2C). Tras un fallo, `screen()` sigue devolviendo una referencia válida (fallback en memoria) y el resto de métodos (`clear`, `show`, `drawText`, etc.) no hacen nada. |
 
 ### 5.5 Renderizado de texto y resaltado
 

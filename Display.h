@@ -111,7 +111,15 @@ public:
   // Acceso al OLED
   // ========================================================
 
+  // Devuelve el objeto OLED. Precondición: begin() ya se llamó.
+  // Si begin() falló, devuelve un fallback seguro (OLED "mudo"
+  // en RAM) en lugar de desreferenciar nullptr; comprobar isReady()
+  // para saber si hay pantalla real.
   Adafruit_SSD1306& screen();
+
+  // true si la pantalla quedó operativa (el OLED respondió en begin());
+  // false si la inicialización falló (pantalla ausente por I2C)
+  bool isReady() const;
 
 private:
   Adafruit_SSD1306* _screen;

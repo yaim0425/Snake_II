@@ -218,8 +218,33 @@ uint8_t Display::getRows() const {
 
 // ========================================================
 // Acceso al objeto Adafruit_SSD1306
+//
+// Precondición: display.begin() se llamó antes (construye y pone
+// en funcionamiento el objeto OLED).
+//
+// Si begin() falló (pantalla ausente/no responde por I2C) _screen
+// es nullptr y no debe desreferenciarse: se devuelve un fallback
+// seguro —un OLED "mudo" en RAM, inicializado la primera vez para
+// reservar su buffer—, así ningún dibujo posterior genera
+// comportamiento indefinido. isReady() indica si hay pantalla real.
 // ========================================================
 
 Adafruit_SSD1306& Display::screen() {
-  return *_screen;
+  if (_screen != nullptr) return *_screen;
+
+  static Adafruit_SSD1306 dummy(_width, _height, &Wire);
+  static bool dummyReady = false;
+  if (!dummyReady) {
+    dummy.begin(SSD1306_SWITCHCAPVCC, _address);  // reserva su buffer en RAM
+    dummyReady = true;
+  }
+  return dummy;
+}
+
+// ========================================================
+// ¿La pantalla quedó operativa? (false si begin() falló)
+// ========================================================
+
+bool Display::isReady() const {
+  return _screen != nullptr;
 }
