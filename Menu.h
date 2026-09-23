@@ -146,7 +146,9 @@ private:
   // límite se oculta: en 1 no hay flecha izquierda (-1 no existe); en 25 no
   // hay derecha (+1 no existe). MOVE_LEFT -1, MOVE_RIGHT +1, con repetición
   // al mantener presionado: el primer cambio es inmediato y tras
-  // HOLD_REPEAT_DELAY ms repele cada HOLD_REPEAT_TICK ms.
+  // HOLD_REPEAT_DELAY ms repele cada HOLD_REPEAT_TICK ms. Al mantener un
+  // botón el parpadeo se detiene: solo la flecha del botón activo queda fija
+  // y la contraria se oculta (señal visual de la repetición continua).
   static constexpr uint8_t  DIFICULTAD_MIN     = 1;
   static constexpr uint8_t  DIFICULTAD_MAX     = 25;
   static constexpr uint8_t  DIFICULTAD_DEFAULT = 13;

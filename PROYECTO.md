@@ -111,7 +111,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
 | `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: Back/Pause, Select, None, None; cualquier botón la cierra con un sonido según el botón pulsado: MOVE = CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM). Completa. |
 | `Scroller.h` / `Scroller.cpp` | Clase `Scroller` (scroller de 1 bit compartido: compone una tira 128x16 y desliza lateralmente N bandas sincronizadas con el mismo desplazamiento; cada banda tiene su canvas persistente y sus colores de frente/fondo; usada por `Menu` con 1 banda y por `Credits` con 2). Completa. |
-| `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit —1 banda del `Scroller` compartido— y rombos de posición). Completa. **Incluye la edición inline de la opción "Sound"** (selector On/Off en la banda de los rombos) **y de la opción "Dificultad"** (selector `< N >`, nivel 1..25, con repetición al mantener presionado). |
+| `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit —1 banda del `Scroller` compartido— y rombos de posición). Completa. **Incluye la edición inline de la opción "Sound"** (selector On/Off en la banda de los rombos) **y de la opción "Dificultad"** (selector `< N >`, nivel 1..25, con repetición al mantener presionado; al mantener, solo queda fija la flecha del botón activo). |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral —2 bandas sincronizadas del `Scroller` compartido— y `SFX_CLICK` al navegar, vuelve al menú con `ACTION_UP`). Completa. |
 | `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar). Completa. |
 | `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas**: las recibe por referencia y su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Todos los `begin()` se lanzan desde `setup()`. Completa. |
@@ -370,7 +370,10 @@ modo de edición inline, igual que "Sound" (ya no se abre `InfoWindow`).
   juntas** a los lados del texto (`"< 13 >"`), visible 75% / oculto 25% de
   `ARROW_BLINK_PERIOD = 500` ms; el número no parpadea. En el **límite** la
   flecha de ese lado se oculta: en `1` no hay flecha izquierda (-1 no existe) y
-  en `25` no hay derecha (+1 no existe).
+  en `25` no hay derecha (+1 no existe). **Al mantener presionado**
+  `MOVE_LEFT`/`MOVE_RIGHT` (paso continuo) el parpadeo se **detiene**: solo la
+  flecha del botón activo queda **fija** y la contraria se oculta (señal visual
+  de la repetición).
 - `MOVE_RIGHT` = **+1**, `MOVE_LEFT` = **-1** (clamp entre `DIFICULTAD_MIN = 1`
   y `DIFICULTAD_MAX = 25`, cada paso toca `SFX_CLICK`). **Repetición al
   mantener presionado:** el primer paso es inmediato (`pressed`) y, manteniendo
@@ -738,7 +741,9 @@ Toda ventana implementa:
   aplica y `ACTION_UP` cancela). En la opción "Dificultad" el **nivel 1..25
   también se edita inline** (selector `< N >` con dos flechas parpadeantes que se
   ocultan en los límites; `MOVE_RIGHT` +1, `MOVE_LEFT` -1 con repetición al
-  mantener presionado, `ACTION_RIGHT` lo aplica y `ACTION_UP` cancela). Los
+  mantener presionado —al mantener, el parpadeo se detiene y solo queda fija la
+  flecha del botón activo, la contraria se oculta—, `ACTION_RIGHT` lo aplica y
+  `ACTION_UP` cancela). Los
   efectos del juego (comer, GO,
   game over) quedan para la lógica de la serpiente.
 - Con SDA=8 y SCL=9, dirección 0x3C.
@@ -767,7 +772,7 @@ llama a `display.clear()`, lo decide cada ventana.
    | Ventana | Estáticos (una vez) | Dinámicos por frame |
    |---------|---------------------|---------------------|
    | `Boot` | — (primer frame: clear completo) | Franjas: se borran **solo las columnas que cada franja deja de ocupar** (las coincidentes se mantienen) y se dibujan las nuevas; si no cambió el desplazamiento no se dibuja nada. |
-   | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite) |
+   | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria) |
    | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas) |
    | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
    | `InfoWindow` | Todo (dibuja una sola vez) | — |

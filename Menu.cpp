@@ -346,6 +346,10 @@ void Menu::drawSoundSelector() {
 // Las flechas parpadean juntas (visible 75%, oculto 25% de
 // ARROW_BLINK_PERIOD ms), pegadas al texto (hueco ARROW_GAP);
 // el número no parpadea. Ocupa la banda 45..53.
+//
+// Al mantener presionado MOVE_LEFT o MOVE_RIGHT el paso se vuelve
+// continuo y el dibujo lo refleja: se detiene el parpadeo, solo la
+// flecha del botón activo queda fija y la contraria se oculta.
 // ========================================================
 
 void Menu::drawDifficultySelector() {
@@ -363,20 +367,30 @@ void Menu::drawDifficultySelector() {
   const int16_t yMid = DIA_TOP + DIA_SIZE / 2; // 49
   const int16_t yBot = DIA_TOP + DIA_SIZE;     // 53
 
-  // Parpadeo de las flechas: visible el 75% del período, ocultas el primer 25%
+  // Al mantener presionado MOVE_LEFT (-1) o MOVE_RIGHT (+1) la repetición
+  // continua queda marcada en pantalla: el parpadeo se detiene y SOLO la
+  // flecha del botón activo se muestra (fija); la contraria se oculta.
+  // Sin mantener, las dos flechas parpadean juntas (visible 75%, oculto
+  // 25% de ARROW_BLINK_PERIOD ms) como siempre.
+  bool leftHeld  = _buttons.state(Buttons::MOVE_LEFT);
+  bool rightHeld = _buttons.state(Buttons::MOVE_RIGHT);
+
   bool arrowsVisible =
+      leftHeld || rightHeld ||
       (millis() % ARROW_BLINK_PERIOD) >=
-      (uint32_t)ARROW_BLINK_PERIOD * ARROW_BLINK_OFF_PCT / 100;
+          (uint32_t)ARROW_BLINK_PERIOD * ARROW_BLINK_OFF_PCT / 100;
 
   if (arrowsVisible) {
-    // Flecha izquierda (-1), solo si se puede restar
-    if (_editDifficulty > DIFICULTAD_MIN) {
+    // Flecha izquierda (-1): fija al mantener MOVE_LEFT; oculta mientras se
+    // mantiene MOVE_RIGHT; sin mantener parpadea. No se dibuja en el mínimo.
+    if (_editDifficulty > DIFICULTAD_MIN && !rightHeld) {
       int16_t base = labelX - ARROW_GAP;  // lado plano, pegado al texto
       s.fillTriangle(base - ARROW_W, yMid, base, yTop, base, yBot,
                      SSD1306_WHITE);
     }
-    // Flecha derecha (+1), solo si se puede sumar
-    if (_editDifficulty < DIFICULTAD_MAX) {
+    // Flecha derecha (+1): fija al mantener MOVE_RIGHT; oculta mientras se
+    // mantiene MOVE_LEFT; sin mantener parpadea. No se dibuja en el máximo.
+    if (_editDifficulty < DIFICULTAD_MAX && !leftHeld) {
       int16_t base = labelX + labelW + ARROW_GAP;  // lado plano, pegado al texto
       s.fillTriangle(base + ARROW_W, yMid, base, yTop, base, yBot,
                      SSD1306_WHITE);
