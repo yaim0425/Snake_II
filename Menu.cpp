@@ -464,7 +464,7 @@ void Menu::print() {
                                     SSD1306_WHITE);
     if (_showFooter) {
       char buf[16];
-      sprintf(buf, "Top: %u pts", _topScore);
+      sprintf(buf, "Top: %u", _topScore);
 
       TextPos tPos = _display.getTextPos(buf, LEFT_DOWN, TEXT_6x8, REGION_BODY);
       _display.drawText(buf, tPos.x, PIE_TOP, TEXT_6x8);
