@@ -37,6 +37,9 @@ Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore,
     _selected(OPC_NUEVO),
     _holdStart(0),
     _redraw(true),
+    _editingSound(false),
+    _soundEnabled(true),
+    _redrawSound(false),
     _scroller(display, 1, nullptr) {}
 
 // ========================================================
@@ -45,9 +48,12 @@ Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore,
 
 void Menu::begin() {
   _scroller.begin();
-  _holdStart = millis();
+  _selected = 0;
   _scroller.compose(optionText(_selected), TEXT_12x16);
+  _holdStart = millis();
   _redraw = true;
+  _editingSound = false;
+  _redrawSound = false;
 }
 
 // ========================================================
@@ -85,8 +91,7 @@ void Menu::setShowFooter(bool show) {
 
 // ========================================================
 // Selección inicial (clamp al rango de opciones) y reinicio
-// de la animación. La usa SoundWindow para reflejar el estado
-// del sonido al entrar (0 = On, 1 = Off).
+// de la animación.
 // ========================================================
 
 void Menu::setSelected(int8_t index) {
@@ -98,6 +103,8 @@ void Menu::setSelected(int8_t index) {
   _holdStart = millis();
   _scroller.compose(optionText(_selected), TEXT_12x16);
   _redraw = true;
+  _editingSound = false;
+  _redrawSound = false;
 }
 
 // ========================================================
@@ -105,7 +112,39 @@ void Menu::setSelected(int8_t index) {
 // ========================================================
 
 void Menu::update() {
-  navigate();
+  if (_editingSound) {
+    // En modo edición de sonido: MOVE_LEFT/MOVE_RIGHT cambian el valor
+    // mostrado (On/Off) sin aplicarlo; solo se aplica al confirmar (btn2).
+    if (_buttons.pressed(Buttons::MOVE_LEFT) && _soundEnabled) {
+      _soundEnabled = false;
+      _sound.play(Sound::SFX_CLICK);
+      _redrawSound = true;
+    }
+    if (_buttons.pressed(Buttons::MOVE_RIGHT) && !_soundEnabled) {
+      _soundEnabled = true;
+      _sound.play(Sound::SFX_CLICK);
+      _redrawSound = true;
+    }
+    if (_buttons.actionRightPressed()) {
+      // btn2 (Select): aplica el valor actual y vuelve al menú
+      _sound.setEnabled(_soundEnabled);
+      if (_soundEnabled) _sound.play(Sound::SFX_CONFIRM);
+      endSoundEdit();
+    } else if (_buttons.actionUpPressed()) {
+      // btn1 (Back): cancela sin cambiar el estado y vuelve al menú
+      _sound.play(Sound::SFX_BACK);
+      endSoundEdit();
+    }
+  } else {
+    navigate();
+    // Al confirmar la opción "Sound" (btn2) se entra en modo edición
+    // inline; ya no se abre SoundWindow (ver Engine).
+    if (_buttons.actionRightPressed() && _selected == OPC_SONIDO) {
+      _sound.play(Sound::SFX_CLICK);
+      beginSoundEdit();
+      return;
+    }
+  }
   _scroller.animate();
 }
 
@@ -135,6 +174,54 @@ void Menu::navigate() {
     _holdStart = millis();
     Serial.printf("Menu: opcion %d -> %d\n", before, _selected);
   }
+}
+
+// ========================================================
+// Edición inline de Sonido
+// ========================================================
+
+void Menu::beginSoundEdit() {
+  _editingSound = true;
+  _soundEnabled = _sound.enabled();
+  _redrawSound = true;
+}
+
+void Menu::endSoundEdit() {
+  _editingSound = false;
+  _redrawSound = false;
+  _redraw = true;
+}
+
+bool Menu::isEditingSound() const {
+  return _editingSound;
+}
+
+// ========================================================
+// Selector On/Off (modo edición de sonido)
+//
+// Reemplaza a los rombos de posición mientras se edita el
+// sonido: texto 6x8 centrado (On/Off) con una flecha a cada
+// lado orientada hacia el valor actual y un espacio entre el
+// texto y las flechas. Ocupa la misma banda 45..53.
+// ========================================================
+
+void Menu::drawSoundSelector() {
+  Adafruit_SSD1306& s = _display.screen();
+
+  const int16_t yTop = DIA_TOP + 1;           // 46
+  const int16_t yMid = DIA_TOP + DIA_SIZE / 2; // 49
+  const int16_t yBot = DIA_TOP + DIA_SIZE;     // 53
+
+  // Flecha izquierda: punta orientada al centro (apunta al valor actual)
+  s.fillTriangle(30, yMid, 24, yTop, 24, yBot, SSD1306_WHITE);
+
+  // Flecha derecha: punta orientada al centro (apunta al valor actual)
+  s.fillTriangle(98, yMid, 104, yTop, 104, yBot, SSD1306_WHITE);
+
+  // Valor actual centrado (hay espacio entre el texto y cada flecha)
+  const char* label = (_soundEnabled) ? "On" : "Off";
+  int16_t labelX = (_display.getWidth() - _display.getTextWidth(label, TEXT_6x8)) / 2;
+  _display.drawText(label, labelX, yTop, TEXT_6x8);
 }
 
 // ========================================================
@@ -183,6 +270,7 @@ void Menu::print() {
   // UNA sola vez; ya no se borran ni se redibujan en cada frame.
   if (_redraw) {
     _display.clear();
+    _redrawSound = true;
 
     // Cuadro de selección: fijo, de ancho completo
     _display.screen().fillRect(0, BOX_TOP, _display.getWidth(), BOX_HEIGHT,
@@ -191,8 +279,8 @@ void Menu::print() {
     // Header: título
     _display.drawTextAligned(_title, CENTER, TEXT_12x16, REGION_HEADER);
 
-    // Pie: línea separadora + texto (Top/versión), opcional
-    // (SoundWindow lo oculta: solo deja la línea que sostiene los rombos)
+    // Pie del Body: línea separadora + texto (Top/versión), opcional
+    // (cuando se oculta solo queda la línea que sostiene los rombos)
     _display.screen().drawFastHLine(0, PIE_LINE_ROW, _display.getWidth(),
                                     SSD1306_WHITE);
     if (_showFooter) {
@@ -215,10 +303,21 @@ void Menu::print() {
   // reemplazarla por completo. La opción anterior permanece hasta ser borrada
   _scroller.blit(0, TEXT_SEL_TOP, SSD1306_BLACK, SSD1306_WHITE);
 
-  // Solo se borra la banda de rombos (45..53), la única zona dinámica restante
-  _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),
-                             DIA_SIZE + 1, SSD1306_BLACK);
-  drawDiamonds();
+  if (_editingSound) {
+    // Modo edición de sonido: solo se borra/redibuja la banda del selector
+    // (45..53) cuando cambia el valor (al entrar o al navegar On/Off).
+    if (_redrawSound) {
+      _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),
+                                 DIA_SIZE + 1, SSD1306_BLACK);
+      drawSoundSelector();
+      _redrawSound = false;
+    }
+  } else {
+    // Solo se borra la banda de rombos (45..53), la única zona dinámica restante
+    _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),
+                               DIA_SIZE + 1, SSD1306_BLACK);
+    drawDiamonds();
+  }
 }
 
 // ========================================================
@@ -230,7 +329,10 @@ int8_t Menu::selected() const {
 }
 
 int8_t Menu::confirm() const {
-  if (_buttons.actionRightPressed()) return _selected;
+  // La opción "Sound" NO se devuelve para abrir otra ventana: se edita
+  // inline en el propio menú (ver beginSoundEdit/update). Con lo demás
+  // se confirma como siempre (ACTION_RIGHT).
+  if (_buttons.actionRightPressed() && _selected != OPC_SONIDO) return _selected;
   return -1;
 }
 

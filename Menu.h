@@ -50,7 +50,8 @@ public:
   void setShowFooter(bool show);
 
   // ========================================================
-  // Selección inicial (al entrar en la ventana)
+  // Selección inicial (clamp al rango de opciones) y reinicio
+  // de la animación.
   // ========================================================
 
   void setSelected(int8_t index);
@@ -76,6 +77,14 @@ public:
 
   // Devuelve la opción elegida si se confirma (ACTION_RIGHT), o -1
   int8_t confirm() const;
+
+  // ========================================================
+  // Edición inline de Sonido
+  // ========================================================
+
+  void beginSoundEdit();
+  void endSoundEdit();
+  bool isEditingSound() const;
 
 private:
 
@@ -122,6 +131,7 @@ private:
 
   void navigate();
   void drawDiamonds();
+  void drawSoundSelector();
 
   // ========================================================
   // Dependencias
@@ -139,7 +149,7 @@ private:
   const char* _version;
 
   const char* _title;      // título del Header (default "Snake II")
-  bool _showFooter;        // pie "Top"/versión (default true; SoundWindow lo oculta)
+  bool _showFooter;        // pie "Top"/versión (default true)
 
   uint8_t _optionCount;
   const char* const* _optionTexts;
@@ -147,6 +157,11 @@ private:
   int8_t _selected;   // opción actual (objetivo central)
   uint32_t _holdStart;  // momento de la última selección (parpadeo del rombo)
   bool _redraw;         // primer frame tras begin(): clear() completo + estáticos
+
+  // Edición inline de sonido
+  bool _editingSound;
+  bool _soundEnabled;
+  bool _redrawSound;
 
   Scroller _scroller;   // scroller de 1 bit del cuadro de selección (1 banda, texto 12x16)
 };

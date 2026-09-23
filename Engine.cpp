@@ -6,7 +6,7 @@
 
 Engine::Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
                Credits& credits, InfoWindow& info, Legend& legend,
-               Sound& sound, SoundWindow& soundWindow)
+               Sound& sound)
   : _state(State::BOOT),
     _display(display),
     _buttons(buttons),
@@ -15,8 +15,7 @@ Engine::Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
     _credits(credits),
     _info(info),
     _legend(legend),
-    _sound(sound),
-    _soundWindow(soundWindow) {}
+    _sound(sound) {}
 
 // ========================================================
 // Inicialización (estado inicial: menú). Se llama desde setup().
@@ -53,7 +52,6 @@ void Engine::update() {
           case Menu::OPC_NUEVO:      changeState(State::NUEVO);      break;
           case Menu::OPC_CONTINUAR:  changeState(State::CONTINUAR);  break;
           case Menu::OPC_DIFICULTAD: changeState(State::DIFICULTAD); break;
-          case Menu::OPC_SONIDO:     changeState(State::SONIDO);     break;
           case Menu::OPC_CREDITOS:   changeState(State::CREDITOS);   break;
         }
       }
@@ -66,16 +64,6 @@ void Engine::update() {
 
       _info.update();
       if (_info.done()) {
-        _sound.play(Sound::SFX_BACK);
-        changeState(State::MENU);
-      }
-      break;
-    }
-
-    case State::SONIDO: {
-
-      _soundWindow.update();
-      if (_soundWindow.done()) {
         _sound.play(Sound::SFX_BACK);
         changeState(State::MENU);
       }
@@ -121,7 +109,6 @@ void Engine::print() {
     case State::CONTINUAR:
     case State::DIFICULTAD:
                              _info.print();                                 break;
-    case State::SONIDO:     _soundWindow.print();                          break;
     case State::CREDITOS:   _credits.print();                              break;
     case State::LEGEND:     _legend.print();                               break;
   }
@@ -148,7 +135,6 @@ void Engine::changeState(State newState) {
     case State::NUEVO:      _info.begin("New");                            break;
     case State::CONTINUAR:  _info.begin("Continue");                       break;
     case State::DIFICULTAD: _info.begin("Difficulty");                     break;
-    case State::SONIDO:     _soundWindow.begin();                          break;
     case State::CREDITOS:   _credits.begin();                              break;
     case State::LEGEND:     _legend.begin();                               break;
   }
