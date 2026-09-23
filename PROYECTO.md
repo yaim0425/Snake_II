@@ -70,6 +70,10 @@ Arquitectura:
 La clase `Engine` (despachador de ventanas, antes `App`) está separada del `.ino`
 en `Engine.h` / `Engine.cpp`, y recibe las ventanas **sin anidarlas**.
 
+También se incorporó `SnakeSprites.h` (adaptada al estilo del proyecto, sección
+15): la tabla de sprites de la serpiente del juego original, lista para que la
+lógica del juego la consuma cuando exista.
+
 Fases pendientes: integración de la clase `Display` en el juego, botones/pulsadores
 (`Buttons` ya integrado), buzzer (las clases `Buzzer`/`Sound` están creadas y
 conectadas al menú, a los créditos, a las transiciones del `Engine` y a la ventana
@@ -118,6 +122,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`InfoWindow` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` hace la **única lectura de botones del frame** (`buttons.read()`) y llama `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`. |
 | `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). Completa. |
 | `Sound.h` / `Sound.cpp` | Clase `Sound` (secuencias de los efectos del juego sobre `Buzzer`, con `setEnabled` para silenciar). Completa. |
+| `SnakeSprites.h` | Clase `SnakeSprites` (tabla de sprites de la serpiente, estilo Nokia: cola, cuerpo, curvas, cabeza cerrada/abierta y panza; sprites de 4×4 px). Solo datos (header-only, sin `.cpp`). Adaptada al estilo del proyecto. |
 | `PROYECTO.md` | Este documento. |
 
 Nota: Arduino solo compila el `.ino` del sketch. El respaldo quedó como `.txt`
@@ -840,3 +845,44 @@ bit** y la desliza lateralmente sobre **N bandas sincronizadas** (todas usan el
   hacía falta la banda y los colores). `Boot` conserva su propia animación
   (`ANIM_TICK = 30`, bandas **completas** que avanzan solas por borde) — **no**
   usa `Scroller`.
+
+---
+
+## 15. Clase `SnakeSprites` — API (sprites de la serpiente)
+
+Ubicación: `SnakeSprites.h`. Tabla estática con los sprites de las partes de la
+serpiente (estilo Nokia). Es una clase de **solo datos**: no necesita instancia
+ni archivo `.cpp`; los sprites se leen con `SnakeSprites::SPRITES[Part]`.
+
+```cpp
+static constexpr uint8_t SIZE = 4;          // sprite de 4×4 px
+
+enum Part : uint8_t {
+  TAIL_TO_UP = 0, TAIL_TO_RIGHT, TAIL_TO_DOWN, TAIL_TO_LEFT,   // cola
+  BODY_TO_UP,    BODY_TO_RIGHT,  BODY_TO_DOWN,   BODY_TO_LEFT, // cuerpo
+  CORNER_RIGHT_UP, CORNER_RIGHT_DOWN, CORNER_LEFT_UP, CORNER_LEFT_DOWN, // curvas
+  HEAD_UP_CLOSE, HEAD_RIGHT_CLOSE, HEAD_DOWN_CLOSE, HEAD_LEFT_CLOSE,     // cabeza: fauces cerradas
+  HEAD_UP_OPEN,  HEAD_RIGHT_OPEN,  HEAD_DOWN_OPEN,  HEAD_LEFT_OPEN,      // cabeza: fauces abiertas
+  BELLY_TO_RIGHT, BELLY_TO_LEFT,                  // panza recta (1 sprite por par de direcciones)
+  BELLY_RIGHT_UP, BELLY_RIGHT_DOWN, BELLY_LEFT_UP, BELLY_LEFT_DOWN,      // panza curva
+  EMPTY,
+  COUNT
+};
+```
+
+### Miembros
+
+| Miembro | Contenido |
+|---------|-----------|
+| `SIZE` | Lado del sprite en píxeles (4). |
+| `SPRITES[COUNT][SIZE][SIZE]` | Tabla de sprites de 1 bit (`1` = glifo, `0` = fondo) indexada por `Part`. Rango: 0..3 cola, 4..7 cuerpo, 8..11 curvas, 12..15 cabeza cerrada, 16..19 cabeza abierta, 20..25 panza, 26 `EMPTY`, 27 `COUNT`. |
+| `EMPTY` | Sprite vacío (todo fondo). |
+| `COUNT` | Cantidad de sprites de la tabla. |
+
+La panza recta comparte sprite por par de direcciones: `BELLY_TO_RIGHT` =
+`BELLY_TO_UP` y `BELLY_TO_LEFT` = `BELLY_TO_DOWN`.
+
+`SnakeSprites.h` forma parte del respaldo del juego original adaptado al estilo
+del proyecto (pie `// Fin`, cabecera descriptiva, comentarios de los sprites
+corregidos). Los sprites se usan aún solo como datos: la lógica de la serpiente
+que los consume es una fase pendiente (ver sección 1).
