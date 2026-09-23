@@ -27,7 +27,7 @@ public:
   // Constructor
   // ========================================================
 
-  Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore = 0,
+  Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t bestScore = 0,
        const char* version = "v0.1");
 
   // ========================================================
@@ -73,7 +73,7 @@ public:
   // ========================================================
 
   int8_t selected() const;
-  void setTopScore(uint8_t value);
+  void setBestScore(uint8_t value);
 
   // Devuelve la opción elegida si se confirma (ACTION_RIGHT), o -1
   int8_t confirm() const;
@@ -160,7 +160,7 @@ private:
 
   // Pie del Body: línea separadora y texto (el texto baja 1 px: 56 -> 57)
   static constexpr int16_t PIE_LINE_ROW = 54;  // línea horizontal 1 px, a 2 px sobre el pie
-  static constexpr int16_t PIE_TOP      = 57;  // texto "Top"/versión (antes fila 56)
+  static constexpr int16_t PIE_TOP      = 57;  // texto "Best"/versión (antes fila 56)
 
   // ========================================================
   // Métodos internos
@@ -189,11 +189,11 @@ private:
   // Estado
   // ========================================================
 
-  uint8_t _topScore;
+  uint8_t _bestScore;
   const char* _version;
 
   const char* _title;      // título del Header (default "Snake II")
-  bool _showFooter;        // pie "Top"/versión (default true)
+  bool _showFooter;        // pie "Best"/versión (default true)
 
   uint8_t _optionCount;
   const char* const* _optionTexts;

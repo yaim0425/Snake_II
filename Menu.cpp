@@ -23,12 +23,12 @@ const char* Menu::optionText(int8_t index) const {
 // Constructor
 // ========================================================
 
-Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore,
+Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t bestScore,
            const char* version)
   : _display(display),
     _buttons(buttons),
     _sound(sound),
-    _topScore(topScore),
+    _bestScore(bestScore),
     _version(version),
     _title("Snake II"),
     _showFooter(true),
@@ -446,7 +446,7 @@ void Menu::drawDiamonds() {
 void Menu::print() {
 
   // Estáticos (solo al entrar, tras el clear() completo): fondo, cuadro
-  // de selección, header (título) y pie (línea + Top/versión). Se dibujan
+  // de selección, header (título) y pie (línea + Best/versión). Se dibujan
   // UNA sola vez; ya no se borran ni se redibujan en cada frame.
   if (_redraw) {
     _display.clear();
@@ -464,7 +464,7 @@ void Menu::print() {
                                     SSD1306_WHITE);
     if (_showFooter) {
       char buf[16];
-      sprintf(buf, "Best: %u", _topScore);
+      sprintf(buf, "Best: %u", _bestScore);
 
       TextPos tPos = _display.getTextPos(buf, LEFT_DOWN, TEXT_6x8, REGION_BODY);
       _display.drawText(buf, tPos.x, PIE_TOP, TEXT_6x8);
@@ -520,9 +520,9 @@ int8_t Menu::confirm() const {
   return -1;
 }
 
-void Menu::setTopScore(uint8_t value) {
-  if (value != _topScore) {
-    _topScore = value;
+void Menu::setBestScore(uint8_t value) {
+  if (value != _bestScore) {
+    _bestScore = value;
     _redraw = true;  // el pie cambia: se redibija al volver al menú
   }
 }

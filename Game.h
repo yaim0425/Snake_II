@@ -94,7 +94,7 @@ public:
   // ========================================================
 
   uint8_t score() const;
-  uint8_t topScore() const;
+  uint8_t bestScore() const;
 
 private:
 
@@ -197,7 +197,7 @@ private:
   Seg _food;
   bool _hasFood;
   uint8_t _score;
-  uint8_t _topScore;
+  uint8_t _bestScore;
 };
 
 #endif

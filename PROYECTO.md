@@ -77,7 +77,7 @@ lógica del juego la consuma cuando exista.
 Fases pendientes: la lógica de la serpiente ya está integrada en la ventana
 `Juego` (estados `NUEVO`/`CONTINUAR` del `Engine`): movimiento con wrap,
 sprites del contenido, comida, colisiones, dificultad (velocidad), pausa y
-game over. Queda como mejora opcional conservar el récord (`topScore`) entre
+game over. Queda como mejora opcional conservar el récord (`bestScore`) entre
 reinicios de la placa (p. ej. con EEPROM); hoy el récord vive solo en la sesión.
 
 ---
@@ -321,7 +321,7 @@ Ubicación: `Menu.h` / `Menu.cpp`.
 ### Constructor
 
 ```cpp
-Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore = 0, const char* version = "v0.1");
+Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t bestScore = 0, const char* version = "v0.1");
 ```
 
 ### Métodos
@@ -331,12 +331,12 @@ Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore = 0, con
 | `void begin()` | Restablece el estado de la animación, del parpadeo y del modo de edición de sonido. **No resetea la selección**: conserva la opción elegida antes de salir del menú (las ventanas son hermanas persistentes; al volver al menú se muestra la misma opción que se tenía, no siempre "New"). |
 | `void setOptions(textos, conteo)` | Fija la lista y la cantidad de opciones (1..`MAX_OPTIONS`=8). El menú (textos y rombos) se adapta al conteo. |
 | `void update()` | Lee botones, navega con `MOVE_RIGHT`/`MOVE_LEFT` y anima el deslizamiento lateral; log en Serial al cambiar de opción; toca `SFX_CLICK` al navegar. En las opciones "Sound" y "Dificultad" gestiona el **modo de edición inline** (ver abajo). |
-| `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Top + versión). En modo de edición de sonido dibuja el **selector On/Off** en la banda de los rombos; en modo de edición de dificultad, el **selector `< N >`** (nivel 1..25). |
+| `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Best + versión). En modo de edición de sonido dibuja el **selector On/Off** en la banda de los rombos; en modo de edición de dificultad, el **selector `< N >`** (nivel 1..25). |
 | `int8_t selected()` | Índice de la opción seleccionada. |
 | `int8_t confirm()` | Devuelve la opción seleccionada si se confirma con `ACTION_RIGHT` (pulse recién presionado), o `-1`. **`OPC_SONIDO` y `OPC_DIFICULTAD` nunca se devuelven**: esas opciones se editan inline (ver abajo). Es el "activar opción" del resto del menú. |
-| `void setTopScore(uint8_t)` | Actualiza el puntaje máximo mostrado. |
+| `void setBestScore(uint8_t)` | Actualiza el puntaje máximo mostrado. |
 | `void setTitle(const char*)` | Cambia el título del Header. |
-| `void setShowFooter(bool)` | Ocultar/mostrar el texto del pie ("Top"/versión); la línea de la `54` se dibuja siempre. |
+| `void setShowFooter(bool)` | Ocultar/mostrar el texto del pie ("Best"/versión); la línea de la `54` se dibuja siempre. |
 | `void setSelected(int8_t)` | Fija la selección (clamp al rango) y reinicia la animación (al entrar en la ventana). |
 | `void beginSoundEdit()` | Activa el modo de edición de sonido inline (borra los rombos y dibuja el selector On/Off). |
 | `bool isEditingSound()` | `true` mientras el menú está en el modo de edición de sonido. |
@@ -424,7 +424,7 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
   ni se redibuja por frame.
 - **Pie:** "Best: X" (`LEFT_DOWN`) y versión (`RIGHT_DOWN`) en `TEXT_6x8`,
   **bajado 1 px** (fila 57, `PIE_TOP = 57`). **Estático:** se dibuja una sola vez
-  al entrar (tras el `clear()` completo; se actualiza solo si `setTopScore`
+  al entrar (tras el `clear()` completo; se actualiza solo si `setBestScore`
   cambia). Una **línea horizontal de 1 px** de grosor,
   `drawFastHLine`, en la fila `54` (`PIE_LINE_ROW`), a **2 px sobre el pie**
   (filas libres `55..56` entre la línea y el texto). Las 2 filas sobre el pie
@@ -707,7 +707,7 @@ enum class State : uint8_t {
 | `BOOT` | `Boot` | Animación de arranque (franjas). Al terminar (`done()`) pasa a `LEGEND`. Cualquier botón la termina. |
 | `LEGEND` | `Legend` | Panel de botones: pad MOVE con 4 flechas + 4 rombos completos de ACTION en las posiciones de un pad que parpadean MUY rápido uno a la vez (ciclo lento) con la función del rombo activo centrada en el pie. Cualquier botón la cierra → menú (suena el efecto según el botón —CLICK/BACK/CONFIRM—; `Engine` no añade `SFX_BACK`). Solo se muestra tras el arranque. |
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
-| `NUEVO` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con la cuenta regresiva "GO !" (`SFX_START`). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setTopScore(game.topScore())`) y pasa a `MENU`. |
+| `NUEVO` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con la cuenta regresiva "GO !" (`SFX_START`). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setBestScore(game.bestScore())`) y pasa a `MENU`. |
 | `CONTINUAR` | `Game` | Reanudar la partida anterior (`begin(false)`): queda en pausa y se retoma con `ACTION_RIGHT`/`ACTION_LEFT`; si no hay partida en curso arranca una nueva. Al salir (`done()`) igual que `NUEVO`. |
 | `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo `Scroller` compartido que el menú** pero con **2 bandas sincronizadas** (`BAND_HEIGHTS = {16, 8}` = altos de rol 12x16 y nombre 6x8): rol y nombre se componen por separado en la misma tira (`loadEntry` → `compose`) y deslizan a la vez con el **mismo `_slideX`** interno del `Scroller` (aparecen al mismo tiempo). `drawBand(slot, y, fg, bg)` compone el slot y vuelca su **banda persistente** (`_chipBox[slot]`) con sus colores; la tira la sobrescribe **columna a columna** con sus fondos, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). El deslizamiento **arranca desde el borde** (`startSlide`, fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (igual que el menú, ≈0,5 s). Al navegar suena `SFX_CLICK` y al salir (`done()`) suena `SFX_BACK` (lo toca el `Engine`) y pasa directo a `MENU`. |
 
@@ -720,7 +720,7 @@ enum class State : uint8_t {
 | `void print()` | Despacha el dibujo a la ventana activa. **Ya no limpia la
   pantalla (`display.clear()`)**: cada ventana la usa solo en su primer frame tras
   `begin()` y luego limpia/redibuja solo sus zonas dinámicas (sección 13). |
-| `void setTopScore(uint8_t)` | Reenvía al menú para conservar el puntaje máximo entre sesiones. |
+| `void setBestScore(uint8_t)` | Reenvía al menú para conservar el puntaje máximo entre sesiones. |
 
 ### Patrón de ventana
 
@@ -781,7 +781,7 @@ llama a `display.clear()`, lo decide cada ventana.
    **primer `print()`** después de su `begin()` (flag `_redraw` puesto en
    `begin()` y apagado tras ese primer dibujo). Ese primer clear elimina la resaca
    de la ventana anterior y deja el fondo listo. Los métodos que reinician la
-   animación (`Menu::begin/setOptions/setSelected`, `setTopScore` si cambia)
+   animación (`Menu::begin/setOptions/setSelected`, `setBestScore` si cambia)
    también activan ese flag.
 2. **Estáticos una sola vez:** títulos, pies, línea separadora, cuadro de
    selección, rótulos y pads se dibujan en ese primer frame y **ya no se vuelven a
@@ -917,12 +917,12 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 
 | Método | Descripción |
 |--------|-------------|
-| `void begin(bool newGame)` | `true` = nueva partida (reinicia todo y arranca la cuenta regresiva). `false` = reanudar la partida anterior en pausa; si no hay partida en curso arranca una nueva. Conserva el récord (`_topScore`) entre partidas. |
+| `void begin(bool newGame)` | `true` = nueva partida (reinicia todo y arranca la cuenta regresiva). `false` = reanudar la partida anterior en pausa; si no hay partida en curso arranca una nueva. Conserva el récord (`_bestScore`) entre partidas. |
 | `void setDifficulty(uint8_t level)` | Nivel 1..25 (clamp). Se aplica a la velocidad cuando ARRANCA una partida (no a las reanudadas). |
 | `void update()` | Estado `START`: pre-gira con MOVE, entra a `PLAY` con `ACTION_RIGHT` o al agotarse `GO_MS`. `PLAY`: gira con MOVE (sin reversa directa) y avanza un paso cada `_moveDelay` ms. `PAUSE`: reanuda con `ACTION_RIGHT`/`ACTION_LEFT`. `GAME_OVER`: cualquier ACTION vuelve al menú. `ACTION_UP` (común "volver al menú") sale en cualquier estado menos `GAME_OVER`. |
 | `void print()` | Renderizado por zonas (ver sección 13). |
 | `bool done()` | `true` al pedir volver al menú. |
-| `uint8_t score()` / `topScore()` | Puntaje actual / récord. El `Engine` sincroniza `topScore()` con el menú al salir. |
+| `uint8_t score()` / `bestScore()` | Puntaje actual / récord. El `Engine` sincroniza `bestScore()` con el menú al salir. |
 
 ### Reglas del juego
 

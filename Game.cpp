@@ -27,7 +27,7 @@ Game::Game(Display& display, Buttons& buttons, Sound& sound)
     _mouthMoves(0),
     _hasFood(false),
     _score(0),
-    _topScore(0) {}
+    _bestScore(0) {}
 
 // ========================================================
 // Inicialización (al entrar en la ventana)
@@ -76,7 +76,7 @@ void Game::reset() {
   randomSeed(micros());
 
   _hasGame = true;  // arranca una partida en curso (reanudable desde "Continue")
-  _score = 0;  // el récord (_topScore) se conserva entre partidas
+  _score = 0;  // el récord (_bestScore) se conserva entre partidas
 
   _length = 4;
   _tailIx = 0;
@@ -244,7 +244,7 @@ void Game::step() {
     _length++;
     _mouthMoves = MOUTH_MOVES;
     _score++;
-    if (_score > _topScore) _topScore = _score;
+if (_score > _bestScore) _bestScore = _score;
     _redrawHeader = true;
     _sound.play(Sound::SFX_EAT);
     spawnFood();  // si el tablero quedó lleno, _hasFood se apaga y se muere abajo
@@ -265,7 +265,7 @@ void Game::die() {
   _state = State::GAME_OVER;
   _hasGame = false;  // "Continue" ya no reanuda: arranca una nueva
 
-  if (_score > _topScore) _topScore = _score;
+  if (_score > _bestScore) _bestScore = _score;
   _redrawHeader = true;
   _sound.play(Sound::SFX_GAME_OVER);
   _dirtyBoard = true;
@@ -448,7 +448,7 @@ void Game::drawHeader() {
   snprintf(buf, sizeof(buf), "%u", (unsigned)_score);
   _display.drawText(buf, 0, 0, TEXT_12x16);
 
-  snprintf(buf, sizeof(buf), "HI %u", (unsigned)_topScore);
+  snprintf(buf, sizeof(buf), "HI %u", (unsigned)_bestScore);
   int16_t w = _display.getTextWidth(buf, TEXT_6x8);
   _display.drawText(buf, _display.getWidth() - w, 4, TEXT_6x8);
 }
@@ -540,8 +540,8 @@ uint8_t Game::score() const {
   return _score;
 }
 
-uint8_t Game::topScore() const {
-  return _topScore;
+uint8_t Game::bestScore() const {
+  return _bestScore;
 }
 
 // ====================================================================================

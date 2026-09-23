@@ -63,7 +63,7 @@ void Engine::update() {
       _game.update();
       if (_game.done()) {
         _sound.play(Sound::SFX_BACK);
-        _menu.setTopScore(_game.topScore());
+        _menu.setBestScore(_game.bestScore());
         changeState(State::MENU);
       }
       break;
@@ -116,8 +116,8 @@ void Engine::print() {
 // Puntaje máximo (lo conserva el menú entre sesiones)
 // ========================================================
 
-void Engine::setTopScore(uint8_t value) {
-  _menu.setTopScore(value);
+void Engine::setBestScore(uint8_t value) {
+  _menu.setBestScore(value);
 }
 
 // ========================================================
