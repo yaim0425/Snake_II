@@ -105,6 +105,21 @@ void Buttons::read() {
     if (state && !cur) _pressed |= bit;
     else               _released |= bit;
   }
+
+  // --------------------------------------------
+  // Anticonflicto MOVE: si hay 2 o más botones
+  // MOVE confirmados a la vez, se anula la
+  // activación de todos (estado y eventos)
+  // --------------------------------------------
+
+  const uint8_t moves = _buttons & MOVE_MASK;
+
+  if (moves & (moves - 1)) {
+
+    _buttons  &= (uint8_t)~MOVE_MASK;
+    _pressed  &= (uint8_t)~MOVE_MASK;
+    _released &= (uint8_t)~MOVE_MASK;
+  }
 }
 
 // ========================================================

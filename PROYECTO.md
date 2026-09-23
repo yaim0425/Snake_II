@@ -296,6 +296,17 @@ enum Button : uint8_t {
 - Solo acepta el nuevo estado tras `_buttonDelay` ms de estabilidad.
 - Almacenamiento reducido: de 4 arrays `bool[8]` (32 B) + 1 byte a 4 bytes.
 
+### Anticonflicto MOVE
+
+Si **2 o más botones MOVE se confirman a la vez** (2+ bits de la máscara
+`MOVE_MASK` = bots 0..3), se **anula la activación de todos**: esa limpieza se
+aplica al final de `read()` sobre el estado confirmado y los eventos del frame
+(`_buttons`, `_pressed` y `_released` se quedan sin esos bits). Así ningún botón
+MOVE queda activo mientras hay simultaneidad (el pad direccional es excluyente);
+los botones `ACTION` no participan del anticonflicto (se pueden pulsar a la vez
+que un MOVE). Al liberar uno, si queda un único MOVE presionado, ese vuelve a
+activarse solo (su `state()/pressed()` reflejan de nuevo al botón que queda).
+
 ---
 
 ## 7. Clase `Menu` — API
