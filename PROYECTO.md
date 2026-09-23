@@ -795,7 +795,7 @@ llama a `display.clear()`, lo decide cada ventana.
    | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria; al llegar al límite se procesa igual que haber soltado el botón, volviendo el parpadeo normal) |
    | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas) |
    | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
-   | `Game` | Primer frame: clear completo + Header (puntaje 12x16 izq., récord "HI" 6x8 der.), alimento y serpiente | Header solo si cambia el puntaje o el récord (banda 0..15); tablero (Body 16..63) solo si `_dirtyBoard` (movimiento, comida nueva, transición de estado): borra el Body, redibuja alimento + serpiente; overlay "GO !"/"PAUSA"/"GAME OVER" (cuadro blanco centrado + texto invertido) en cada frame según el estado |
+   | `Game` | Primer frame: clear completo + Header (puntaje 12x16 izq., segundos restantes de la comida especial 12x16 der.) y alimento y serpiente | Header solo si cambia el puntaje o `_specialTime` (banda 0..15); tablero (Body 16..63) solo si `_dirtyBoard` (movimiento, comida nueva, transición de estado): borra el Body, redibuja alimento + serpiente; overlay "GO !"/"PAUSA"/"GAME OVER" (cuadro blanco centrado + texto invertido) en cada frame según el estado |
 
 4. Los modos de edición del `Menu` ("Sound" y "Dificultad") comparten la banda
    dinámica de los rombos (45..53): al entrar (`beginSoundEdit()`/
@@ -911,7 +911,6 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 | `MAX_LENGTH` | 96 | Cantidad máxima de segmentos (una celda por segmento). |
 | `DIFICULTAD_MIN` / `MAX` / `DEFAULT` | 1 / 25 / 13 | Nivel de dificultad acotado (mismo rango que el menú). |
 | `GO_MS` | 1200 | Duración de la cuenta regresiva inicial ("GO !"). |
-| `MOUTH_MOVES` | 3 | Movimientos con la boca abierta tras comer. |
 
 ### Métodos
 
@@ -933,12 +932,21 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 - **No hay reversa directa:** girar hacia la dirección contraria se ignora
   (los botones MOVE son excluyentes entre sí por el anticonflicto de `Buttons`).
 - **Serpiente:** buffer circular `Seg body[MAX_LENGTH]` (cola en `_tailIx`,
-  cabeza en `_headIx`). Inicial: células `(1,2)..(4,2)`, cabeza a la derecha.
+  cabeza en `_headIx`). Cada `Seg` guarda su **posición**, su **dirección** (`dir`,
+  hacia el segmento siguiente, más cerca de la cabeza) y su **sprite persistente**
+  (`part`). Inicial: células `(1,2)..(4,2)`, cabeza a la derecha.
+- **El cuerpo NO se mueve:** cada paso se **agrega una parte nueva** (la cabeza)
+  y se **elimina la última** (la cola). La casilla que la cabeza deja se convierte
+  en cuerpo con su sprite persistente: `BODY` recto (`in == out`) o `CORNER` al
+  girar (`in != out`). El resto del cuerpo mantiene su `part` guardada.
 - **Comer:** al tocar el alimento (`SFX_EAT`): crece (+1 segmento, la cola NO
-  avanza ese paso, puntaje +1 y boca abierta `MOUTH_MOVES` movimientos). El
-  alimento se regenera en una **celda libre al azar**. Si no hay celdas libres
-  (tablero lleno) la partida **se gana** (termina). Dibujado como **rombo**
-  simétrico centrado en la celda (dos `fillTriangle`), como el rombo del menú.
+  avanza ese paso, puntaje +1). La cabeza queda **sobre la casilla del alimento**
+  y, al dejarla en el siguiente paso, esa casilla se dibuja como **`BELLY`**
+  (panza recta o curva según el giro) que queda guardada en el segmento y viaja
+  con el cuerpo hasta que la cola lo borra. El alimento se regenera en una
+  **celda libre al azar**. Si no hay celdas libres (tablero lleno) la partida
+  **se gana** (termina). Dibujado como **rombo** simétrico centrado en la celda
+  (dos `fillTriangle`), como el rombo del menú.
 - **Colisión con el cuerpo:** al mover, la celda destino es ilegal si coincide
   con el cuerpo **salvo la celda de la cola cuando NO come** (la cola se libera
   ese paso, como en el Nokia original; la cola es bloqueante solo cuando come).
@@ -947,15 +955,21 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 - **Pausa y salida:** `ACTION_UP` durante la partida vuelve al menú **sin
   perderla** (`_hasGame` mantiene el tablero; `Continue` la reanuda en pausa).
   `GAME_OVER` deja `_hasGame = false`.
-- **Sprites:** cada segmento obtiene su parte por geometría (`partFor`): cola
-  `TAIL_TO_<dir hacia el siguiente>`, cuerpo recto `BODY_TO_<dir de salida>`,
-  curva `CORNER_<horizontal>_<vertical>` (índice 8..11 calculado), cabeza
-  `HEAD_<dir>_CLOSE` y `HEAD_<dir>_OPEN` al comer. El orden del enum `Dir`
-  (UP=1..LEFT=4) coincide con el orden de los sprites por dirección (`dir-1`).
-  `drawSprite` dibuja cada píxel del sprite 4×4 como un bloque 2×2 (completa la
-  celda de 8×8). La cabeza se dibuja al final (queda encima).
-- **Header:** puntaje en `TEXT_12x16` (izq.) y récord `HI x` en `TEXT_6x8`
-  (der.); se redibuja solo cuando cambian.
+- **Sprites (cuerpo persistente):** cada segmento del cuerpo guarda su
+  `part` (sprite fijo): cola `TAIL_TO_<dir>` (su `dir` guardada), cuerpo recto
+  `BODY_TO_<dir>`, curva `CORNER_<horizontal>_<vertical>` (índice 8..11
+  calculado) y panza `BELLY` (recta `BELLY_TO_RIGHT`/`TO_LEFT` o curva
+  `BELLY_RIGHT_UP`..). Solo la **cabeza** se calcula en cada frame
+  (`headPart()`): `HEAD_<dir>_OPEN` **una casilla antes** de llegar al alimento
+  (la comida está en la próxima celda según `_dir`) y `HEAD_<dir>_CLOSE`
+  al colisionar con él. El orden del enum `Dir` (UP=1..LEFT=4) coincide con el
+  orden de los sprites por dirección (`dir-1`). `drawSprite` dibuja cada píxel
+  del sprite 4×4 como un bloque 2×2 (completa la celda de 8×8). La cabeza se
+  dibuja al final (queda encima).
+- **Header:** puntaje en `TEXT_12x16` (izq., NO se mueve) y segundos restantes
+  de la **comida especial** en `TEXT_12x16` (der., variable `_specialTime`, por
+  ahora valor fijo 60 solo para el layout). Se redibuja solo cuando cambian.
+  Ya no muestra el récord `HI` (el "Best: N" queda solo en el menú).
 - **Overlays:** "GO !" (cuenta regresiva), "PAUSA" y "GAME OVER" = cuadro blanco
   (`fillRoundRect`) centrado en el Body + texto invertido negro `TEXT_12x16`
   (`drawTextInverted`). Al volver a `PLAY` se marca `_dirtyBoard` (borra el

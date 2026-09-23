@@ -24,10 +24,11 @@ Game::Game(Display& display, Buttons& buttons, Sound& sound)
     _tailIx(0),
     _length(0),
     _dir(Dir::RIGHT),
-    _mouthMoves(0),
+    _bellyPending(false),
     _hasFood(false),
     _score(0),
-    _bestScore(0) {}
+    _bestScore(0),
+    _specialTime(60) {}
 
 // ========================================================
 // Inicialización (al entrar en la ventana)
@@ -82,13 +83,14 @@ void Game::reset() {
   _tailIx = 0;
   _headIx = 3;
   _dir = Dir::RIGHT;
-  _mouthMoves = 0;
+  _bellyPending = false;  // ninguna casilla pendiente de panza
 
-  // Serpiente inicial horizontal: células (1,2)..(4,2), cabeza a la derecha
-  for (uint8_t i = 0; i < 4; i++) {
-    _body[i].x = i + 1;
-    _body[i].y = 2;
-  }
+  // Serpiente inicial horizontal: células (1,2)..(4,2), cabeza a la derecha.
+  // Cada segmento guarda su dirección y su sprite persistente.
+  _body[0] = { 1, 2, Dir::RIGHT, SnakeSprites::TAIL_TO_RIGHT };
+  _body[1] = { 2, 2, Dir::RIGHT, SnakeSprites::BODY_TO_RIGHT };
+  _body[2] = { 3, 2, Dir::RIGHT, SnakeSprites::BODY_TO_RIGHT };
+  _body[3] = { 4, 2, Dir::RIGHT, SnakeSprites::HEAD_RIGHT_CLOSE };
 
   _moveDelay = speedFor(_difficulty);
   _startMs = millis();
@@ -203,9 +205,6 @@ void Game::handleTurn() {
 // ========================================================
 
 void Game::step() {
-  // La boca abierta tras comer se cierra tras MOUTH_MOVES movimientos
-  if (_mouthMoves > 0) _mouthMoves--;
-
   const Seg& h = _body[_headIx];
   uint8_t nx = h.x;
   uint8_t ny = h.y;
@@ -232,19 +231,42 @@ void Game::step() {
     }
   }
 
-  // Mover: la nueva cabeza entra en el ring buffer
+  // El cuerpo NO se mueve: la casilla que la cabeza deja pasa a ser
+  // cuerpo nuevo con su sprite persistente (BODY recto, CORNER si
+  // giró, BELLY si era la casilla de la comida recién comida).
+  const Seg& oldHead = _body[_headIx];
+  Dir in  = oldHead.dir;   // con qué dirección llegó la cabeza a esta casilla
+  Dir out = _dir;          // con qué dirección se va hacia la nueva casilla
+
+  // La cabeza avanza a la nueva casilla (se agrega la nueva parte)
   uint8_t ni = (_headIx + 1) % MAX_LENGTH;
-  _body[ni].x = nx;
-  _body[ni].y = ny;
+  _body[ni] = { nx, ny, _dir, SnakeSprites::HEAD_RIGHT_CLOSE };
   _headIx = ni;
 
+  // La casilla que dejó la cabeza se convierte en cuerpo (parte persistente)
+  Seg& newBody = _body[(_headIx + MAX_LENGTH - 1) % MAX_LENGTH];
+
+  if (_bellyPending) {
+    // Estaba sobre la comida (recién comida): al dejarla se pinta la panza
+    newBody.part = bellyPartFor(in, out);
+    _bellyPending = false;
+  } else {
+    newBody.part = bodyPartFor(in, out);
+  }
+  newBody.dir = out;
+
   if (!eat) {
+    // Se elimina la última parte (cola): el segmento que queda último
+    // pasa a ser cola y recibe su sprite de cola apuntando como su dir
     _tailIx = (_tailIx + 1) % MAX_LENGTH;
+    Seg& tail = _body[_tailIx];
+    tail.part = (SnakeSprites::Part)(SnakeSprites::TAIL_TO_UP +
+                  ((uint8_t)tail.dir - 1));
   } else {
     _length++;
-    _mouthMoves = MOUTH_MOVES;
     _score++;
-if (_score > _bestScore) _bestScore = _score;
+    if (_score > _bestScore) _bestScore = _score;
+    _bellyPending = true;  // la cabeza quedó sobre la comida: al moverse pintará BELLY
     _redrawHeader = true;
     _sound.play(Sound::SFX_EAT);
     spawnFood();  // si el tablero quedó lleno, _hasFood se apaga y se muere abajo
@@ -324,60 +346,49 @@ uint8_t Game::slot(uint8_t index) const {
 }
 
 // ========================================================
-// Dirección de `a` hacia `b`. Los dos segmentos son siempre
-// adyacentes (se mueven 1 celda por paso), con wrap en X y Y.
-// Devuelve NONE si no son adyacentes (no debería ocurrir).
+// Sprite de la cabeza. La boca se abre una casilla antes de
+// llegar a la comida (el alimento está en la próxima celda
+// según _dir) y se cierra al colisionar con ella (cuando la
+// cabeza está sobre el alimento, ya no apunta a ninguna).
+// El orden del enum Dir (UP=1..LEFT=4) coincide con el orden
+// de los sprites por dirección (HEAD_UP_..): se indexan con
+// (dir - 1).
 // ========================================================
 
-Game::Dir Game::dirToward(const Seg& a, const Seg& b) const {
-  if (((uint16_t)a.x + 1) % COLS == b.x) return Dir::RIGHT;
-  if (a.x == ((uint16_t)b.x + 1) % COLS) return Dir::LEFT;
-  if (((uint16_t)a.y + 1) % ROWS == b.y) return Dir::DOWN;
-  if (a.y == ((uint16_t)b.y + 1) % ROWS) return Dir::UP;
-  return Dir::NONE;
+SnakeSprites::Part Game::headPart() const {
+  uint8_t off = (uint8_t)_dir - 1;
+
+  // Próxima celda según la dirección actual
+  const Seg& head = _body[_headIx];
+  uint8_t nx = head.x;
+  uint8_t ny = head.y;
+  switch (_dir) {
+    case Dir::UP:    ny = (ny == 0) ? (uint8_t)(ROWS - 1) : (uint8_t)(ny - 1); break;
+    case Dir::RIGHT: nx = (nx + 1) % COLS; break;
+    case Dir::DOWN:  ny = (ny == ROWS - 1) ? 0 : (uint8_t)(ny + 1); break;
+    case Dir::LEFT:  nx = (nx == 0) ? (uint8_t)(COLS - 1) : (uint8_t)(nx - 1); break;
+    default: break;
+  }
+
+  bool aboutToEat = _hasFood && nx == _food.x && ny == _food.y;
+  uint8_t base = aboutToEat ? SnakeSprites::HEAD_UP_OPEN
+                            : SnakeSprites::HEAD_UP_CLOSE;
+  return (SnakeSprites::Part)(base + off);
 }
 
 // ========================================================
-// Sprite del segmento `index` según la geometría de sus vecinos:
-//
-//   - cola (índice 0): apunta hacia el siguiente segmento
-//   - cabeza (último): dirección actual, boca abierta tras comer
-//   - cuerpo: recto (in == out) o curva (in != out); el índice de
-//     la curva es CORNER_<horizontal>_<vertical>
-//
-// El orden del enum Dir (UP=1..LEFT=4) coincide con el orden de
-// los sprites por dirección (TAIL_TO_UP..TAIL_TO_LEFT,
-// BODY_TO_UP.., HEAD_UP_..): se indexan con (dir - 1).
+// Sprite del cuerpo según las direcciones de entrada y salida:
+// recto (in == out) -> BODY_TO_<dir>; giro (in != out) ->
+// CORNER_<horizontal>_<vertical> (el índice de la curva es
+// CORNER_RIGHT_UP(8) + desplazamiento: horiz RIGHT -> vert UP
+// +0 / DOWN +1; horiz LEFT -> vert UP +2 / DOWN +3).
 // ========================================================
 
-SnakeSprites::Part Game::partFor(uint8_t index) const {
-  uint8_t s = slot(index);
-
-  if (index == 0) {
-    Dir d = dirToward(_body[s], _body[slot(1)]);
-    if (d == Dir::NONE) d = _dir;
-    return (SnakeSprites::Part)(SnakeSprites::TAIL_TO_UP + ((uint8_t)d - 1));
-  }
-
-  if (index == _length - 1) {
-    uint8_t off = (uint8_t)_dir - 1;
-    if (_mouthMoves > 0)
-      return (SnakeSprites::Part)(SnakeSprites::HEAD_UP_OPEN + off);
-    return (SnakeSprites::Part)(SnakeSprites::HEAD_UP_CLOSE + off);
-  }
-
-  Dir in  = dirToward(_body[s], _body[slot(index - 1)]);
-  Dir out = dirToward(_body[s], _body[slot(index + 1)]);
-  if (in == Dir::NONE || out == Dir::NONE) return SnakeSprites::EMPTY;
-
+SnakeSprites::Part Game::bodyPartFor(Dir in, Dir out) const {
   if (in == out) {
     return (SnakeSprites::Part)(SnakeSprites::BODY_TO_UP + ((uint8_t)out - 1));
   }
 
-  // Curva: lado horizontal y lado vertical del giro.
-  // El índice es CORNER_RIGHT_UP(8) + desplazamiento:
-  //   horiz RIGHT:  vert UP=+0, DOWN=+1  (RIGHT_UP, RIGHT_DOWN)
-  //   horiz LEFT:   vert UP=+2, DOWN=+3  (LEFT_UP,  LEFT_DOWN)
   Dir horiz, vert;
   if (in == Dir::UP || in == Dir::DOWN) {
     horiz = out;
@@ -388,6 +399,37 @@ SnakeSprites::Part Game::partFor(uint8_t index) const {
   }
 
   uint8_t base = SnakeSprites::CORNER_RIGHT_UP;
+  if (horiz == Dir::RIGHT) base += (vert == Dir::UP) ? 0 : 1;
+  else                     base += (vert == Dir::UP) ? 2 : 3;
+
+  return (SnakeSprites::Part)base;
+}
+
+// ========================================================
+// Sprite de la panza (cuando la cabeza deja la casilla donde
+// estaba la comida). Recta (in == out) -> BELLY_TO_RIGHT (sirve
+// para UP) o BELLY_TO_LEFT (sirve para DOWN); giro (in != out)
+// -> BELLY_RIGHT_UP(22) + desplazamiento (igual que CORNER).
+// ========================================================
+
+SnakeSprites::Part Game::bellyPartFor(Dir in, Dir out) const {
+  if (in == out) {
+    // Panza recta: comparte sprite por par de direcciones
+    if (out == Dir::UP || out == Dir::RIGHT)
+      return SnakeSprites::BELLY_TO_RIGHT;
+    return SnakeSprites::BELLY_TO_LEFT;
+  }
+
+  Dir horiz, vert;
+  if (in == Dir::UP || in == Dir::DOWN) {
+    horiz = out;
+    vert = in;
+  } else {
+    horiz = in;
+    vert = out;
+  }
+
+  uint8_t base = SnakeSprites::BELLY_RIGHT_UP;
   if (horiz == Dir::RIGHT) base += (vert == Dir::UP) ? 0 : 1;
   else                     base += (vert == Dir::UP) ? 2 : 3;
 
@@ -414,13 +456,15 @@ void Game::drawSprite(SnakeSprites::Part part, uint8_t x, uint8_t y) {
 
 // ========================================================
 // Dibujar toda la serpiente (de la cola a la cabeza: la
-// cabeza queda encima)
+// cabeza queda encima). Cada segmento usa su sprite
+// persistente; la cabeza calcula el suyo en cada frame.
 // ========================================================
 
 void Game::drawSnake() {
   for (uint8_t i = 0; i < _length; i++) {
     const Seg& seg = _body[slot(i)];
-    drawSprite(partFor(i), seg.x, seg.y);
+    SnakeSprites::Part part = (i == _length - 1) ? headPart() : seg.part;
+    drawSprite(part, seg.x, seg.y);
   }
 }
 
@@ -439,18 +483,21 @@ void Game::drawFood() {
 }
 
 // ========================================================
-// Header del juego: puntaje (izq., 12x16) y récord (der., 6x8)
+// Header del juego: puntuación (izq., 12x16) y segundos
+// restantes de la comida especial (der., 12x16)
 // ========================================================
 
 void Game::drawHeader() {
   char buf[8];
 
+  // Puntuación actual, esquina superior izquierda (NO se mueve)
   snprintf(buf, sizeof(buf), "%u", (unsigned)_score);
   _display.drawText(buf, 0, 0, TEXT_12x16);
 
-  snprintf(buf, sizeof(buf), "HI %u", (unsigned)_bestScore);
-  int16_t w = _display.getTextWidth(buf, TEXT_6x8);
-  _display.drawText(buf, _display.getWidth() - w, 4, TEXT_6x8);
+  // Segundos restantes de la comida especial, a la derecha
+  snprintf(buf, sizeof(buf), "%u", (unsigned)_specialTime);
+  int16_t w = _display.getTextWidth(buf, TEXT_12x16);
+  _display.drawText(buf, _display.getWidth() - w, 0, TEXT_12x16);
 }
 
 // ========================================================

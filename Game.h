@@ -17,11 +17,14 @@
 //     reaparece por el opuesto (wrap en X y en Y, estilo
 //     Nokia del juego original).
 //   - Sprites: los 4x4 px de SnakeSprites, dibujados con
-//     píxel doble (2x2 px) para ocupar la celda de 8x8. La
-//     parte de cada segmento (cola/cuerpo/curva/cabeza) se
-//     deriva CADA frame de la geometría de sus vecinos y de la
-//     dirección de la cabeza (no se guarda una parte por
-//     segmento, como hacía el original).
+//     píxel doble (2x2 px) para ocupar la celda de 8x8. Cada
+//     segmento del cuerpo guarda su DIRECCIÓN y su SPRITE
+//     persistente: BODY recto, CORNER al girar y BELLY al
+//     comer (la panza queda en la casilla de la comida cuando
+//     la cabeza la deja). El cuerpo NO se mueve: cada paso
+//     agrega una parte nueva delante y elimina la última (cola);
+//     solo la cabeza recalcula su sprite (boca abierta 1
+//     casilla antes de la comida, cerrada al colisionar).
 //   - Estados: START (cuenta regresiva "GO !"), PLAY (se mueve
 //     cada _moveDelay ms según la dificultad), PAUSE y
 //     GAME_OVER.
@@ -120,6 +123,8 @@ private:
   struct Seg {
     uint8_t x;
     uint8_t y;
+    Dir dir;                 // dirección hacia el siguiente segmento (más cerca de la cabeza)
+    SnakeSprites::Part part; // sprite persistente del segmento (TAIL, BODY, CORNER o BELLY)
   };
 
   // ========================================================
@@ -128,7 +133,6 @@ private:
 
   static constexpr int16_t BODY_TOP = 16;          // fila superior del tablero (Body)
   static constexpr uint32_t GO_MS = 1200;          // duración de la cuenta regresiva inicial
-  static constexpr uint8_t  MOUTH_MOVES = 3;       // movimientos con la boca abierta tras comer
 
   // ========================================================
   // Métodos internos
@@ -147,9 +151,10 @@ private:
   void die();                     // colisión o tablero lleno
 
   // Render
-  uint8_t slot(uint8_t index) const;          // índice del ring buffer para el segmento `index`
-  Dir dirToward(const Seg& a, const Seg& b) const;  // dirección de a hacia b (adyacentes, con wrap)
-  SnakeSprites::Part partFor(uint8_t index) const;  // sprite de un segmento según sus vecinos
+  uint8_t slot(uint8_t index) const;             // índice del ring buffer para el segmento `index`
+  SnakeSprites::Part headPart() const;           // sprite de la cabeza (boca según la comida adyacente)
+  SnakeSprites::Part bodyPartFor(Dir in, Dir out) const;  // BODY recto o CORNER al girar
+  SnakeSprites::Part bellyPartFor(Dir in, Dir out) const; // BELLY recto o curvo (al comer)
   void drawSprite(SnakeSprites::Part part, uint8_t x, uint8_t y);
   void drawSnake();
   void drawFood();
@@ -191,13 +196,14 @@ private:
   uint8_t _length;
 
   Dir _dir;                // dirección actual de la cabeza
-  uint8_t _mouthMoves;     // movimientos que faltan con la boca abierta (tras comer)
+  bool _bellyPending;      // la cabeza está sobre la casilla de la comida: al dejarla se pinta BELLY
 
   // Alimento y puntaje
   Seg _food;
   bool _hasFood;
   uint8_t _score;
   uint8_t _bestScore;
+  uint8_t _specialTime;    // segundos restantes de la comida especial (por ahora fijo, solo layout)
 };
 
 #endif
