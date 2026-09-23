@@ -373,7 +373,9 @@ modo de edición inline, igual que "Sound" (ya no se abre `InfoWindow`).
   en `25` no hay derecha (+1 no existe). **Al mantener presionado**
   `MOVE_LEFT`/`MOVE_RIGHT` (paso continuo) el parpadeo se **detiene**: solo la
   flecha del botón activo queda **fija** y la contraria se oculta (señal visual
-  de la repetición).
+  de la repetición). **Al llegar al límite (1 o 25)** el botón de ese lado ya no
+  puede avanzar y se procesa **igual que haber soltado el botón**: vuelve el
+  parpadeo normal, con la flecha del límite oculta.
 - `MOVE_RIGHT` = **+1**, `MOVE_LEFT` = **-1** (clamp entre `DIFICULTAD_MIN = 1`
   y `DIFICULTAD_MAX = 25`, cada paso toca `SFX_CLICK`). **Repetición al
   mantener presionado:** el primer paso es inmediato (`pressed`) y, manteniendo
@@ -742,7 +744,9 @@ Toda ventana implementa:
   también se edita inline** (selector `< N >` con dos flechas parpadeantes que se
   ocultan en los límites; `MOVE_RIGHT` +1, `MOVE_LEFT` -1 con repetición al
   mantener presionado —al mantener, el parpadeo se detiene y solo queda fija la
-  flecha del botón activo, la contraria se oculta—, `ACTION_RIGHT` lo aplica y
+  flecha del botón activo, la contraria se oculta; al llegar al límite se
+  procesa igual que haber soltado el botón (vuelve el parpadeo normal)—,
+  `ACTION_RIGHT` lo aplica y
   `ACTION_UP` cancela). Los
   efectos del juego (comer, GO,
   game over) quedan para la lógica de la serpiente.
@@ -772,7 +776,7 @@ llama a `display.clear()`, lo decide cada ventana.
    | Ventana | Estáticos (una vez) | Dinámicos por frame |
    |---------|---------------------|---------------------|
    | `Boot` | — (primer frame: clear completo) | Franjas: se borran **solo las columnas que cada franja deja de ocupar** (las coincidentes se mantienen) y se dibujan las nuevas; si no cambió el desplazamiento no se dibuja nada. |
-   | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria) |
+   | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria; al llegar al límite se procesa igual que haber soltado el botón, volviendo el parpadeo normal) |
    | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas) |
    | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
    | `InfoWindow` | Todo (dibuja una sola vez) | — |

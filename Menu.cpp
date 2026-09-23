@@ -371,9 +371,13 @@ void Menu::drawDifficultySelector() {
   // continua queda marcada en pantalla: el parpadeo se detiene y SOLO la
   // flecha del botón activo se muestra (fija); la contraria se oculta.
   // Sin mantener, las dos flechas parpadean juntas (visible 75%, oculto
-  // 25% de ARROW_BLINK_PERIOD ms) como siempre.
-  bool leftHeld  = _buttons.state(Buttons::MOVE_LEFT);
-  bool rightHeld = _buttons.state(Buttons::MOVE_RIGHT);
+  // 25% de ARROW_BLINK_PERIOD ms) como siempre. Al llegar al límite (1 o
+  // 25) el botón de ese lado ya no puede avanzar y se procesa igual que si
+  // se hubiera soltado (vuelve el parpadeo normal, con el límite oculto).
+  bool leftHeld  = _buttons.state(Buttons::MOVE_LEFT) &&
+                   _editDifficulty > DIFICULTAD_MIN;
+  bool rightHeld = _buttons.state(Buttons::MOVE_RIGHT) &&
+                   _editDifficulty < DIFICULTAD_MAX;
 
   bool arrowsVisible =
       leftHeld || rightHeld ||

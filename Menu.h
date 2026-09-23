@@ -148,7 +148,9 @@ private:
   // al mantener presionado: el primer cambio es inmediato y tras
   // HOLD_REPEAT_DELAY ms repele cada HOLD_REPEAT_TICK ms. Al mantener un
   // botón el parpadeo se detiene: solo la flecha del botón activo queda fija
-  // y la contraria se oculta (señal visual de la repetición continua).
+  // y la contraria se oculta (señal visual de la repetición continua). Al
+  // llegar al límite (1 o 25) se procesa igual que haber soltado el botón:
+  // vuelve el parpadeo normal (con el límite oculto).
   static constexpr uint8_t  DIFICULTAD_MIN     = 1;
   static constexpr uint8_t  DIFICULTAD_MAX     = 25;
   static constexpr uint8_t  DIFICULTAD_DEFAULT = 13;
