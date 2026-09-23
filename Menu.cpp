@@ -48,7 +48,6 @@ Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore,
 
 void Menu::begin() {
   _scroller.begin();
-  _selected = 0;
   _scroller.compose(optionText(_selected), TEXT_12x16);
   _holdStart = millis();
   _redraw = true;

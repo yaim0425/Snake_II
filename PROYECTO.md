@@ -308,7 +308,7 @@ Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore = 0, con
 
 | Método | Descripción |
 |--------|-------------|
-| `void begin()` | Restablece el estado de la animación, del parpadeo y del modo de edición de sonido. |
+| `void begin()` | Restablece el estado de la animación, del parpadeo y del modo de edición de sonido. **No resetea la selección**: conserva la opción elegida antes de salir del menú (las ventanas son hermanas persistentes; al volver al menú se muestra la misma opción que se tenía, no siempre "New"). |
 | `void setOptions(textos, conteo)` | Fija la lista y la cantidad de opciones (1..`MAX_OPTIONS`=8). El menú (textos y rombos) se adapta al conteo. |
 | `void update()` | Lee botones, navega con `MOVE_RIGHT`/`MOVE_LEFT` y anima el deslizamiento lateral; log en Serial al cambiar de opción; toca `SFX_CLICK` al navegar. En la opción "Sound" gestiona el **modo de edición inline** (ver abajo). |
 | `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Top + versión). En modo de edición de sonido dibuja el **selector On/Off** en la banda de los rombos. |
