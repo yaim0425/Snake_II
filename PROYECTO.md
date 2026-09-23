@@ -422,7 +422,7 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
 - **Título:** "Snake II", `TEXT_12x16`, centrado en `REGION_HEADER`. **Estático:**
   se dibuja una sola vez al entrar (tras el `clear()` completo) y ya no se limpia
   ni se redibuja por frame.
-- **Pie:** "Top: X" (`LEFT_DOWN`) y versión (`RIGHT_DOWN`) en `TEXT_6x8`,
+- **Pie:** "Best: X" (`LEFT_DOWN`) y versión (`RIGHT_DOWN`) en `TEXT_6x8`,
   **bajado 1 px** (fila 57, `PIE_TOP = 57`). **Estático:** se dibuja una sola vez
   al entrar (tras el `clear()` completo; se actualiza solo si `setTopScore`
   cambia). Una **línea horizontal de 1 px** de grosor,

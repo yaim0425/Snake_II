@@ -458,13 +458,13 @@ void Menu::print() {
     // Header: título
     _display.drawTextAligned(_title, CENTER, TEXT_12x16, REGION_HEADER);
 
-    // Pie del Body: línea separadora + texto (Top/versión), opcional
+    // Pie del Body: línea separadora + texto (Best/versión), opcional
     // (cuando se oculta solo queda la línea que sostiene los rombos)
     _display.screen().drawFastHLine(0, PIE_LINE_ROW, _display.getWidth(),
                                     SSD1306_WHITE);
     if (_showFooter) {
       char buf[16];
-      sprintf(buf, "Top: %u", _topScore);
+      sprintf(buf, "Best: %u", _topScore);
 
       TextPos tPos = _display.getTextPos(buf, LEFT_DOWN, TEXT_6x8, REGION_BODY);
       _display.drawText(buf, tPos.x, PIE_TOP, TEXT_6x8);
