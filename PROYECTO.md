@@ -407,7 +407,7 @@ variable (`setOptions`), con `MAX_OPTIONS = 8`.
   base en la `53` y vértice en la `50`. Reparto uniforme en el ancho
   (`cx = (i+1)·128/(n+1)`). Si se **mantiene** seleccionado sin navegar
 `BLINK_HOLD = 500 ms`, el rombo **parpadea** mostrándose el **75%** de cada
-  período y oculto el **25%** (período `BLINK_PERIOD = 1000 ms`, fase oculta = primer
+  período y oculto el **25%** (período `BLINK_PERIOD = 500 ms`, fase oculta = primer
   25%). Es la **única zona dinámica** del menú: por frame se limpia solo la banda
   `45..53` (`fillRect(0, DIA_TOP, ancho, DIA_SIZE+1)`) y se redibujan los rombos.
 - Primera y última opción no conectadas (navegación con límites).

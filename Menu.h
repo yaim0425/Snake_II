@@ -118,7 +118,7 @@ private:
 
   // Parpadeo del rombo seleccionado tras mantenerlo: visible 75%, oculto 25%
   static constexpr uint32_t BLINK_HOLD    = 500;  // mantener sin navegar para parpadear
-  static constexpr uint32_t BLINK_PERIOD  = 1000;  // período completo del parpadeo (ms)
+  static constexpr uint32_t BLINK_PERIOD  = 500;  // período completo del parpadeo (ms)
   static constexpr uint8_t  BLINK_OFF_PCT = 25;   // % del período en que está oculto
 
   // Selector de sonido (modo edición): flecha única, pegada al texto, en el
