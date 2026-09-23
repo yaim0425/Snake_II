@@ -6,7 +6,7 @@
 #include "Boot.h"
 #include "Menu.h"
 #include "Credits.h"
-#include "InfoWindow.h"
+#include "Game.h"
 #include "Legend.h"
 #include "Sound.h"
 
@@ -14,9 +14,9 @@
 // Engine — despachador de ventanas
 //
 // NO anida las partes del juego: cada ventana (Menu, Credits,
-// InfoWindow y el futuro Juego) es una clase independiente,
-// construida en Snake_II.ino y recibida aquí por referencia,
-// igual que Display y Buttons.
+// Game y Legend) es una clase independiente, construida en
+// Snake_II.ino y recibida aquí por referencia, igual que
+// Display y Buttons.
 //
 // Solo Engine conoce el estado (State): decide qué ventana se
 // ve (update()/print() despachan a la ventana activa) y, al
@@ -35,7 +35,7 @@ public:
   // ========================================================
 
   Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
-         Credits& credits, InfoWindow& info, Legend& legend,
+         Credits& credits, Game& game, Legend& legend,
          Sound& sound);
 
   // ========================================================
@@ -95,7 +95,7 @@ private:
   Boot& _boot;
   Menu& _menu;
   Credits& _credits;
-  InfoWindow& _info;
+  Game& _game;
   Legend& _legend;
 
   Sound& _sound;

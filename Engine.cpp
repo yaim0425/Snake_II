@@ -5,7 +5,7 @@
 // ========================================================
 
 Engine::Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
-               Credits& credits, InfoWindow& info, Legend& legend,
+               Credits& credits, Game& game, Legend& legend,
                Sound& sound)
   : _state(State::BOOT),
     _display(display),
@@ -13,7 +13,7 @@ Engine::Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
     _boot(boot),
     _menu(menu),
     _credits(credits),
-    _info(info),
+    _game(game),
     _legend(legend),
     _sound(sound) {}
 
@@ -60,9 +60,10 @@ void Engine::update() {
     case State::NUEVO:
     case State::CONTINUAR: {
 
-      _info.update();
-      if (_info.done()) {
+      _game.update();
+      if (_game.done()) {
         _sound.play(Sound::SFX_BACK);
+        _menu.setTopScore(_game.topScore());
         changeState(State::MENU);
       }
       break;
@@ -105,7 +106,7 @@ void Engine::print() {
     case State::MENU:       _menu.print();                                 break;
     case State::NUEVO:
     case State::CONTINUAR:
-                             _info.print();                                 break;
+                             _game.print();                                 break;
     case State::CREDITOS:   _credits.print();                              break;
     case State::LEGEND:     _legend.print();                               break;
   }
@@ -129,8 +130,10 @@ void Engine::changeState(State newState) {
   switch (_state) {
     case State::BOOT:       _boot.begin();                                 break;
     case State::MENU:       _menu.begin();                                 break;
-    case State::NUEVO:      _info.begin("New");                            break;
-    case State::CONTINUAR:  _info.begin("Continue");                       break;
+    case State::NUEVO:      _game.setDifficulty(_menu.difficulty());
+                            _game.begin(true);                              break;
+    case State::CONTINUAR:  _game.setDifficulty(_menu.difficulty());
+                            _game.begin(false);                             break;
     case State::CREDITOS:   _credits.begin();                              break;
     case State::LEGEND:     _legend.begin();                               break;
   }

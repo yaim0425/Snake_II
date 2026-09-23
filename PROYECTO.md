@@ -39,8 +39,8 @@ En desarrollo por partes. La clase `Display` está completa. `Snake_II.ino` es e
 `setup()`.
 
 Arquitectura:
-- **Ventanas hermanas (no anidadas):** `Boot`, `Legend`, `Menu`, `Credits` e
-  `InfoWindow` son clases independientes, instancias únicas creadas
+- **Ventanas hermanas (no anidadas):** `Boot`, `Legend`, `Menu`, `Credits` y
+  `Game` son clases independientes, instancias únicas creadas
   en `Snake_II.ino` (como `Display`, `Buttons`, `Buzzer` y `Sound`) y compartidas
   por referencia. Sus valores persisten entre transiciones.
 - **`Engine` = despachador puro:** recibe las ventanas por referencia y NO las
@@ -56,8 +56,8 @@ Arquitectura:
 - Al iniciar se muestra la animación de arranque (`Boot`, franjas verticales),
   luego el panel de botones (`Legend`, pad MOVE con flechas + 4 rombos de ACTION
   que parpadean uno a la vez) y
-  después el menú inicial, los placeholders "En desarrollo" (Nuevo y Continuar),
-  las opciones `Sound` y `Dificultad` (**se editan inline en el propio `Menu`**:
+  después el menú inicial con las opciones `New` y `Continue` (llevan a la ventana
+  `Juego`), `Sound` y `Dificultad` (**se editan inline en el propio `Menu`**:
   al confirmar con `ACTION_RIGHT` aparece un selector en la banda de los rombos —
   On/Off para `Sound`, nivel 1..25 para `Dificultad`—, se navega con
   `MOVE_LEFT`/`MOVE_RIGHT` y se aplica
@@ -74,11 +74,11 @@ También se incorporó `SnakeSprites.h` (adaptada al estilo del proyecto, secci�
 15): la tabla de sprites de la serpiente del juego original, lista para que la
 lógica del juego la consuma cuando exista.
 
-Fases pendientes: integración de la clase `Display` en el juego, botones/pulsadores
-(`Buttons` ya integrado), buzzer (las clases `Buzzer`/`Sound` están creadas y
-conectadas al menú, a los créditos, a las transiciones del `Engine` y a la ventana
-"Sound"; faltan los efectos del juego —comer, GO, game over— hasta que exista la
-lógica de la serpiente), menú, lógica de la serpiente.
+Fases pendientes: la lógica de la serpiente ya está integrada en la ventana
+`Juego` (estados `NUEVO`/`CONTINUAR` del `Engine`): movimiento con wrap,
+sprites del contenido, comida, colisiones, dificultad (velocidad), pausa y
+game over. Queda como mejora opcional conservar el récord (`topScore`) entre
+reinicios de la placa (p. ej. con EEPROM); hoy el récord vive solo en la sesión.
 
 ---
 
@@ -117,9 +117,9 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Scroller.h` / `Scroller.cpp` | Clase `Scroller` (scroller de 1 bit compartido: compone una tira 128x16 y desliza lateralmente N bandas sincronizadas con el mismo desplazamiento; cada banda tiene su canvas persistente y sus colores de frente/fondo; usada por `Menu` con 1 banda y por `Credits` con 2). Completa. |
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit —1 banda del `Scroller` compartido— y rombos de posición). Completa. **Incluye la edición inline de la opción "Sound"** (selector On/Off en la banda de los rombos) **y de la opción "Dificultad"** (selector `< N >`, nivel 1..25, con repetición al mantener presionado; al mantener, solo queda fija la flecha del botón activo). |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral —2 bandas sincronizadas del `Scroller` compartido— y `SFX_CLICK` al navegar, vuelve al menú con `ACTION_UP`). Completa. |
-| `InfoWindow.h` / `InfoWindow.cpp` | Ventana genérica "En desarrollo" (Nuevo, Continuar). Completa. |
+| `Game.h` / `Game.cpp` | Clase `Game` (ventana del juego de la serpiente: estados NUEVO/CONTINUAR del `Engine`). Completa. |
 | `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas**: las recibe por referencia y su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Todos los `begin()` se lanzan desde `setup()`. Completa. |
-| `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`InfoWindow` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` hace la **única lectura de botones del frame** (`buttons.read()`) y llama `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`. |
+| `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`Game` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` hace la **única lectura de botones del frame** (`buttons.read()`) y llama `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`. |
 | `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). Completa. |
 | `Sound.h` / `Sound.cpp` | Clase `Sound` (secuencias de los efectos del juego sobre `Buzzer`, con `setEnabled` para silenciar). Completa. |
 | `SnakeSprites.h` | Clase `SnakeSprites` (tabla de sprites de la serpiente, estilo Nokia: cola, cuerpo, curvas, cabeza cerrada/abierta y panza; sprites de 4×4 px). Solo datos (header-only, sin `.cpp`). Adaptada al estilo del proyecto. |
@@ -377,7 +377,7 @@ de edición inline.
 ### Modo de edición de dificultad (inline, en el propio `Menu`)
 
 Al confirmar la opción **"Dificultad"** con `ACTION_RIGHT` (btn2) el menú entra en
-modo de edición inline, igual que "Sound" (ya no se abre `InfoWindow`).
+modo de edición inline, igual que "Sound" (no se abre ninguna ventana).
 
 - En la **banda de los rombos (45..53)** se dibuja el selector con el **nivel
   1..25** en `TEXT_6x8` centrado con **ancho constante** (1 dígito se alinea a la
@@ -654,7 +654,7 @@ el estado `SONIDO` ni recibe `SoundWindow`.
 ## 11. Clase `Engine` — despachador de ventanas
 
 Separada del `.ino` en `Engine.h` / `Engine.cpp` (antes `App`). **No anida las
-ventanas**: `Boot`, `Legend`, `Menu`, `Credits`, `InfoWindow` (y el futuro `Juego`)
+ventanas**: `Boot`, `Legend`, `Menu`, `Credits`, `Game`
 son clases independientes, instancias únicas creadas en `Snake_II.ino` y pasadas a
 `Engine` por referencia, igual que `Display` y `Buttons`.
 
@@ -670,7 +670,7 @@ de la ventana entrante). `loop()` no participa en las transiciones: solo llama a
 
 ```cpp
 Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
-       Credits& credits, InfoWindow& info, Legend& legend,
+       Credits& credits, Game& game, Legend& legend,
        Sound& sound);
 ```
 
@@ -707,7 +707,8 @@ enum class State : uint8_t {
 | `BOOT` | `Boot` | Animación de arranque (franjas). Al terminar (`done()`) pasa a `LEGEND`. Cualquier botón la termina. |
 | `LEGEND` | `Legend` | Panel de botones: pad MOVE con 4 flechas + 4 rombos completos de ACTION en las posiciones de un pad que parpadean MUY rápido uno a la vez (ciclo lento) con la función del rombo activo centrada en el pie. Cualquier botón la cierra → menú (suena el efecto según el botón —CLICK/BACK/CONFIRM—; `Engine` no añade `SFX_BACK`). Solo se muestra tras el arranque. |
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
-| `NUEVO`, `CONTINUAR` | `InfoWindow` | Placeholder "En desarrollo" (tamaño 1); se reemplazarán por `Juego`/`Config` reales. Al salir (`done()`) suena `SFX_BACK` y pasa directo a `MENU`. |
+| `NUEVO` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con la cuenta regresiva "GO !" (`SFX_START`). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setTopScore(game.topScore())`) y pasa a `MENU`. |
+| `CONTINUAR` | `Game` | Reanudar la partida anterior (`begin(false)`): queda en pausa y se retoma con `ACTION_RIGHT`/`ACTION_LEFT`; si no hay partida en curso arranca una nueva. Al salir (`done()`) igual que `NUEVO`. |
 | `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo `Scroller` compartido que el menú** pero con **2 bandas sincronizadas** (`BAND_HEIGHTS = {16, 8}` = altos de rol 12x16 y nombre 6x8): rol y nombre se componen por separado en la misma tira (`loadEntry` → `compose`) y deslizan a la vez con el **mismo `_slideX`** interno del `Scroller` (aparecen al mismo tiempo). `drawBand(slot, y, fg, bg)` compone el slot y vuelca su **banda persistente** (`_chipBox[slot]`) con sus colores; la tira la sobrescribe **columna a columna** con sus fondos, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). El deslizamiento **arranca desde el borde** (`startSlide`, fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (igual que el menú, ≈0,5 s). Al navegar suena `SFX_CLICK` y al salir (`done()`) suena `SFX_BACK` (lo toca el `Engine`) y pasa directo a `MENU`. |
 
 ### Métodos
@@ -763,9 +764,8 @@ Toda ventana implementa:
   flecha del botón activo, la contraria se oculta; al llegar al límite se
   procesa igual que haber soltado el botón (vuelve el parpadeo normal)—,
   `ACTION_RIGHT` lo aplica y
-  `ACTION_UP` cancela). Los
-  efectos del juego (comer, GO,
-  game over) quedan para la lógica de la serpiente.
+  `ACTION_UP` cancela). En el juego (`Game`): `SFX_START` al iniciar (GO !),
+  `SFX_EAT` al comer, `SFX_GAME_OVER` al morir y `SFX_BACK` al volver al menú.
 - Con SDA=8 y SCL=9, dirección 0x3C.
 
 ---
@@ -795,7 +795,7 @@ llama a `display.clear()`, lo decide cada ventana.
    | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria; al llegar al límite se procesa igual que haber soltado el botón, volviendo el parpadeo normal) |
    | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas) |
    | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
-   | `InfoWindow` | Todo (dibuja una sola vez) | — |
+   | `Game` | Primer frame: clear completo + Header (puntaje 12x16 izq., récord "HI" 6x8 der.), alimento y serpiente | Header solo si cambia el puntaje o el récord (banda 0..15); tablero (Body 16..63) solo si `_dirtyBoard` (movimiento, comida nueva, transición de estado): borra el Body, redibuja alimento + serpiente; overlay "GO !"/"PAUSA"/"GAME OVER" (cuadro blanco centrado + texto invertido) en cada frame según el estado |
 
 4. Los modos de edición del `Menu` ("Sound" y "Dificultad") comparten la banda
    dinámica de los rombos (45..53): al entrar (`beginSoundEdit()`/
@@ -884,5 +884,90 @@ La panza recta comparte sprite por par de direcciones: `BELLY_TO_RIGHT` =
 
 `SnakeSprites.h` forma parte del respaldo del juego original adaptado al estilo
 del proyecto (pie `// Fin`, cabecera descriptiva, comentarios de los sprites
-corregidos). Los sprites se usan aún solo como datos: la lógica de la serpiente
-que los consume es una fase pendiente (ver sección 1).
+corregidos). Los consume la ventana `Game` (ver sección 16): la parte de cada
+segmento (cola/cuerpo/curva/cabeza) se deriva en cada frame de la geometría de
+sus vecinos y de la dirección de la cabeza.
+
+---
+
+## 16. Clase `Game` — API (ventana del juego)
+
+Ubicación: `Game.h` / `Game.cpp`. Ventana del juego de la serpiente
+(estado `NUEVO`/`CONTINUAR` del `Engine`), reemplaza al placeholder `InfoWindow`
+(eliminado). Siguió el diseño validado en un simulacro en host (MinGW) de la
+lógica núcleo (selección de sprites, wrap, comida, colisiones) antes de escribirse.
+
+### Constructor
+
+```cpp
+Game(Display& display, Buttons& buttons, Sound& sound);
+```
+
+### Constantes
+
+| Constante | Valor | Significado |
+|-----------|-------|-------------|
+| `COLS`, `ROWS` | 16, 6 | Tablero: rejilla de 16×6 celdas de 8 px en el Body (128×48). |
+| `MAX_LENGTH` | 96 | Cantidad máxima de segmentos (una celda por segmento). |
+| `DIFICULTAD_MIN` / `MAX` / `DEFAULT` | 1 / 25 / 13 | Nivel de dificultad acotado (mismo rango que el menú). |
+| `GO_MS` | 1200 | Duración de la cuenta regresiva inicial ("GO !"). |
+| `MOUTH_MOVES` | 3 | Movimientos con la boca abierta tras comer. |
+
+### Métodos
+
+| Método | Descripción |
+|--------|-------------|
+| `void begin(bool newGame)` | `true` = nueva partida (reinicia todo y arranca la cuenta regresiva). `false` = reanudar la partida anterior en pausa; si no hay partida en curso arranca una nueva. Conserva el récord (`_topScore`) entre partidas. |
+| `void setDifficulty(uint8_t level)` | Nivel 1..25 (clamp). Se aplica a la velocidad cuando ARRANCA una partida (no a las reanudadas). |
+| `void update()` | Estado `START`: pre-gira con MOVE, entra a `PLAY` con `ACTION_RIGHT` o al agotarse `GO_MS`. `PLAY`: gira con MOVE (sin reversa directa) y avanza un paso cada `_moveDelay` ms. `PAUSE`: reanuda con `ACTION_RIGHT`/`ACTION_LEFT`. `GAME_OVER`: cualquier ACTION vuelve al menú. `ACTION_UP` (común "volver al menú") sale en cualquier estado menos `GAME_OVER`. |
+| `void print()` | Renderizado por zonas (ver sección 13). |
+| `bool done()` | `true` al pedir volver al menú. |
+| `uint8_t score()` / `topScore()` | Puntaje actual / récord. El `Engine` sincroniza `topScore()` con el menú al salir. |
+
+### Reglas del juego
+
+- **Movimiento:** la cabeza avanza 1 celda por paso con **wrap en X y en Y**
+  (sale por un borde, aparece por el opuesto, estilo Nokia). La velocidad
+  (`_moveDelay` ms por paso) es lineal con la dificultad: `1000 - (nivel-1)*38`
+  (nivel 1 → 1000 ms, nivel 25 → 88 ms).
+- **No hay reversa directa:** girar hacia la dirección contraria se ignora
+  (los botones MOVE son excluyentes entre sí por el anticonflicto de `Buttons`).
+- **Serpiente:** buffer circular `Seg body[MAX_LENGTH]` (cola en `_tailIx`,
+  cabeza en `_headIx`). Inicial: células `(1,2)..(4,2)`, cabeza a la derecha.
+- **Comer:** al tocar el alimento (`SFX_EAT`): crece (+1 segmento, la cola NO
+  avanza ese paso, puntaje +1 y boca abierta `MOUTH_MOVES` movimientos). El
+  alimento se regenera en una **celda libre al azar**. Si no hay celdas libres
+  (tablero lleno) la partida **se gana** (termina). Dibujado como **rombo**
+  simétrico centrado en la celda (dos `fillTriangle`), como el rombo del menú.
+- **Colisión con el cuerpo:** al mover, la celda destino es ilegal si coincide
+  con el cuerpo **salvo la celda de la cola cuando NO come** (la cola se libera
+  ese paso, como en el Nokia original; la cola es bloqueante solo cuando come).
+  Si colisiona: `GAME_OVER` (`SFX_GAME_OVER`), informa `SFX_BACK` al volver y
+  `_hasGame = false` (un `Continue` posterior arranca de nuevo).
+- **Pausa y salida:** `ACTION_UP` durante la partida vuelve al menú **sin
+  perderla** (`_hasGame` mantiene el tablero; `Continue` la reanuda en pausa).
+  `GAME_OVER` deja `_hasGame = false`.
+- **Sprites:** cada segmento obtiene su parte por geometría (`partFor`): cola
+  `TAIL_TO_<dir hacia el siguiente>`, cuerpo recto `BODY_TO_<dir de salida>`,
+  curva `CORNER_<horizontal>_<vertical>` (índice 8..11 calculado), cabeza
+  `HEAD_<dir>_CLOSE` y `HEAD_<dir>_OPEN` al comer. El orden del enum `Dir`
+  (UP=1..LEFT=4) coincide con el orden de los sprites por dirección (`dir-1`).
+  `drawSprite` dibuja cada píxel del sprite 4×4 como un bloque 2×2 (completa la
+  celda de 8×8). La cabeza se dibuja al final (queda encima).
+- **Header:** puntaje en `TEXT_12x16` (izq.) y récord `HI x` en `TEXT_6x8`
+  (der.); se redibuja solo cuando cambian.
+- **Overlays:** "GO !" (cuenta regresiva), "PAUSA" y "GAME OVER" = cuadro blanco
+  (`fillRoundRect`) centrado en el Body + texto invertido negro `TEXT_12x16`
+  (`drawTextInverted`). Al volver a `PLAY` se marca `_dirtyBoard` (borra el
+  overlay bajo el tablero).
+
+### Validación en host (MinGW)
+
+Antes de escribir el código se simuló en el PC la lógica núcleo (misma aritmética
+de ring buffer, colisiones y selección de sprites): comer/crecer (cola se
+mantiene, score, longitud), longitud estable sin comida (la cola avanza),
+colisión real detectada (la cabeza no avanza), la cabeza **puede** ocupar la
+celda de la cola (anillo casi cerrado), wrap horizontal y vertical, y cargo de
+integridad de 400 pasos con giros (celdas únicas + adyacencia sin romper).
+`Game.cpp` además se compiló en host con stubs de `Display`/`Buttons`/`Sound`/
+`Adafruit_SSD1306` reproduciendo las firmas reales (0 errores).

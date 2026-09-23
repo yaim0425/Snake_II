@@ -3,7 +3,7 @@
 //
 // Este archivo construye TODAS las clases y las inicia en setup():
 //   - Display y Buttons: hardware (I2C del OLED y pines de los botones).
-//   - Boot, Menu, Credits, InfoWindow, Legend: ventanas independientes
+//   - Boot, Menu, Credits, Game, Legend: ventanas independientes
 //     (hermanas, no anidadas), instancias únicas para todo el juego. Sus
 //     begin() los llama Engine al entrar en cada estado, y entre transiciones
 //     sus valores se conservan.
@@ -18,7 +18,7 @@
 #include "Boot.h"
 #include "Menu.h"
 #include "Credits.h"
-#include "InfoWindow.h"
+#include "Game.h"
 #include "Legend.h"
 #include "Buzzer.h"
 #include "Sound.h"
@@ -54,11 +54,11 @@ Sound sound(buzzer);
 Boot boot(display, buttons);
 Menu menu(display, buttons, sound, 0, "v0.1");
 Credits credits(display, buttons, sound);
-InfoWindow info(display, buttons);
+Game game(display, buttons, sound);
 Legend legend(display, buttons, sound);
 
 // Despachador: recibe las ventanas y decide cuál se ve según su estado.
-Engine engine(display, buttons, boot, menu, credits, info, legend, sound);
+Engine engine(display, buttons, boot, menu, credits, game, legend, sound);
 
 // ====================================================================================
 
