@@ -327,10 +327,11 @@ Al confirmar la opción **"Sound"** con `ACTION_RIGHT` (btn2) **ya no se abre un
 ventana separada** (la clase `SoundWindow` fue eliminada): el menú entra en modo
 de edición inline.
 
-- En la **banda de los rombos (45..53)** se dibuja el selector:
-  texto **"On"** o **"Off"** en `TEXT_6x8` centrado, con **una flecha a cada lado
-  orientada hacia el valor actual** (triángulos `fillTriangle`) y **un espacio
-  entre el texto y cada flecha**.
+- En la **banda de los rombos (45..53)** se dibuja el selector: **"On" y "Off"** en
+  `TEXT_6x8` con **un solo espacio de separación** entre ambos; la **palabra activa
+  (el valor actual) queda centrada entre las flechas**, que apuntan hacia adentro
+  (triángulos `fillTriangle`) y son **intermitentes** (visibles 75% del período,
+  ocultas 25%).
 - `MOVE_LEFT`/`MOVE_RIGHT`: cambia el valor mostrado On/Off **sin aplicarlo**
   (toca `SFX_CLICK`).
 - `ACTION_RIGHT` (btn2): **aplica** el valor (`Sound::setEnabled`) y vuelve al
@@ -338,8 +339,9 @@ de edición inline.
 - `ACTION_UP` (btn1): **cancela** sin cambiar el estado (toca `SFX_BACK`) y vuelve
   al menú. El texto del selector desaparece.
 - `Sound` se guarda como miembro `_soundEnabled` (no es una vista previa global);
-  el selector se redibuja solo cuando cambia el valor. `OPC_SONIDO` no se entrega
-  a `Engine::confirm()` (devuelve `-1`), por lo que el `Engine` permanece en `MENU`.
+  el selector se redibuja **en cada frame** (las flechas parpadean). `OPC_SONIDO`
+  no se entrega a `Engine::confirm()` (devuelve `-1`), por lo que el `Engine`
+  permanece en `MENU`.
 
 ### Opciones y enum
 
@@ -718,16 +720,16 @@ llama a `display.clear()`, lo decide cada ventana.
    | Ventana | Estáticos (una vez) | Dinámicos por frame |
    |---------|---------------------|---------------------|
    | `Boot` | — (primer frame: clear completo) | Franjas: se borran **solo las columnas que cada franja deja de ocupar** (las coincidentes se mantienen) y se dibujan las nuevas; si no cambió el desplazamiento no se dibuja nada. |
-   | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja la misma banda 45..53 con el selector On/Off (solo al entrar o al cambiar el valor) |
+   | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja la misma banda 45..53 con el selector On/Off en **cada frame** (las flechas parpadean) |
    | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas) |
    | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
    | `InfoWindow` | Todo (dibuja una sola vez) | — |
 
 4. El modo de edición de sonido del `Menu` comparte la banda dinámica de los
-   rombos (45..53): al entrar (`beginSoundEdit()`, `_redrawSound = true`) se borra
-   y se dibuja el selector On/Off; al cambiar el valor (`MOVE_LEFT`/`MOVE_RIGHT`)
-   se vuelve a borrar/redibujar esa banda; al salir (`_redraw = true`) el menú se
-   repinta completo (vuelven los rombos).
+   rombos (45..53): al entrar (`beginSoundEdit()`) se borra y se dibuja el
+   selector On/Off; se vuelve a borrar/redibujar en **cada frame** porque las
+   flechas parpadean; al salir (`_redraw = true`) el menú se repinta completo
+   (vuelven los rombos).
 
 ---
 

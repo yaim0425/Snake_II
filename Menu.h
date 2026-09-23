@@ -161,7 +161,6 @@ private:
   // Edición inline de sonido
   bool _editingSound;
   bool _soundEnabled;
-  bool _redrawSound;
 
   Scroller _scroller;   // scroller de 1 bit del cuadro de selección (1 banda, texto 12x16)
 };
