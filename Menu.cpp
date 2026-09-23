@@ -39,6 +39,7 @@ Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore,
     _redraw(true),
     _editingSound(false),
     _soundEnabled(true),
+    _redrawSound(false),
     _scroller(display, 1, nullptr) {}
 
 // ========================================================
@@ -52,6 +53,7 @@ void Menu::begin() {
   _holdStart = millis();
   _redraw = true;
   _editingSound = false;
+  _redrawSound = false;
 }
 
 // ========================================================
@@ -102,6 +104,7 @@ void Menu::setSelected(int8_t index) {
   _scroller.compose(optionText(_selected), TEXT_12x16);
   _redraw = true;
   _editingSound = false;
+  _redrawSound = false;
 }
 
 // ========================================================
@@ -115,10 +118,12 @@ void Menu::update() {
     if (_buttons.pressed(Buttons::MOVE_LEFT) && _soundEnabled) {
       _soundEnabled = false;
       _sound.play(Sound::SFX_CLICK);
+      _redrawSound = true;
     }
     if (_buttons.pressed(Buttons::MOVE_RIGHT) && !_soundEnabled) {
       _soundEnabled = true;
       _sound.play(Sound::SFX_CLICK);
+      _redrawSound = true;
     }
     if (_buttons.actionRightPressed()) {
       // btn2 (Select): aplica el valor actual y vuelve al menú
@@ -178,10 +183,12 @@ void Menu::navigate() {
 void Menu::beginSoundEdit() {
   _editingSound = true;
   _soundEnabled = _sound.enabled();
+  _redrawSound = true;
 }
 
 void Menu::endSoundEdit() {
   _editingSound = false;
+  _redrawSound = false;
   _redraw = true;
 }
 
@@ -193,10 +200,9 @@ bool Menu::isEditingSound() const {
 // Selector On/Off (modo edición de sonido)
 //
 // Reemplaza a los rombos de posición mientras se edita el
-// sonido: "On" y "Off" en 6x8 con un solo espacio entre ambos;
-// la palabra activa (el valor actual) queda centrada entre las
-// flechas, que apuntan hacia adentro y son intermitentes.
-// Ocupa la misma banda 45..53.
+// sonido: texto 6x8 centrado (On/Off) con una flecha a cada
+// lado orientada hacia el valor actual y un espacio entre el
+// texto y las flechas. Ocupa la misma banda 45..53.
 // ========================================================
 
 void Menu::drawSoundSelector() {
@@ -206,37 +212,15 @@ void Menu::drawSoundSelector() {
   const int16_t yMid = DIA_TOP + DIA_SIZE / 2; // 49
   const int16_t yBot = DIA_TOP + DIA_SIZE;     // 53
 
-  // Flechas intermitentes: visibles 75% del período, ocultas 25%
-  bool hidden = (millis() % BLINK_PERIOD) <
-                (uint32_t)BLINK_PERIOD * BLINK_OFF_PCT / 100;
+  // Flecha izquierda: punta orientada al centro (apunta al valor actual)
+  s.fillTriangle(30, yMid, 24, yTop, 24, yBot, SSD1306_WHITE);
 
-  if (!hidden) {
-    // Flecha izquierda: punta orientada al centro (apunta al valor actual)
-    s.fillTriangle(30, yMid, 24, yTop, 24, yBot, SSD1306_WHITE);
+  // Flecha derecha: punta orientada al centro (apunta al valor actual)
+  s.fillTriangle(98, yMid, 104, yTop, 104, yBot, SSD1306_WHITE);
 
-    // Flecha derecha: punta orientada al centro (apunta al valor actual)
-    s.fillTriangle(98, yMid, 104, yTop, 104, yBot, SSD1306_WHITE);
-  }
-
-  // "On" y "Off" con un solo espacio de separación. La palabra activa (On u
-  // Off) queda centrada entre las flechas: el bloque se desplaza de modo que
-  // el centro de la palabra activa caiga en el punto medio de las flechas (64).
-  const char* label = "On Off";
-  uint8_t onW   = _display.getTextWidth("On", TEXT_6x8);         // 2 chars
-  uint8_t offW  = _display.getTextWidth("Off", TEXT_6x8);        // 3 chars
-  uint8_t spaceW = _display.getTextWidth(" ", TEXT_6x8);         // 1 char
-
-  // Centro de la palabra activa dentro del bloque "On Off":
-  //  - On  activo: centro en onW/2                        (On va primero)
-  //  - Off activo: centro en onW + spaceW + offW/2        (tras "On ")
-  int16_t activeCenter = _display.getWidth() / 2;  // 64: punto medio de las flechas
-  int16_t labelX;
-  if (_soundEnabled) {
-    labelX = activeCenter - onW / 2;
-  } else {
-    labelX = activeCenter - (onW + spaceW + offW / 2);
-  }
-
+  // Valor actual centrado (hay espacio entre el texto y cada flecha)
+  const char* label = (_soundEnabled) ? "On" : "Off";
+  int16_t labelX = (_display.getWidth() - _display.getTextWidth(label, TEXT_6x8)) / 2;
   _display.drawText(label, labelX, yTop, TEXT_6x8);
 }
 
@@ -286,6 +270,7 @@ void Menu::print() {
   // UNA sola vez; ya no se borran ni se redibujan en cada frame.
   if (_redraw) {
     _display.clear();
+    _redrawSound = true;
 
     // Cuadro de selección: fijo, de ancho completo
     _display.screen().fillRect(0, BOX_TOP, _display.getWidth(), BOX_HEIGHT,
@@ -319,11 +304,14 @@ void Menu::print() {
   _scroller.blit(0, TEXT_SEL_TOP, SSD1306_BLACK, SSD1306_WHITE);
 
   if (_editingSound) {
-    // Modo edición de sonido: se borra/redibuja la banda del selector
-    // (45..53) en cada frame porque las flechas parpadean.
-    _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),
-                               DIA_SIZE + 1, SSD1306_BLACK);
-    drawSoundSelector();
+    // Modo edición de sonido: solo se borra/redibuja la banda del selector
+    // (45..53) cuando cambia el valor (al entrar o al navegar On/Off).
+    if (_redrawSound) {
+      _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),
+                                 DIA_SIZE + 1, SSD1306_BLACK);
+      drawSoundSelector();
+      _redrawSound = false;
+    }
   } else {
     // Solo se borra la banda de rombos (45..53), la única zona dinámica restante
     _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),
