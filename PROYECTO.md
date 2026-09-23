@@ -58,8 +58,9 @@ Arquitectura:
   que parpadean uno a la vez) y
   después el menú inicial, los placeholders "En desarrollo" (Nuevo, Continuar,
   Dificultad), la opción `Sound` (**se edita inline en el propio `Menu`**: al
-  confirmar con `ACTION_RIGHT` aparece un selector On/Off con flechas a cada lado
-  en la banda de los rombos, se navega con `MOVE_LEFT`/`MOVE_RIGHT` y se aplica
+  confirmar con `ACTION_RIGHT` aparece un selector ON/OFF en la banda de los
+  rombos con una sola flecha parpadeante en el lado del destino, se navega con
+  `MOVE_LEFT`/`MOVE_RIGHT` y se aplica
   con `ACTION_RIGHT`; `ACTION_UP` cancela) y los créditos. La `Legend` solo se muestra al arranque;
   al volver al menú desde cualquier ventana se pasa directo a `Menu` (ya no se
   repite la leyenda). El código del juego original no se mantiene como archivos de
@@ -327,18 +328,27 @@ Al confirmar la opción **"Sound"** con `ACTION_RIGHT` (btn2) **ya no se abre un
 ventana separada** (la clase `SoundWindow` fue eliminada): el menú entra en modo
 de edición inline.
 
-- En la **banda de los rombos (45..53)** se dibuja el selector:
-  texto **"On"** o **"Off"** en `TEXT_6x8` centrado, con **una flecha a cada lado
-  orientada hacia el valor actual** (triángulos `fillTriangle`) y **un espacio
-  entre el texto y cada flecha**.
-- `MOVE_LEFT`/`MOVE_RIGHT`: cambia el valor mostrado On/Off **sin aplicarlo**
-  (toca `SFX_CLICK`).
+- En la **banda de los rombos (45..53)** se dibuja el selector con
+  **mayúsculas**: texto **"OFF"** o **"ON "** en `TEXT_6x8` centrado (con el
+  espacio final de "ON " ambos estados miden lo mismo, 18 px, y el centrado no
+  se desplaza) y **una sola flecha** (triángulo `fillTriangle`), **pegada al
+  texto** (hueco `ARROW_GAP = 6` px), que **parpadea** (visible 75% / oculto
+  25% de un período de `ARROW_BLINK_PERIOD = 500` ms); la palabra no parpadea.
+  La flecha marca el **lado del destino** (la tecla que cambia el estado):
+  `"OFF >"` cuando el sonido está OFF (presionar `MOVE_RIGHT` enciende) y
+  `"< ON"` cuando está ON (presionar `MOVE_LEFT` apaga). El selector se
+  redibuja **cada frame** (banda móvil): al entrar, al cambiar el valor o por
+  el parpadeo de la flecha.
+- `MOVE_LEFT`/`MOVE_RIGHT`: cambia el valor mostrado ON/OFF **sin aplicarlo**
+  (toca `SFX_CLICK`). Solo cambia la tecla indicada por la flecha (`MOVE_LEFT`
+  apaga si está ON, `MOVE_RIGHT` enciende si está OFF); la otra no hace nada.
 - `ACTION_RIGHT` (btn2): **aplica** el valor (`Sound::setEnabled`) y vuelve al
   menú (`SFX_CONFIRM` al encender). El texto del selector desaparece.
 - `ACTION_UP` (btn1): **cancela** sin cambiar el estado (toca `SFX_BACK`) y vuelve
   al menú. El texto del selector desaparece.
 - `Sound` se guarda como miembro `_soundEnabled` (no es una vista previa global);
-  el selector se redibuja solo cuando cambia el valor. `OPC_SONIDO` no se entrega
+  el selector se redibuja en cada `print()` (la flecha parpadea; el texto, no).
+  `OPC_SONIDO` no se entrega
   a `Engine::confirm()` (devuelve `-1`), por lo que el `Engine` permanece en `MENU`.
 
 ### Opciones y enum
@@ -578,7 +588,8 @@ En `Snake_II.ino`: `Buzzer buzzer;` y `Sound sound(buzzer);` (instancias únicas
 **Eliminada.** La clase `SoundWindow` (y sus archivos `SoundWindow.h`/`.cpp`)
 fue eliminada del proyecto: la opción "Sound" ya no abre una ventana separada.
 El On/Off se edita **inline en el propio `Menu`** (modo de edición de sonido,
-ver sección 7): selector On/Off con flechas en la banda de los rombos,
+ver sección 7): selector ON/OFF en la banda de los rombos con una flecha
+parpadeante en el lado del destino,
 `MOVE_LEFT`/`MOVE_RIGHT` cambian el valor, `ACTION_RIGHT` (btn2) lo aplica y
 vuelve al menú, `ACTION_UP` (btn1) cancela y vuelve al menú. `Engine` ya no tiene
 el estado `SONIDO` ni recibe `SoundWindow`.
@@ -718,16 +729,17 @@ llama a `display.clear()`, lo decide cada ventana.
    | Ventana | Estáticos (una vez) | Dinámicos por frame |
    |---------|---------------------|---------------------|
    | `Boot` | — (primer frame: clear completo) | Franjas: se borran **solo las columnas que cada franja deja de ocupar** (las coincidentes se mantienen) y se dibujan las nuevas; si no cambió el desplazamiento no se dibuja nada. |
-   | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja la misma banda 45..53 con el selector On/Off (solo al entrar o al cambiar el valor) |
+   | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea) |
    | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas) |
    | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
    | `InfoWindow` | Todo (dibuja una sola vez) | — |
 
 4. El modo de edición de sonido del `Menu` comparte la banda dinámica de los
-   rombos (45..53): al entrar (`beginSoundEdit()`, `_redrawSound = true`) se borra
-   y se dibuja el selector On/Off; al cambiar el valor (`MOVE_LEFT`/`MOVE_RIGHT`)
-   se vuelve a borrar/redibujar esa banda; al salir (`_redraw = true`) el menú se
-   repinta completo (vuelven los rombos).
+   rombos (45..53): al entrar (`beginSoundEdit()`) se borra y se dibuja el
+   selector ON/OFF y, como la flecha parpadea, la banda se borra/redibuja en
+   **cada frame** (el valor solo cambia con `MOVE_LEFT`/`MOVE_RIGHT` según la
+   flecha); al salir (`_redraw = true`) el menú se repinta completo (vuelven
+   los rombos). El flag `_redrawSound` ya no existe.
 
 ---
 

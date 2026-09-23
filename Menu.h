@@ -121,6 +121,15 @@ private:
   static constexpr uint32_t BLINK_PERIOD  = 1000;  // período completo del parpadeo (ms)
   static constexpr uint8_t  BLINK_OFF_PCT = 25;   // % del período en que está oculto
 
+  // Selector de sonido (modo edición): flecha única, pegada al texto, en el
+  // lado del destino (OFF muestra "OFF >": MOVE_RIGHT enciende; ON muestra
+  // "< ON": MOVE_LEFT apaga). La flecha parpadea: visible 75%, oculto 25% de
+  // un período de ARROW_BLINK_PERIOD ms. La palabra NO parpadea.
+  static constexpr int16_t ARROW_GAP             = 6;    // hueco (px) entre el texto y la flecha
+  static constexpr int16_t ARROW_W               = 6;    // grosor horizontal de la flecha (px)
+  static constexpr uint32_t ARROW_BLINK_PERIOD   = 500;  // período del parpadeo de la flecha (ms)
+  static constexpr uint8_t  ARROW_BLINK_OFF_PCT  = 25;   // % del período en que la flecha está oculta
+
   // Pie del Body: línea separadora y texto (el texto baja 1 px: 56 -> 57)
   static constexpr int16_t PIE_LINE_ROW = 54;  // línea horizontal 1 px, a 2 px sobre el pie
   static constexpr int16_t PIE_TOP      = 57;  // texto "Top"/versión (antes fila 56)
@@ -161,7 +170,6 @@ private:
   // Edición inline de sonido
   bool _editingSound;
   bool _soundEnabled;
-  bool _redrawSound;
 
   Scroller _scroller;   // scroller de 1 bit del cuadro de selección (1 banda, texto 12x16)
 };
