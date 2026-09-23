@@ -39,6 +39,11 @@ Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t topScore,
     _redraw(true),
     _editingSound(false),
     _soundEnabled(true),
+    _editingDifficulty(false),
+    _difficulty(DIFICULTAD_DEFAULT),
+    _editDifficulty(DIFICULTAD_DEFAULT),
+    _repeatStart(0),
+    _repeatLast(0),
     _scroller(display, 1, nullptr) {}
 
 // ========================================================
@@ -51,6 +56,7 @@ void Menu::begin() {
   _holdStart = millis();
   _redraw = true;
   _editingSound = false;
+  _editingDifficulty = false;
 }
 
 // ========================================================
@@ -101,6 +107,7 @@ void Menu::setSelected(int8_t index) {
   _scroller.compose(optionText(_selected), TEXT_12x16);
   _redraw = true;
   _editingSound = false;
+  _editingDifficulty = false;
 }
 
 // ========================================================
@@ -132,10 +139,38 @@ void Menu::update() {
       _sound.play(Sound::SFX_BACK);
       endSoundEdit();
     }
+  } else if (_editingDifficulty) {
+    // En modo edición de dificultad: MOVE_RIGHT +1, MOVE_LEFT -1 con
+    // repetición al mantener presionado (primer paso inmediato, después
+    // repite cada HOLD_REPEAT_TICK ms tras HOLD_REPEAT_DELAY de mantención).
+    // El valor mostrado cambia sin aplicarse; solo se aplica al confirmar.
+    if (holdRepeat(Buttons::MOVE_RIGHT) && _editDifficulty < DIFICULTAD_MAX) {
+      _editDifficulty++;
+      _sound.play(Sound::SFX_CLICK);
+    }
+    if (holdRepeat(Buttons::MOVE_LEFT) && _editDifficulty > DIFICULTAD_MIN) {
+      _editDifficulty--;
+      _sound.play(Sound::SFX_CLICK);
+    }
+    if (_buttons.actionRightPressed()) {
+      // btn2 (Select): aplica el valor y vuelve al menú
+      _difficulty = _editDifficulty;
+      _sound.play(Sound::SFX_CONFIRM);
+      endDifficultyEdit();
+    } else if (_buttons.actionUpPressed()) {
+      // btn1 (Back): cancela sin cambiar el estado y vuelve al menú
+      _sound.play(Sound::SFX_BACK);
+      endDifficultyEdit();
+    }
   } else {
     navigate();
-    // Al confirmar la opción "Sound" (btn2) se entra en modo edición
-    // inline; ya no se abre SoundWindow (ver Engine).
+    // Al confirmar la opción "Dificultad" (btn2) se entra en modo edición
+    // inline, igual que "Sound" (ver Engine).
+    if (_buttons.actionRightPressed() && _selected == OPC_DIFICULTAD) {
+      _sound.play(Sound::SFX_CLICK);
+      beginDifficultyEdit();
+      return;
+    }
     if (_buttons.actionRightPressed() && _selected == OPC_SONIDO) {
       _sound.play(Sound::SFX_CLICK);
       beginSoundEdit();
@@ -192,6 +227,60 @@ bool Menu::isEditingSound() const {
 }
 
 // ========================================================
+// Edición inline de Dificultad
+// ========================================================
+
+void Menu::beginDifficultyEdit() {
+  _editingDifficulty = true;
+  _editDifficulty = _difficulty;
+  _repeatStart = 0;
+  _repeatLast = 0;
+}
+
+void Menu::endDifficultyEdit() {
+  _editingDifficulty = false;
+  _redraw = true;
+}
+
+bool Menu::isEditingDifficulty() const {
+  return _editingDifficulty;
+}
+
+uint8_t Menu::difficulty() const {
+  return _difficulty;
+}
+
+// ========================================================
+// Repetición por mantención (dificultad)
+//
+// Devuelve true cuando hay que aplicar el paso del botón en
+// el modo de edición de dificultad: el primero es inmediato
+// (evento pressed) y, manteniéndolo presionado, los siguientes
+// cada HOLD_REPEAT_TICK ms a partir de HOLD_REPEAT_DELAY de
+// mantención. Un solo timer compartido: si se suelta y se
+// vuelve a presionar, pressed() reinicia el temporizador.
+// ========================================================
+
+bool Menu::holdRepeat(uint8_t button) {
+  if (_buttons.pressed(button)) {
+    _repeatStart = millis();
+    _repeatLast = millis();
+    return true;
+  }
+
+  if (_buttons.state(button)) {
+    uint32_t now = millis();
+    if ((now - _repeatStart) >= HOLD_REPEAT_DELAY &&
+        (now - _repeatLast) >= HOLD_REPEAT_TICK) {
+      _repeatLast = now;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// ========================================================
 // Selector de sonido (modo edición de sonido)
 //
 // Reemplaza a los rombos de posición mientras se edita el
@@ -241,6 +330,60 @@ void Menu::drawSoundSelector() {
   }
 
   _display.drawText(label, labelX, yTop, TEXT_6x8);
+}
+
+// ========================================================
+// Selector de dificultad (modo edición de dificultad)
+//
+// Reemplaza a los rombos de posición mientras se edita la
+// dificultad. Texto 6x8 con el número 1..25 centrado con
+// ancho constante (1 dígito se alinea a la derecha con un
+// espacio inicial: " 5" mide lo mismo que "13", 12 px, y el
+// centrado no se desplaza) y DOS flechas parpadeantes a los
+// lados, apuntando al exterior ("< 13 >"):
+//   - flecha izquierda: MOVE_LEFT (-1), oculta en el mínimo
+//   - flecha derecha:   MOVE_RIGHT (+1), oculta en el máximo
+// Las flechas parpadean juntas (visible 75%, oculto 25% de
+// ARROW_BLINK_PERIOD ms), pegadas al texto (hueco ARROW_GAP);
+// el número no parpadea. Ocupa la banda 45..53.
+// ========================================================
+
+void Menu::drawDifficultySelector() {
+  Adafruit_SSD1306& s = _display.screen();
+
+  // Número centrado con ancho constante ("13" / " 5" = 12 px)
+  char buf[8];
+  if (_editDifficulty < 10) sprintf(buf, " %u", _editDifficulty);
+  else                      sprintf(buf, "%u", _editDifficulty);
+
+  int16_t labelW = _display.getTextWidth(buf, TEXT_6x8);
+  int16_t labelX = (_display.getWidth() - labelW) / 2;
+
+  const int16_t yTop = DIA_TOP + 1;            // 46
+  const int16_t yMid = DIA_TOP + DIA_SIZE / 2; // 49
+  const int16_t yBot = DIA_TOP + DIA_SIZE;     // 53
+
+  // Parpadeo de las flechas: visible el 75% del período, ocultas el primer 25%
+  bool arrowsVisible =
+      (millis() % ARROW_BLINK_PERIOD) >=
+      (uint32_t)ARROW_BLINK_PERIOD * ARROW_BLINK_OFF_PCT / 100;
+
+  if (arrowsVisible) {
+    // Flecha izquierda (-1), solo si se puede restar
+    if (_editDifficulty > DIFICULTAD_MIN) {
+      int16_t base = labelX - ARROW_GAP;  // lado plano, pegado al texto
+      s.fillTriangle(base - ARROW_W, yMid, base, yTop, base, yBot,
+                     SSD1306_WHITE);
+    }
+    // Flecha derecha (+1), solo si se puede sumar
+    if (_editDifficulty < DIFICULTAD_MAX) {
+      int16_t base = labelX + labelW + ARROW_GAP;  // lado plano, pegado al texto
+      s.fillTriangle(base + ARROW_W, yMid, base, yTop, base, yBot,
+                     SSD1306_WHITE);
+    }
+  }
+
+  _display.drawText(buf, labelX, yTop, TEXT_6x8);
 }
 
 // ========================================================
@@ -327,6 +470,12 @@ void Menu::print() {
     _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),
                                DIA_SIZE + 1, SSD1306_BLACK);
     drawSoundSelector();
+  } else if (_editingDifficulty) {
+    // Modo edición de dificultad: la banda del selector (45..53) se borra y
+    // se vuelve a dibujar en cada frame (las flechas parpadean; el número no).
+    _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),
+                               DIA_SIZE + 1, SSD1306_BLACK);
+    drawDifficultySelector();
   } else {
     // Solo se borra la banda de rombos (45..53), la única zona dinámica restante
     _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),
@@ -344,10 +493,12 @@ int8_t Menu::selected() const {
 }
 
 int8_t Menu::confirm() const {
-  // La opción "Sound" NO se devuelve para abrir otra ventana: se edita
-  // inline en el propio menú (ver beginSoundEdit/update). Con lo demás
-  // se confirma como siempre (ACTION_RIGHT).
-  if (_buttons.actionRightPressed() && _selected != OPC_SONIDO) return _selected;
+  // Las opciones "Sound" y "Dificultad" NO se devuelven para abrir otra
+  // ventana: se editan inline en el propio menú (ver beginSoundEdit /
+  // beginDifficultyEdit y update). Con lo demás se confirma como siempre
+  // (ACTION_RIGHT).
+  if (_buttons.actionRightPressed() && _selected != OPC_SONIDO &&
+      _selected != OPC_DIFICULTAD) return _selected;
   return -1;
 }
 

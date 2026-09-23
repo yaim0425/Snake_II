@@ -86,6 +86,15 @@ public:
   void endSoundEdit();
   bool isEditingSound() const;
 
+  // ========================================================
+  // Edición inline de Dificultad
+  // ========================================================
+
+  void beginDifficultyEdit();
+  void endDifficultyEdit();
+  bool isEditingDifficulty() const;
+  uint8_t difficulty() const;
+
 private:
 
   // ========================================================
@@ -130,6 +139,21 @@ private:
   static constexpr uint32_t ARROW_BLINK_PERIOD   = 500;  // período del parpadeo de la flecha (ms)
   static constexpr uint8_t  ARROW_BLINK_OFF_PCT  = 25;   // % del período en que la flecha está oculta
 
+  // Selector de dificultad (modo edición): número 1..25 centrado con ancho
+  // constante (1 dígito se alinea a la derecha con un espacio inicial: " 5"
+  // mide lo mismo que "13", 12 px, y el centrado no se desplaza) y dos
+  // flechas parpadeantes a los lados ("< 13 >"). La flecha del lado en su
+  // límite se oculta: en 1 no hay flecha izquierda (-1 no existe); en 25 no
+  // hay derecha (+1 no existe). MOVE_LEFT -1, MOVE_RIGHT +1, con repetición
+  // al mantener presionado: el primer cambio es inmediato y tras
+  // HOLD_REPEAT_DELAY ms repele cada HOLD_REPEAT_TICK ms.
+  static constexpr uint8_t  DIFICULTAD_MIN     = 1;
+  static constexpr uint8_t  DIFICULTAD_MAX     = 25;
+  static constexpr uint8_t  DIFICULTAD_DEFAULT = 13;
+
+  static constexpr uint32_t HOLD_REPEAT_DELAY = 400;  // mantener para empezar a repetir (ms)
+  static constexpr uint32_t HOLD_REPEAT_TICK  = 100;  // intervalo de repetición mientras se mantiene (ms)
+
   // Pie del Body: línea separadora y texto (el texto baja 1 px: 56 -> 57)
   static constexpr int16_t PIE_LINE_ROW = 54;  // línea horizontal 1 px, a 2 px sobre el pie
   static constexpr int16_t PIE_TOP      = 57;  // texto "Top"/versión (antes fila 56)
@@ -141,6 +165,13 @@ private:
   void navigate();
   void drawDiamonds();
   void drawSoundSelector();
+  void drawDifficultySelector();
+
+  // Repetición por mantención: true cuando hay que aplicar el paso de un botón
+  // (MOVE_LEFT/MOVE_RIGHT) en el modo de edición de dificultad. El primer
+  // paso es inmediato (pressed); al mantener, solo tras HOLD_REPEAT_DELAY ms
+  // y luego un paso cada HOLD_REPEAT_TICK ms.
+  bool holdRepeat(uint8_t button);
 
   // ========================================================
   // Dependencias
@@ -170,6 +201,13 @@ private:
   // Edición inline de sonido
   bool _editingSound;
   bool _soundEnabled;
+
+  // Edición inline de dificultad
+  bool _editingDifficulty;
+  uint8_t _difficulty;      // valor persistente (default 13; se aplica al confirmar)
+  uint8_t _editDifficulty;  // valor en edición (no aplicado hasta confirmar)
+  uint32_t _repeatStart;    // inicio de la mantención (repetición por hold)
+  uint32_t _repeatLast;     // último paso de la repetición
 
   Scroller _scroller;   // scroller de 1 bit del cuadro de selección (1 banda, texto 12x16)
 };

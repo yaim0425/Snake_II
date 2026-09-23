@@ -51,7 +51,6 @@ void Engine::update() {
         switch (sel) {
           case Menu::OPC_NUEVO:      changeState(State::NUEVO);      break;
           case Menu::OPC_CONTINUAR:  changeState(State::CONTINUAR);  break;
-          case Menu::OPC_DIFICULTAD: changeState(State::DIFICULTAD); break;
           case Menu::OPC_CREDITOS:   changeState(State::CREDITOS);   break;
         }
       }
@@ -59,8 +58,7 @@ void Engine::update() {
     }
 
     case State::NUEVO:
-    case State::CONTINUAR:
-    case State::DIFICULTAD: {
+    case State::CONTINUAR: {
 
       _info.update();
       if (_info.done()) {
@@ -107,7 +105,6 @@ void Engine::print() {
     case State::MENU:       _menu.print();                                 break;
     case State::NUEVO:
     case State::CONTINUAR:
-    case State::DIFICULTAD:
                              _info.print();                                 break;
     case State::CREDITOS:   _credits.print();                              break;
     case State::LEGEND:     _legend.print();                               break;
@@ -134,7 +131,6 @@ void Engine::changeState(State newState) {
     case State::MENU:       _menu.begin();                                 break;
     case State::NUEVO:      _info.begin("New");                            break;
     case State::CONTINUAR:  _info.begin("Continue");                       break;
-    case State::DIFICULTAD: _info.begin("Difficulty");                     break;
     case State::CREDITOS:   _credits.begin();                              break;
     case State::LEGEND:     _legend.begin();                               break;
   }

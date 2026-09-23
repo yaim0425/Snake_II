@@ -73,7 +73,6 @@ private:
     MENU,
     NUEVO,
     CONTINUAR,
-    DIFICULTAD,
     CREDITOS,
     LEGEND
   };
