@@ -226,3 +226,7 @@ bool Buttons::actionDownReleased() const {
 bool Buttons::actionLeftReleased() const {
   return isSet(_released, ACTION_LEFT);
 }
+
+// ====================================================================================
+// Fin
+// ====================================================================================

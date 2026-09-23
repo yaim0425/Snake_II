@@ -238,6 +238,9 @@ size=3 -> texto 18x24    -> cuadro  (18+6) x (24+2) = 24x26
 - **Posición de texto devuelta:** siempre la *esquina superior-izquierda* del área del texto.
 - **Clase `Display` encapsula** el OLED; el juego que estaba en `Snake_II.ino` usaba
   `Adafruit_SSD1306` directamente (orden: `Screen`). Al integrar, migrar al objeto `Display`.
+- **Pie de archivo "Fin":** todos los archivos fuente (`.h`/`.cpp`) terminan con el
+  bloque de comentario `// ===…` + `// Fin` + `// ===…` (con una línea en blanco antes
+  y sin salto de línea final), igual que `Snake_II.ino`.
 
 ---
 
