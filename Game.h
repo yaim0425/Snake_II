@@ -152,6 +152,7 @@ private:
 
   // Render
   uint8_t slot(uint8_t index) const;             // índice del ring buffer para el segmento `index`
+  Dir opposite(Dir d) const;                     // dirección opuesta (RIGHT<->LEFT, UP<->DOWN)
   SnakeSprites::Part headPart() const;           // sprite de la cabeza (boca según la comida adyacente)
   SnakeSprites::Part bodyPartFor(Dir in, Dir out) const;  // BODY recto o CORNER al girar
   SnakeSprites::Part bellyPartFor(Dir in, Dir out) const; // BELLY recto o curvo (al comer)

@@ -377,11 +377,29 @@ SnakeSprites::Part Game::headPart() const {
 }
 
 // ========================================================
-// Sprite del cuerpo según las direcciones de entrada y salida:
-// recto (in == out) -> BODY_TO_<dir>; giro (in != out) ->
-// CORNER_<horizontal>_<vertical> (el índice de la curva es
-// CORNER_RIGHT_UP(8) + desplazamiento: horiz RIGHT -> vert UP
-// +0 / DOWN +1; horiz LEFT -> vert UP +2 / DOWN +3).
+// Dirección opuesta (RIGHT<->LEFT, UP<->DOWN). Se usa para
+// hallar el lado de la celda por donde ENTRA la tubería: si la
+// cabeza viajaba hacia `d`, el cuerpo anterior viene desde el
+// lado opuesto a `d`.
+// ========================================================
+
+Game::Dir Game::opposite(Dir d) const {
+  switch (d) {
+    case Dir::UP:    return Dir::DOWN;
+    case Dir::DOWN:  return Dir::UP;
+    case Dir::RIGHT: return Dir::LEFT;
+    case Dir::LEFT:  return Dir::RIGHT;
+    default:         return Dir::NONE;
+  }
+}
+
+// ========================================================
+// Sprite del cuerpo según las direcciones de entrada (in) y
+// salida (out): recto (in == out) -> BODY_TO_<dir>; giro
+// (in != out) -> CORNER_<lado horizontal>_<lado vertical>
+// (el índice de la curva es CORNER_RIGHT_UP(8) +
+// desplazamiento: horiz RIGHT -> vert UP +0 / DOWN +1;
+// horiz LEFT -> vert UP +2 / DOWN +3).
 // ========================================================
 
 SnakeSprites::Part Game::bodyPartFor(Dir in, Dir out) const {
@@ -389,14 +407,16 @@ SnakeSprites::Part Game::bodyPartFor(Dir in, Dir out) const {
     return (SnakeSprites::Part)(SnakeSprites::BODY_TO_UP + ((uint8_t)out - 1));
   }
 
-  Dir horiz, vert;
-  if (in == Dir::UP || in == Dir::DOWN) {
-    horiz = out;
-    vert = in;
-  } else {
-    horiz = in;
-    vert = out;
-  }
+  // La esquina conecta el lado por el que la tubería ENTRA a la
+  // celda (opuesto a la dirección de llegada `in`; p. ej. *iba a
+  // la izquierda* -> entra por la derecha) y el lado por el que
+  // SALE (`out`; p. ej. *ahora va a arriba*). Los nombres son
+  // esos dos lados: CORNER_<horizontal>_<vertical> (RIGHT_UP si
+  // entra por la derecha y sale arriba, o entra por arriba y sale
+  // a la derecha).
+  Dir entry = opposite(in);
+  Dir horiz = (entry == Dir::RIGHT || entry == Dir::LEFT) ? entry : out;
+  Dir vert  = (entry == Dir::RIGHT || entry == Dir::LEFT) ? out   : entry;
 
   uint8_t base = SnakeSprites::CORNER_RIGHT_UP;
   if (horiz == Dir::RIGHT) base += (vert == Dir::UP) ? 0 : 1;
@@ -420,14 +440,12 @@ SnakeSprites::Part Game::bellyPartFor(Dir in, Dir out) const {
     return SnakeSprites::BELLY_TO_LEFT;
   }
 
-  Dir horiz, vert;
-  if (in == Dir::UP || in == Dir::DOWN) {
-    horiz = out;
-    vert = in;
-  } else {
-    horiz = in;
-    vert = out;
-  }
+  // Giro (igual que CORNER): la esquina conecta el lado por el que
+  // la tubería ENTRA (opuesto a `in`) y el lado por el que SALE
+  // (`out`). El nombre es BELLY_<horizontal>_<vertical>.
+  Dir entry = opposite(in);
+  Dir horiz = (entry == Dir::RIGHT || entry == Dir::LEFT) ? entry : out;
+  Dir vert  = (entry == Dir::RIGHT || entry == Dir::LEFT) ? out   : entry;
 
   uint8_t base = SnakeSprites::BELLY_RIGHT_UP;
   if (horiz == Dir::RIGHT) base += (vert == Dir::UP) ? 0 : 1;

@@ -937,8 +937,13 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   (`part`). Inicial: células `(1,2)..(4,2)`, cabeza a la derecha.
 - **El cuerpo NO se mueve:** cada paso se **agrega una parte nueva** (la cabeza)
   y se **elimina la última** (la cola). La casilla que la cabeza deja se convierte
-  en cuerpo con su sprite persistente: `BODY` recto (`in == out`) o `CORNER` al
-  girar (`in != out`). El resto del cuerpo mantiene su `part` guardada.
+  en cuerpo con su sprite persistente, según por qué lado entra y sale la tubería:
+  recto `BODY_TO_<dir>` (`in == out`) o esquina `CORNER_<horizontal>_<vertical>`
+  al girar (`in != out`). El nombre de la esquina indica los dos **lados** de la
+  celda que conecta (el lado por el que entra la tubería, opuesto a la dirección
+  de llegada `in`, y el lado por el que sale, `out`): p. ej. iba a la izquierda y
+  sube, o bajaba y cruza a la derecha, conectan el lado derecho con el superior
+  → `CORNER_RIGHT_UP`.
 - **Comer:** al tocar el alimento (`SFX_EAT`): crece (+1 segmento, la cola NO
   avanza ese paso, puntaje +1). La cabeza queda **sobre la casilla del alimento**
   y, al dejarla en el siguiente paso, esa casilla se dibuja como **`BELLY`**
