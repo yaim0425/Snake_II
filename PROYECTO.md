@@ -883,7 +883,10 @@ bit** y la desliza lateralmente sobre **N bandas sincronizadas** (todas usan el
   const uint8_t* bandHeights = nullptr)`. Asigna en heap los arrays de altos y
   de canvas de banda (**NOTA:** no hay constructor por defecto de `GFXcanvas8`
   en Adafruit_GFX, y la copia implícita es peligrosa; por eso `_chipBox` es
-  `GFXcanvas8**`). `~Scroller()` libera los canvas y los arrays. La lista de
+  `GFXcanvas8**`). Como reserva memoria con `new`, la copia está **bloqueada**
+  (`Scroller(const Scroller&) = delete` y `Scroller& operator=(const Scroller&)`
+  `= delete`) para evitar un doble `delete` por accidente. `~Scroller()` libera
+  los canvas y los arrays. La lista de
   inicialización respeta el **orden de declaración** (regla de la tarea 3).
 - **API:**
   - `begin()` — reposiciona el deslizamiento (objetivo 0, sin borrar bandas).

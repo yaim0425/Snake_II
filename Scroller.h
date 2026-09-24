@@ -38,6 +38,9 @@ public:
   Scroller(Display& display, uint8_t bands = 1,
            const uint8_t* bandHeights = nullptr);
 
+  Scroller(const Scroller&) = delete;            // no copiar (reserva con new)
+  Scroller& operator=(const Scroller&) = delete; // ni asignar (doble delete)
+
   ~Scroller();
 
   // ========================================================
