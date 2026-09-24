@@ -976,8 +976,12 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 
 - **Movimiento:** la cabeza avanza 1 celda por paso con **wrap en X y en Y**
   (sale por un borde, aparece por el opuesto, estilo Nokia). La velocidad
-  (`_moveDelay` ms por paso) es lineal con la dificultad: `1000 - (nivel-1) * 38`
-  (nivel 1 → 1000 ms, nivel 10 → 658 ms; salto constante de 38 ms por nivel).
+  (`_moveDelay` ms por paso) es lineal con la dificultad con **pasos alternados
+  de 101/102 ms** (102 en los niveles 1, 4 y 7): `1000 - (nivel-1)*101 -
+  (nivel+1)/3`. Los 9 saltos suman 912 ms, de **1000 ms en el nivel 1 a 88 ms
+  en el nivel 10** (secuencia 1000, 898, 797, 696, 594, 493, 392, 290, 189, 88;
+  101,33 ms por nivel no es entero, por eso se alternan 6 saltos de 101 y 3 de
+  102).
 - **Sin reversa directa (único giro pendiente):** cada MOVE deja un único giro
   **PENDIENTE** (`_nextDir`), sin cola ni buffer. Un giro se evalúa **siempre**
   desde la dirección actual de la cabeza (`_dir`, la COMMITIDA, la que usará en

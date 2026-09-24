@@ -562,14 +562,18 @@ void Game::drawOverlay(const char* title, bool fullWidth) {
 }
 
 // ========================================================
-// Velocidad por dificultad: lineal, 1000 - (nivel-1) * 38.
-// El nivel 1 es el más lento (1000 ms por paso) y el
-// DIFICULTAD_MAX (10) llega a 658 ms, con un salto
-// constante de 38 ms por nivel.
+// Velocidad por dificultad: lineal con pasos alternados de
+// 101/102 ms (102 en niveles 1, 4 y 7: nivel%3 == 1). Los
+// 9 saltos suman 912 ms, de 1000 (nivel 1) a 88 (nivel 10,
+// DIFICULTAD_MAX): saltos de 102 = (nivel+1)/3.
+// El nivel 1 es el más lento (1000 ms por paso) y el 10 el
+// más rápido (88 ms).
 // ========================================================
 
 uint16_t Game::speedFor(uint8_t level) const {
-  return (uint16_t)(1000 - (uint16_t)(level - 1) * 38);
+  uint8_t jumps = level - 1;                  // saltos entre niveles
+  uint8_t wide  = (level + 1) / 3;            // saltos de 102 (nivel%3 == 1)
+  return (uint16_t)(1000 - (uint16_t)jumps * 101 - wide);
 }
 
 // ========================================================
