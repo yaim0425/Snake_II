@@ -20,7 +20,7 @@ Game::Game(Display& display, Buttons& buttons, Sound& sound)
     _overlayHidden(false),
     _lastCount(0xFF),
     _hasGame(false),
-    _difficulty(DIFICULTAD_DEFAULT),
+    _difficulty(DIFFICULTY_DEFAULT),
     _moveDelay(0),
     _moveLast(0),
     _startMs(0),
@@ -34,8 +34,8 @@ Game::Game(Display& display, Buttons& buttons, Sound& sound)
 // ========================================================
 // Inicialización (al entrar en la ventana)
 //
-// `newGame` = true (NUEVO): reinicia la partida y arranca el
-// conteo regresivo 3-2-1. `false` (CONTINUAR): reanuda la
+// `newGame` = true (NEW): reinicia la partida y arranca el
+// conteo regresivo 3-2-1. `false` (CONTINUE): reanuda la
 // partida anterior en pausa (el tablero se conserva) o
 // arranca una nueva si no hay partida en curso (por ejemplo
 // tras un GAME_OVER).
@@ -69,8 +69,8 @@ void Game::begin(bool newGame) {
 // ========================================================
 
 void Game::setDifficulty(uint8_t level) {
-  if (level < DIFICULTAD_MIN) level = DIFICULTAD_MIN;
-  if (level > DIFICULTAD_MAX) level = DIFICULTAD_MAX;
+  if (level < DIFFICULTY_MIN) level = DIFFICULTY_MIN;
+  if (level > DIFFICULTY_MAX) level = DIFFICULTY_MAX;
   _difficulty = level;
 
   // La dificultad se aplica EN CALIENTE: si hay una partida en curso
@@ -350,7 +350,7 @@ void Game::drawOverlay(const char* title, bool fullWidth) {
 // Velocidad por dificultad: lineal con pasos alternados de
 // 101/102 ms (102 en niveles 1, 4 y 7: nivel%3 == 1). Los
 // 9 saltos suman 912 ms, de 1000 (nivel 1) a 88 (nivel 10,
-// DIFICULTAD_MAX): saltos de 102 = (nivel+1)/3.
+// DIFFICULTY_MAX): saltos de 102 = (nivel+1)/3.
 // El nivel 1 es el más lento (1000 ms por paso) y el 10 el
 // más rápido (88 ms).
 // ========================================================

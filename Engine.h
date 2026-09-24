@@ -71,9 +71,9 @@ private:
   enum class State : uint8_t {
     BOOT = 0,
     MENU,
-    NUEVO,
-    CONTINUAR,
-    CREDITOS,
+    NEW,
+    CONTINUE,
+    CREDITS,
     LEGEND
   };
 

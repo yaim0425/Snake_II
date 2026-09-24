@@ -16,11 +16,11 @@ public:
   static constexpr uint8_t MAX_OPTIONS = 8;
 
   enum Option : uint8_t {
-    OPC_NUEVO = 0,
-    OPC_CONTINUAR,
-    OPC_DIFICULTAD,
-    OPC_SONIDO,
-    OPC_CREDITOS
+    OPT_NEW = 0,
+    OPT_CONTINUE,
+    OPT_DIFFICULTY,
+    OPT_SOUND,
+    OPT_CREDITS
   };
 
   // ========================================================
@@ -63,7 +63,7 @@ public:
 
   // ========================================================
   // Selección inicial por OPCIÓN LÓGICA (enum Option, p. ej.
-  // OPC_NUEVO u OPC_CONTINUAR) y reinicio de la animación.
+  // OPT_NEW u OPT_CONTINUE) y reinicio de la animación.
   // Internamente se mapea al índice de la lista visible; si la
   // opción no está visible (p. ej. "Continue" oculto) la
   // selección cae a la primera opción (New).
@@ -130,7 +130,7 @@ private:
   // "Continue" el índice 1 pasa a Dificultad, el 2 a Sonido y el
   // 3 a Créditos. optionAt() devuelve la opción lógica de un índice
   // de la lista; indexOfOption() hace lo contrario y devuelve -1 si
-  // la opción no está visible (p. ej. OPC_CONTINUAR sin partida).
+  // la opción no está visible (p. ej. OPT_CONTINUE sin partida).
   Option optionAt(int8_t index) const;
   int8_t indexOfOption(Option option) const;
 
@@ -179,9 +179,9 @@ private:
   // y la contraria se oculta (señal visual de la repetición continua). Al
   // llegar al límite (1 o 10) se procesa igual que haber soltado el botón:
   // vuelve el parpadeo normal (con el límite oculto).
-  static constexpr uint8_t  DIFICULTAD_MIN     = 1;
-  static constexpr uint8_t  DIFICULTAD_MAX     = 10;
-  static constexpr uint8_t  DIFICULTAD_DEFAULT = 5;
+  static constexpr uint8_t  DIFFICULTY_MIN     = 1;
+  static constexpr uint8_t  DIFFICULTY_MAX     = 10;
+  static constexpr uint8_t  DIFFICULTY_DEFAULT = 5;
 
   static constexpr uint32_t HOLD_REPEAT_DELAY = 400;  // mantener para empezar a repetir (ms)
   static constexpr uint32_t HOLD_REPEAT_TICK  = 100;  // intervalo de repetición mientras se mantiene (ms)

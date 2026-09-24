@@ -11,7 +11,7 @@
 // Game — ventana del juego de la serpiente
 //
 // Reemplaza al placeholder InfoWindow en los estados
-// NUEVO ("New") y CONTINUAR ("Continue") del Engine.
+// NEW ("New") y CONTINUE ("Continue") del Engine.
 //
 // Game COORDINA: la lógica de la serpiente (buffer circular,
 // giro pendiente, colisiones, elección de sprites) vive en la
@@ -35,7 +35,7 @@
 //     contra la dirección commitida (sin reversa directa, lo
 //     decide Snake::turn). ACTION_RIGHT (Btn2) es "Select /
 //     Pause": en PLAY pausa (panel "PAUSA") y en
-//     PAUSE/CONTINUAR reanuda (ACTION_LEFT también reanuda).
+//     PAUSE/CONTINUE reanuda (ACTION_LEFT también reanuda).
 //     ACTION_UP (Btn1, "Volver") vuelve al menú en cualquier
 //     momento (la partida NO se pierde mientras haya puntos: el
 //     menú muestra "Continue" al volver solo si la partida sigue
@@ -55,9 +55,9 @@ public:
   // Configuración
   // ========================================================
 
-  static constexpr uint8_t DIFICULTAD_MIN = 1;
-  static constexpr uint8_t DIFICULTAD_MAX = 10;
-  static constexpr uint8_t DIFICULTAD_DEFAULT = 5;
+  static constexpr uint8_t DIFFICULTY_MIN = 1;
+  static constexpr uint8_t DIFFICULTY_MAX = 10;
+  static constexpr uint8_t DIFFICULTY_DEFAULT = 5;
 
   // ========================================================
   // Constructor (recibe Display, Buttons y Sound compartidos)
@@ -68,8 +68,8 @@ public:
   // ========================================================
   // Inicialización (al entrar en la ventana)
   //
-  // `newGame` = true (NUEVO): reinicia todo y arranca el
-  // conteo regresivo 3-2-1. `false` (CONTINUAR): reanuda la
+  // `newGame` = true (NEW): reinicia todo y arranca el
+  // conteo regresivo 3-2-1. `false` (CONTINUE): reanuda la
   // partida anterior en pausa, o arranca una nueva si no hay
   // partida en curso.
   // ========================================================

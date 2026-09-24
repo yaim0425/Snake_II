@@ -49,16 +49,16 @@ void Engine::update() {
       if (sel >= 0) {
         _sound.play(Sound::SFX_CONFIRM);
         switch (sel) {
-          case Menu::OPC_NUEVO:      changeState(State::NUEVO);      break;
-          case Menu::OPC_CONTINUAR:  changeState(State::CONTINUAR);  break;
-          case Menu::OPC_CREDITOS:   changeState(State::CREDITOS);   break;
+          case Menu::OPT_NEW:      changeState(State::NEW);      break;
+          case Menu::OPT_CONTINUE:  changeState(State::CONTINUE);  break;
+          case Menu::OPT_CREDITS:   changeState(State::CREDITS);   break;
         }
       }
       break;
     }
 
-    case State::NUEVO:
-    case State::CONTINUAR: {
+    case State::NEW:
+    case State::CONTINUE: {
 
       _game.update();
       if (_game.done()) {
@@ -71,13 +71,13 @@ void Engine::update() {
         bool gameOver = _game.isGameOver();
         bool resumable = !gameOver && _game.score() > 0;
         _menu.setContinueAvailable(resumable);
-        _menu.setSelected(resumable ? Menu::OPC_CONTINUAR : Menu::OPC_NUEVO);
+        _menu.setSelected(resumable ? Menu::OPT_CONTINUE : Menu::OPT_NEW);
         changeState(State::MENU);
       }
       break;
     }
 
-    case State::CREDITOS: {
+    case State::CREDITS: {
 
       _credits.update();
       if (_credits.done()) {
@@ -112,10 +112,10 @@ void Engine::print() {
   switch (_state) {
     case State::BOOT:       _boot.print();                                 break;
     case State::MENU:       _menu.print();                                 break;
-    case State::NUEVO:
-    case State::CONTINUAR:
+    case State::NEW:
+    case State::CONTINUE:
                              _game.print();                                 break;
-    case State::CREDITOS:   _credits.print();                              break;
+    case State::CREDITS:   _credits.print();                              break;
     case State::LEGEND:     _legend.print();                               break;
   }
 }
@@ -138,11 +138,11 @@ void Engine::changeState(State newState) {
   switch (_state) {
     case State::BOOT:       _boot.begin();                                 break;
     case State::MENU:       _menu.begin();                                 break;
-    case State::NUEVO:      _game.setDifficulty(_menu.difficulty());
+    case State::NEW:      _game.setDifficulty(_menu.difficulty());
                             _game.begin(true);                              break;
-    case State::CONTINUAR:  _game.setDifficulty(_menu.difficulty());
+    case State::CONTINUE:  _game.setDifficulty(_menu.difficulty());
                             _game.begin(false);                             break;
-    case State::CREDITOS:   _credits.begin();                              break;
+    case State::CREDITS:   _credits.begin();                              break;
     case State::LEGEND:     _legend.begin();                               break;
   }
 }

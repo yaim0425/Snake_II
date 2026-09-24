@@ -33,27 +33,27 @@ const char* Menu::optionText(int8_t index) const {
 // el valor del enum (New=0, Continue=1, Difficulty=2, Sound=3,
 // Credits=4). Sin "Continue" la lista se compacta: el índice 1
 // pasa a Dificultad, el 2 a Sonido y el 3 a Créditos; el
-// OPC_CONTINUAR deja de existir (indexOfOption devuelve -1).
+// OPT_CONTINUE deja de existir (indexOfOption devuelve -1).
 // ========================================================
 
 Menu::Option Menu::optionAt(int8_t index) const {
   if (_continueAvailable) return (Option)index;
   switch (index) {
-    case 0:   return OPC_NUEVO;
-    case 1:   return OPC_DIFICULTAD;
-    case 2:   return OPC_SONIDO;
-    default:  return OPC_CREDITOS;
+    case 0:   return OPT_NEW;
+    case 1:   return OPT_DIFFICULTY;
+    case 2:   return OPT_SOUND;
+    default:  return OPT_CREDITS;
   }
 }
 
 int8_t Menu::indexOfOption(Option option) const {
   if (_continueAvailable) return (int8_t)option;
   switch (option) {
-    case OPC_NUEVO:      return 0;
-    case OPC_DIFICULTAD: return 1;
-    case OPC_SONIDO:     return 2;
-    case OPC_CREDITOS:   return 3;
-    default:             return -1;  // OPC_CONTINUAR sin partida en curso
+    case OPT_NEW:      return 0;
+    case OPT_DIFFICULTY: return 1;
+    case OPT_SOUND:     return 2;
+    case OPT_CREDITS:   return 3;
+    default:             return -1;  // OPT_CONTINUE sin partida en curso
   }
 }
 
@@ -73,14 +73,14 @@ Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint16_t bestScore,
     _optionCount(DEFAULT_OPTIONS - 1),  // sin "Continue" al arrancar (no hay partida)
     _optionTexts(NO_CONTINUE_OPTIONS),
     _continueAvailable(false),
-    _selected(OPC_NUEVO),
+    _selected(OPT_NEW),
     _holdStart(0),
     _redraw(true),
     _editingSound(false),
     _soundEnabled(true),
     _editingDifficulty(false),
-    _difficulty(DIFICULTAD_DEFAULT),
-    _editDifficulty(DIFICULTAD_DEFAULT),
+    _difficulty(DIFFICULTY_DEFAULT),
+    _editDifficulty(DIFFICULTY_DEFAULT),
     _repeatStart(0),
     _repeatLast(0),
     _scroller(display, 1, nullptr) {}
@@ -202,11 +202,11 @@ void Menu::update() {
     // repetición al mantener presionado (primer paso inmediato, después
     // repite cada HOLD_REPEAT_TICK ms tras HOLD_REPEAT_DELAY de mantención).
     // El valor mostrado cambia sin aplicarse; solo se aplica al confirmar.
-    if (holdRepeat(Buttons::MOVE_RIGHT) && _editDifficulty < DIFICULTAD_MAX) {
+    if (holdRepeat(Buttons::MOVE_RIGHT) && _editDifficulty < DIFFICULTY_MAX) {
       _editDifficulty++;
       _sound.play(Sound::SFX_CLICK);
     }
-    if (holdRepeat(Buttons::MOVE_LEFT) && _editDifficulty > DIFICULTAD_MIN) {
+    if (holdRepeat(Buttons::MOVE_LEFT) && _editDifficulty > DIFFICULTY_MIN) {
       _editDifficulty--;
       _sound.play(Sound::SFX_CLICK);
     }
@@ -224,12 +224,12 @@ void Menu::update() {
     navigate();
     // Al confirmar la opción "Dificultad" (btn2) se entra en modo edición
     // inline, igual que "Sound" (ver Engine).
-    if (_buttons.actionRightPressed() && optionAt(_selected) == OPC_DIFICULTAD) {
+    if (_buttons.actionRightPressed() && optionAt(_selected) == OPT_DIFFICULTY) {
       _sound.play(Sound::SFX_CLICK);
       beginDifficultyEdit();
       return;
     }
-    if (_buttons.actionRightPressed() && optionAt(_selected) == OPC_SONIDO) {
+    if (_buttons.actionRightPressed() && optionAt(_selected) == OPT_SOUND) {
       _sound.play(Sound::SFX_CLICK);
       beginSoundEdit();
       return;
@@ -433,9 +433,9 @@ void Menu::drawDifficultySelector() {
   // 25) el botón de ese lado ya no puede avanzar y se procesa igual que si
   // se hubiera soltado (vuelve el parpadeo normal, con el límite oculto).
   bool leftHeld  = _buttons.state(Buttons::MOVE_LEFT) &&
-                   _editDifficulty > DIFICULTAD_MIN;
+                   _editDifficulty > DIFFICULTY_MIN;
   bool rightHeld = _buttons.state(Buttons::MOVE_RIGHT) &&
-                   _editDifficulty < DIFICULTAD_MAX;
+                   _editDifficulty < DIFFICULTY_MAX;
 
   bool arrowsVisible =
       leftHeld || rightHeld ||
@@ -445,14 +445,14 @@ void Menu::drawDifficultySelector() {
   if (arrowsVisible) {
     // Flecha izquierda (-1): fija al mantener MOVE_LEFT; oculta mientras se
     // mantiene MOVE_RIGHT; sin mantener parpadea. No se dibuja en el mínimo.
-    if (_editDifficulty > DIFICULTAD_MIN && !rightHeld) {
+    if (_editDifficulty > DIFFICULTY_MIN && !rightHeld) {
       int16_t base = labelX - ARROW_GAP;  // lado plano, pegado al texto
       s.fillTriangle(base - ARROW_W, yMid, base, yTop, base, yBot,
                      SSD1306_WHITE);
     }
     // Flecha derecha (+1): fija al mantener MOVE_RIGHT; oculta mientras se
     // mantiene MOVE_LEFT; sin mantener parpadea. No se dibuja en el máximo.
-    if (_editDifficulty < DIFICULTAD_MAX && !leftHeld) {
+    if (_editDifficulty < DIFFICULTY_MAX && !leftHeld) {
       int16_t base = labelX + labelW + ARROW_GAP;  // lado plano, pegado al texto
       s.fillTriangle(base + ARROW_W, yMid, base, yTop, base, yBot,
                      SSD1306_WHITE);
@@ -574,10 +574,10 @@ int8_t Menu::confirm() const {
   // beginDifficultyEdit y update). Se devuelve la OPCIÓN LÓGICA (enum
   // Option): con "Continue" oculto la lista es 4 opciones y los índices
   // ya no coinciden con el enum, así el Engine compara con los mismos
-  // valores (OPC_NUEVO/OPC_CONTINUAR/OPC_CREDITOS).
+  // valores (OPT_NEW/OPT_CONTINUE/OPT_CREDITS).
   if (_buttons.actionRightPressed() &&
-      optionAt(_selected) != OPC_SONIDO &&
-      optionAt(_selected) != OPC_DIFICULTAD)
+      optionAt(_selected) != OPT_SOUND &&
+      optionAt(_selected) != OPT_DIFFICULTY)
     return (int8_t)optionAt(_selected);
   return -1;
 }
