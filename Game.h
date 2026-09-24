@@ -98,6 +98,14 @@ public:
   bool done() const;
 
   // ========================================================
+  // ¿La partida terminó en GAME OVER? Lo usa el Engine al salir
+  // para dejar la selección del menú en "New" (Game Over) o
+  // "Continue" (salida con la partida aún en curso).
+  // ========================================================
+
+  bool isGameOver() const;
+
+  // ========================================================
   // Puntajes (el Engine sincroniza el récord con el menú)
   // ========================================================
 

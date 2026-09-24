@@ -633,6 +633,17 @@ bool Game::done() const {
 }
 
 // ========================================================
+// ¿La partida terminó en GAME OVER? (comparar el estado
+// permite distinguir la salida tras un Game Over, que deja
+// la selección del menú en "New", de la salida con la
+// partida en curso, que la deja en "Continue")
+// ========================================================
+
+bool Game::isGameOver() const {
+  return _state == State::GAME_OVER;
+}
+
+// ========================================================
 // Puntajes
 // ========================================================
 

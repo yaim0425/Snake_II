@@ -57,7 +57,9 @@ Arquitectura:
   luego el panel de botones (`Legend`, pad MOVE con flechas + 4 rombos de ACTION
   que parpadean uno a la vez) y
   después el menú inicial con las opciones `New` y `Continue` (llevan a la ventana
-  `Juego`), `Sound` y `Dificultad` (**se editan inline en el propio `Menu`**:
+  `Juego`; al volver del juego la selección del menú queda en `Continue`
+  si la partida sigue en curso o en `New` si terminó en `GAME OVER`), `Sound`
+  y `Dificultad` (**se editan inline en el propio `Menu`**:
   al confirmar con `ACTION_RIGHT` aparece un selector en la banda de los rombos —
   On/Off para `Sound`, nivel 1..25 para `Dificultad`—, se navega con
   `MOVE_LEFT`/`MOVE_RIGHT` y se aplica
@@ -707,7 +709,7 @@ enum class State : uint8_t {
 | `BOOT` | `Boot` | Animación de arranque (franjas). Al terminar (`done()`) pasa a `LEGEND`. Cualquier botón la termina. |
 | `LEGEND` | `Legend` | Panel de botones: pad MOVE con 4 flechas + 4 rombos completos de ACTION en las posiciones de un pad que parpadean MUY rápido uno a la vez (ciclo lento) con la función del rombo activo centrada en el pie. Cualquier botón la cierra → menú (suena el efecto según el botón —CLICK/BACK/CONFIRM—; `Engine` no añade `SFX_BACK`). Solo se muestra tras el arranque. |
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
-| `NUEVO` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con la cuenta regresiva "GO !" (`SFX_START`). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setBestScore(game.bestScore())`) y pasa a `MENU`. |
+| `NUEVO` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con la cuenta regresiva "GO !" (`SFX_START`). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setBestScore(game.bestScore())`), deja la selección del menú en `Continue` si la partida sigue en curso o en `New` si hubo `GAME OVER` (`menu.setSelected(...)`) y pasa a `MENU`. |
 | `CONTINUAR` | `Game` | Reanudar la partida anterior (`begin(false)`): queda en pausa y se retoma con `ACTION_RIGHT`/`ACTION_LEFT`; si no hay partida en curso arranca una nueva. Al salir (`done()`) igual que `NUEVO`. |
 | `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo `Scroller` compartido que el menú** pero con **2 bandas sincronizadas** (`BAND_HEIGHTS = {16, 8}` = altos de rol 12x16 y nombre 6x8): rol y nombre se componen por separado en la misma tira (`loadEntry` → `compose`) y deslizan a la vez con el **mismo `_slideX`** interno del `Scroller` (aparecen al mismo tiempo). `drawBand(slot, y, fg, bg)` compone el slot y vuelca su **banda persistente** (`_chipBox[slot]`) con sus colores; la tira la sobrescribe **columna a columna** con sus fondos, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). El deslizamiento **arranca desde el borde** (`startSlide`, fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (igual que el menú, ≈0,5 s). Al navegar suena `SFX_CLICK` y al salir (`done()`) suena `SFX_BACK` (lo toca el `Engine`) y pasa directo a `MENU`. |
 
@@ -921,6 +923,7 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 | `void update()` | Estado `START`: pre-gira con MOVE (giro pendiente), entra a `PLAY` con `ACTION_RIGHT` o al agotarse `GO_MS`. `PLAY`: gira con MOVE (sin reversa directa, queda un único giro pendiente que se aplica en el siguiente paso) y avanza un paso cada `_moveDelay` ms. `PAUSE`: reanuda con `ACTION_RIGHT`/`ACTION_LEFT`. `GAME_OVER`: cualquier ACTION vuelve al menú. `ACTION_UP` (común "volver al menú") sale en cualquier estado menos `GAME_OVER`. |
 | `void print()` | Renderizado por zonas (ver sección 13). |
 | `bool done()` | `true` al pedir volver al menú. |
+| `bool isGameOver()` | `true` si al salir (`done()`) la partida terminó en `GAME OVER`; lo usa el `Engine` para dejar la selección del menú en `New` (Game Over) o `Continue` (partida en curso). |
 | `uint8_t score()` / `bestScore()` | Puntaje actual / récord. El `Engine` sincroniza `bestScore()` con el menú al salir. |
 
 ### Reglas del juego
@@ -974,7 +977,10 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   último movimiento (el sprite de la cabeza se dibuja según `_dir`).
 - **Pausa y salida:** `ACTION_UP` durante la partida vuelve al menú **sin
   perderla** (`_hasGame` mantiene el tablero; `Continue` la reanuda en pausa).
-  `GAME_OVER` deja `_hasGame = false`.
+  `GAME_OVER` deja `_hasGame = false`. Al salir, el `Engine` deja la selección
+  del menú en **`Continue`** si la partida siguió en curso (sale con `ACTION_UP`)
+  o en **`New`** si terminó en `GAME OVER` (lo decide con `game.isGameOver()` y
+  lo aplica con `menu.setSelected(...)` antes de pasar a `MENU`).
 - **Sprites (cuerpo persistente):** cada segmento del cuerpo guarda su
   `part` (sprite fijo): cola `TAIL_TO_<dir>` (su `dir` guardada), cuerpo recto
   `BODY_TO_<dir>`, curva `CORNER_<horizontal>_<vertical>` (índice 8..11
