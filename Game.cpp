@@ -20,14 +20,14 @@ Game::Game(Display& display, Buttons& buttons, Sound& sound)
     _overlayHidden(false),
     _lastCount(0xFF),
     _hasGame(false),
-    _difficulty(DIFFICULTY_DEFAULT),
+    _difficulty(Config::Difficulty::DEFAULT),
     _moveDelay(0),
     _moveLast(0),
     _startMs(0),
     _newBest(false),
     _celeSfx(0),
     _snake(),
-    _food(display, Snake::COLS, Snake::ROWS, BODY_TOP),
+    _food(display, Snake::COLS, Snake::ROWS, Config::Screen::BODY_TOP),
     _score(0),
     _bestScore(0) {}
 
@@ -69,8 +69,8 @@ void Game::begin(bool newGame) {
 // ========================================================
 
 void Game::setDifficulty(uint8_t level) {
-  if (level < DIFFICULTY_MIN) level = DIFFICULTY_MIN;
-  if (level > DIFFICULTY_MAX) level = DIFFICULTY_MAX;
+  if (level < Config::Difficulty::MIN) level = Config::Difficulty::MIN;
+  if (level > Config::Difficulty::MAX) level = Config::Difficulty::MAX;
   _difficulty = level;
 
   // La dificultad se aplica EN CALIENTE: si hay una partida en curso
@@ -278,7 +278,7 @@ bool Game::occupied(uint8_t x, uint8_t y) const {
 void Game::drawSprite(Sprite::Part part, uint8_t x, uint8_t y) {
   Adafruit_SSD1306& s = _display.screen();
   int16_t baseX = (int16_t)x * 8;
-  int16_t baseY = BODY_TOP + (int16_t)y * 8;
+  int16_t baseY = Config::Screen::BODY_TOP + (int16_t)y * 8;
 
   for (uint8_t i = 0; i < Sprite::SIZE; i++) {
     for (uint8_t j = 0; j < Sprite::SIZE; j++) {
@@ -336,7 +336,7 @@ void Game::drawOverlay(const char* title, bool fullWidth) {
   int16_t h = _display.getTextHeight(TEXT_12x16);
   int16_t x = (_display.getWidth() - w) / 2;
   int16_t bandH = h + 2;   // banda: 2 px sobre el texto, 0 debajo
-  int16_t y = BODY_TOP + (_display.getHeight() - BODY_TOP - bandH) / 2 + 2;
+  int16_t y = Config::Screen::BODY_TOP + (_display.getHeight() - Config::Screen::BODY_TOP - bandH) / 2 + 2;
 
   if (fullWidth) {
     s.fillRoundRect(0, y - 2, _display.getWidth(), bandH, 0, SSD1306_WHITE);
@@ -350,7 +350,7 @@ void Game::drawOverlay(const char* title, bool fullWidth) {
 // Velocidad por dificultad: lineal con pasos alternados de
 // 101/102 ms (102 en niveles 1, 4 y 7: nivel%3 == 1). Los
 // 9 saltos suman 912 ms, de 1000 (nivel 1) a 88 (nivel 10,
-// DIFFICULTY_MAX): saltos de 102 = (nivel+1)/3.
+// Config::Difficulty::MAX): saltos de 102 = (nivel+1)/3.
 // El nivel 1 es el más lento (1000 ms por paso) y el 10 el
 // más rápido (88 ms).
 // ========================================================
@@ -384,15 +384,15 @@ void Game::print() {
 
   // Header: solo cuando el puntaje o el récord cambió
   if (_redrawHeader) {
-    _display.screen().fillRect(0, 0, _display.getWidth(), BODY_TOP, SSD1306_BLACK);
+    _display.screen().fillRect(0, 0, _display.getWidth(), Config::Screen::BODY_TOP, SSD1306_BLACK);
     drawHeader();
     _redrawHeader = false;
   }
 
   // Tablero: solo cuando algo cambió
   if (_dirtyBoard) {
-    _display.screen().fillRect(0, BODY_TOP, _display.getWidth(),
-                               _display.getHeight() - BODY_TOP, SSD1306_BLACK);
+    _display.screen().fillRect(0, Config::Screen::BODY_TOP, _display.getWidth(),
+                               _display.getHeight() - Config::Screen::BODY_TOP, SSD1306_BLACK);
     if (_food.has()) _food.draw();
     drawSnake();
     _dirtyBoard = false;

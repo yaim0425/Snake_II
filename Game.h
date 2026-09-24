@@ -1,6 +1,8 @@
 #ifndef GAME_H
 #define GAME_H
 
+#include "Config.h"
+
 #include "Display.h"
 #include "Buttons.h"
 #include "Food.h"
@@ -55,9 +57,8 @@ public:
   // Configuración
   // ========================================================
 
-  static constexpr uint8_t DIFFICULTY_MIN = 1;
-  static constexpr uint8_t DIFFICULTY_MAX = 10;
-  static constexpr uint8_t DIFFICULTY_DEFAULT = 5;
+  // La dificultad (nivel 1..10) usa los límites compartidos de
+  // Config::Difficulty (MIN/MAX/DEFAULT), igual que el menú.
 
   // ========================================================
   // Constructor (recibe Display, Buttons y Sound compartidos)
@@ -143,8 +144,8 @@ private:
   // ========================================================
   // Geometría y tiempos
   // ========================================================
+  // La fila superior del tablero es el Body: Config::Screen::BODY_TOP.
 
-  static constexpr int16_t BODY_TOP = 16;          // fila superior del tablero (Body)
   static constexpr uint32_t COUNTDOWN_MS = 3000;   // duración del conteo regresivo inicial (3 s, uno por dígito)
   static constexpr uint32_t COUNT_HIDE_MS = 250;   // al final de cada dígito: el número (y su cuadro) se ocultan antes del siguiente (parpadeo)
   static constexpr uint32_t NEW_BEST_SIGN_MS = 1500; // duración de cada letrero del festejo de nuevo récord ("GAME OVER"/"BUT"/"YOU ARE"/"THE BEST")

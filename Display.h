@@ -1,6 +1,8 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
+#include "Config.h"
+
 #include <Adafruit_SSD1306.h>
 
 // ========================================================
@@ -46,8 +48,14 @@ public:
   // Constructor
   // ========================================================
 
-  Display(uint8_t sda = 8, uint8_t scl = 9, uint8_t address = 0x3C,
-          uint8_t width = 128, uint8_t height = 64, uint8_t cellSize = 8);
+  // Los valores por defecto (pines I2C, dirección y geometría) vienen
+  // de Config (Pin/Screen); se puede sobreescribir cualquier parámetro.
+  Display(uint8_t sda = Config::Pin::OLED_SDA,
+          uint8_t scl = Config::Pin::OLED_SCL,
+          uint8_t address = Config::Screen::ADDRESS,
+          uint8_t width = Config::Screen::WIDTH,
+          uint8_t height = Config::Screen::HEIGHT,
+          uint8_t cellSize = Config::Screen::CELL);
 
 
   // ========================================================

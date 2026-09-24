@@ -1,6 +1,8 @@
 #ifndef MENU_H
 #define MENU_H
 
+#include "Config.h"
+
 #include "Display.h"
 #include "Buttons.h"
 #include "Sound.h"
@@ -138,9 +140,6 @@ private:
   // Geometría del menú
   // ========================================================
 
-  // Región del menú dentro del Body: fila 16 hasta una fila antes del pie
-  static constexpr int16_t BODY_TOP = 16;
-
   // Cuadro de selección: fijo, ancho completo. Con el rombo activo de punta en
   // la 45: 2 filas libres (44..43) y el cuadro desde la fila 3 (42) hacia arriba
   static constexpr int16_t BOX_TOP    = 25;
@@ -178,10 +177,8 @@ private:
   // botón el parpadeo se detiene: solo la flecha del botón activo queda fija
   // y la contraria se oculta (señal visual de la repetición continua). Al
   // llegar al límite (1 o 10) se procesa igual que haber soltado el botón:
-  // vuelve el parpadeo normal (con el límite oculto).
-  static constexpr uint8_t  DIFFICULTY_MIN     = 1;
-  static constexpr uint8_t  DIFFICULTY_MAX     = 10;
-  static constexpr uint8_t  DIFFICULTY_DEFAULT = 5;
+  // vuelve el parpadeo normal (con el límite oculto). Los límites y el
+  // nivel por defecto viven en Config::Difficulty.
 
   static constexpr uint32_t HOLD_REPEAT_DELAY = 400;  // mantener para empezar a repetir (ms)
   static constexpr uint32_t HOLD_REPEAT_TICK  = 100;  // intervalo de repetición mientras se mantiene (ms)

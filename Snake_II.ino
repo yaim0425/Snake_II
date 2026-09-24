@@ -13,6 +13,7 @@
 // La clase Engine está en Engine.h / Engine.cpp.
 // ====================================================================================
 
+#include "Config.h"
 #include "Display.h"
 #include "Buttons.h"
 #include "Boot.h"
@@ -26,12 +27,6 @@
 
 #include <Arduino.h>
 
-// Pines de los botones (orden del enum Button)
-const int8_t BUTTON_PINS[Buttons::MAX_BUTTONS] = {
-  02, 01, 42, 41,  // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
-  38, 40, 39, 47   // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
-};
-
 // ====================================================================================
 // Instancias únicas (construidas antes de setup(), iniciadas en setup())
 // ====================================================================================
@@ -40,7 +35,7 @@ const int8_t BUTTON_PINS[Buttons::MAX_BUTTONS] = {
 Display display;
 
 // Entrada
-Buttons buttons(BUTTON_PINS);
+Buttons buttons(Config::Pin::BUTTONS);
 
 // Sonido: Buzzer (hardware, un tono no bloqueante) + Sound
 // (secuencias de los efectos del juego). El estado On/Off se

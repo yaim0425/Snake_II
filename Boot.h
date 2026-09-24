@@ -1,6 +1,8 @@
 #ifndef BOOT_H
 #define BOOT_H
 
+#include "Config.h"
+
 #include "Display.h"
 #include "Buttons.h"
 
@@ -65,13 +67,9 @@ private:
   // Separación entre líneas (el desplazamiento repite cada traslación)
   static constexpr uint8_t BAR_SPACING = 8;
 
-  // Banda TITULO (banda completa 0..15)
-  static constexpr uint8_t TITLE_TOP = 0;
-  static constexpr uint8_t TITLE_H = 16;
-
-  // Banda CUERPO (banda completa 16..63)
-  static constexpr uint8_t BODY_TOP = 16;
-  static constexpr uint8_t BODY_H = 48;
+  // Bandas completas (regiones de la pantalla en Config::Screen):
+  // TITULO = Header (Config::Screen::HEADER_TOP/H), CUERPO = Body
+  // (Config::Screen::BODY_TOP/H).
 
   // ========================================================
   // Tiempo

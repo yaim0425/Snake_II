@@ -71,10 +71,10 @@ static void regionBounds(Region region, uint8_t height, uint8_t* top, uint8_t* r
   *regionHeight = height;
 
   if (region == REGION_HEADER) {
-    *regionHeight = 16;
+    *regionHeight = Config::Screen::HEADER_H;
   } else if (region == REGION_BODY) {
-    *top = 16;
-    *regionHeight = height - 16;
+    *top = Config::Screen::BODY_TOP;
+    *regionHeight = height - Config::Screen::BODY_TOP;
   }
 }
 

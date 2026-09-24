@@ -95,13 +95,13 @@ void Boot::drawBars() {
   // TITULO: las líneas se mueven de izquierda a derecha
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
     int16_t px = (x + _shift) % w;
-    drawBar(px, TITLE_TOP, TITLE_H, w);
+    drawBar(px, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, w);
   }
 
   // CUERPO: las líneas se mueven de derecha a izquierda
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
     int16_t px = ((x - _shift) % w + w) % w;
-    drawBar(px, BODY_TOP, BODY_H, w);
+    drawBar(px, Config::Screen::BODY_TOP, Config::Screen::BODY_H, w);
   }
 }
 
@@ -117,13 +117,13 @@ void Boot::eraseOldBars() {
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
     int16_t oldX = (x + _prevShift) % w;
     int16_t newX = (x + _shift) % w;
-    eraseBarDiff(oldX, newX, TITLE_TOP, TITLE_H, w);
+    eraseBarDiff(oldX, newX, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, w);
   }
 
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
     int16_t oldX = ((x - _prevShift) % w + w) % w;
     int16_t newX = ((x - _shift) % w + w) % w;
-    eraseBarDiff(oldX, newX, BODY_TOP, BODY_H, w);
+    eraseBarDiff(oldX, newX, Config::Screen::BODY_TOP, Config::Screen::BODY_H, w);
   }
 }
 

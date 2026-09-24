@@ -1,6 +1,8 @@
 #ifndef BUZZER_H
 #define BUZZER_H
 
+#include "Config.h"
+
 #include <Arduino.h>
 
 // ========================================================
@@ -23,7 +25,7 @@ public:
   // Constructor (pin del buzzer)
   // ========================================================
 
-  Buzzer(uint8_t pin = 14);
+  Buzzer(uint8_t pin = Config::Pin::BUZZER);
 
   // ========================================================
   // Inicialización (adjunta el canal LEDC al pin)

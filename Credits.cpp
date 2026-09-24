@@ -1,6 +1,8 @@
 #include "esp32-hal.h"
 #include "Credits.h"
 
+#include "Config.h"
+
 // ========================================================
 // Entradas de crédito (navegables con MOVE_RIGHT/MOVE_LEFT)
 // ========================================================
@@ -25,7 +27,7 @@ static const uint8_t BAND_HEIGHTS[2] = { 16, 8 };
 // negro), centrado en el alto restante del Body: de la fila 16 (BODY_TOP)
 // hasta la fila anterior al pie (PIE_TOP).
 // El nombre (tamaño 1) va DES-SELECCIONADO (texto blanco plano) en el pie.
-static constexpr int16_t BODY_TOP = 16;   // fila superior del Body
+// La fila superior del Body vive en Config::Screen::BODY_TOP (16).
 static constexpr int16_t PIE_TOP = 54;    // fila superior del pie del Body
 
 // ========================================================
@@ -117,8 +119,9 @@ void Credits::drawBand(uint8_t slot, int16_t y, uint16_t fgColor,
 
 void Credits::print() {
   int16_t w = _display.getWidth();
+  int16_t bodyTop = (int16_t)Config::Screen::BODY_TOP;
   int16_t roleH = _display.getTextHeight(TEXT_12x16);
-  int16_t roleY = BODY_TOP + (PIE_TOP - BODY_TOP - roleH) / 2;
+  int16_t roleY = bodyTop + (PIE_TOP - bodyTop - roleH) / 2;
 
   // Estáticos (solo al entrar, tras el clear() completo): título y el
   // cuadro blanco del rol. Se dibujan UNA sola vez; ya no se redibujan

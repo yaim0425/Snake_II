@@ -40,6 +40,13 @@ En desarrollo por partes. La clase `Display` está completa. `Snake_II.ino` es e
 **enlace de dependencias (wiring)**: construye TODAS las clases y las inicia en
 `setup()`.
 
+Las **constantes verdaderamente compartidas** viven en un solo `Config.h`
+(sección 19): pines de la placa (botones, buzzer, SDA/SCL), geometría del OLED
+y sus regiones (Header 0..15 / Body 16..63) y los límites de la dificultad
+(`Config::Difficulty`). No es un cajón de sastre: cada clase conserva sus
+constantes propias como `static constexpr` (p. ej. `ANIM_TICK` en `Scroller`,
+`NEW_BEST_SIGN_MS` en `Game`, `ARROW_BLINK_PERIOD` en `Menu`).
+
 Arquitectura:
 - **Ventanas hermanas (no anidadas):** `Boot`, `Legend`, `Menu`, `Credits` y
   `Game` son clases independientes, instancias únicas creadas
@@ -151,6 +158,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | Archivo | Contenido |
 |---------|-----------|
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
+| `Config.h` | Constantes compartidas del proyecto (namespace `Config`, sección 19): pines (`Config::Pin`: botones, buzzer, SDA/SCL), geometría y regiones de la pantalla (`Config::Screen`: 128×64, celda 8, dirección I2C, Header/Body) y límites de la dificultad (`Config::Difficulty`: MIN/MAX/DEFAULT). Solo lo verdaderamente compartido; el resto es `static constexpr` en su clase. Sin `#define` para valores (constantes con tipo y ámbito). |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
 | `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: Back, Select / Pause, None, None; cualquier botón la cierra con un sonido según el botón pulsado: MOVE = CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM). Completa. |
@@ -196,9 +204,13 @@ Ubicación: `Display.h` / `Display.cpp`.
 ### 5.1 Constructor
 
 ```cpp
-Display(uint8_t sda = 8, uint8_t scl = 9, uint8_t address = 0x3C,
-        uint8_t width = 128, uint8_t height = 64, uint8_t cellSize = 8);
+Display(uint8_t sda = Config::Pin::OLED_SDA, uint8_t scl = Config::Pin::OLED_SCL,
+        uint8_t address = Config::Screen::ADDRESS, uint8_t width = Config::Screen::WIDTH,
+        uint8_t height = Config::Screen::HEIGHT, uint8_t cellSize = Config::Screen::CELL);
 ```
+
+Los valores por defecto (pines I2C, dirección y geometría) vienen de `Config`
+(`Config::Pin` / `Config::Screen`); cualquier parámetro se puede sobreescribir.
 
 La lista de inicialización del constructor sigue **el orden de declaración de los
 miembros en `Display.h`** (en C++ los miembros se inicializan en orden de
@@ -290,7 +302,8 @@ size=3 -> texto 18x24    -> cuadro  (18+6) x (24+2) = 24x26
   y sin salto de línea final), igual que `Snake_II.ino`.
 - **Idioma del código: inglés.** Los identificadores son en inglés (clases, métodos,
   variables, constantes y enums; p. ej. `Menu::Option` = `OPT_NEW`/`OPT_CONTINUE`/
-  `OPT_DIFFICULTY`/`OPT_SOUND`/`OPT_CREDITS`, `DIFFICULTY_MIN/MAX/DEFAULT` y los estados
+  `OPT_DIFFICULTY`/`OPT_SOUND`/`OPT_CREDITS`, `Config::Difficulty::MIN/MAX/DEFAULT` y
+  los estados
   del `Engine` `NEW`/`CONTINUE`/`CREDITS`). Los comentarios y la documentación (`PROYECTO.md`)
   se mantienen en español (convención del proyecto).
 
@@ -303,11 +316,11 @@ Ubicación: `Buttons.h` / `Buttons.cpp`. Basada en el diseño de `GameInput` (re
 
 ### Pines (orden del enum)
 
+Los pines de los botones viven en `Config::Pin::BUTTONS` (sección 19),
+`Snake_II.ino` los pasa al constructor:
+
 ```cpp
-const int8_t BUTTON_PINS[Buttons::MAX_BUTTONS] = {
-  02, 01, 42, 41,  // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
-  38, 40, 39, 47   // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
-};
+Buttons buttons(Config::Pin::BUTTONS);   // en Snake_II.ino
 ```
 
 ### Enum
@@ -440,8 +453,9 @@ modo de edición inline, igual que "Sound" (no se abre ninguna ventana).
   de la repetición). **Al llegar al límite (1 o 10)** el botón de ese lado ya no
   puede avanzar y se procesa **igual que haber soltado el botón**: vuelve el
   parpadeo normal, con la flecha del límite oculta.
-- `MOVE_RIGHT` = **+1**, `MOVE_LEFT` = **-1** (clamp entre `DIFFICULTY_MIN = 1`
-  y `DIFFICULTY_MAX = 10`, cada paso toca `SFX_CLICK`). **Repetición al
+- `MOVE_RIGHT` = **+1**, `MOVE_LEFT` = **-1** (clamp entre
+  `Config::Difficulty::MIN = 1` y `Config::Difficulty::MAX = 10`, cada paso toca
+  `SFX_CLICK`). **Repetición al
   mantener presionado:** el primer paso es inmediato (`pressed`) y, manteniendo
   el botón, tras `HOLD_REPEAT_DELAY = 400` ms se repite +1/-1 cada
   `HOLD_REPEAT_TICK = 100` ms (helper `holdRepeat`). El valor mostrado cambia
@@ -449,7 +463,7 @@ modo de edición inline, igual que "Sound" (no se abre ninguna ventana).
 - `ACTION_RIGHT` (btn2): **aplica** el valor (`_difficulty`, visible con
   `difficulty()`) y vuelve al menú (`SFX_CONFIRM`).
 - `ACTION_UP` (btn1): **cancela** sin cambiar el valor guardado (`SFX_BACK`).
-- Valor por defecto `DIFFICULTY_DEFAULT = 5`, conservado en el miembro
+- Valor por defecto `Config::Difficulty::DEFAULT = 5`, conservado en el miembro
   persistente `_difficulty`; `beginDifficultyEdit()` copia a `_editDifficulty`
   (el valor en edición). `OPT_DIFFICULTY` no se entrega a `Engine::confirm()`
   (devuelve `-1`), por lo que el `Engine` permanece en `MENU`.
@@ -624,7 +638,7 @@ congela. Usa LEDC del núcleo ESP32 (Core 3.x), como el `GameBuzzer` original.
 ### Constructor
 
 ```cpp
-Buzzer(uint8_t pin = 14);
+Buzzer(uint8_t pin = Config::Pin::BUZZER);   // pin 14 (Config)
 ```
 
 ### Métodos
@@ -987,7 +1001,7 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 
 | Constante | Valor | Significado |
 |-----------|-------|-------------|
-| `DIFFICULTY_MIN` / `MAX` / `DEFAULT` | 1 / 10 / 5 | Nivel de dificultad acotado (mismo rango que el menú). |
+| `Config::Difficulty::MIN` / `MAX` / `DEFAULT` | 1 / 10 / 5 | Nivel de dificultad acotado (mismo rango y fuente única que el menú; ya no se duplica en `Game`). La fila superior del tablero es el Body: `Config::Screen::BODY_TOP`. |
 | `COUNTDOWN_MS` | 3000 | Duración del conteo regresivo inicial (3 s, un dígito por segundo: 3-2-1). |
 | `COUNT_HIDE_MS` | 250 | Fase de parpadeo al final de cada dígito: el número (y su cuadro) se ocultan antes de que aparezca el siguiente. |
 
@@ -1120,7 +1134,7 @@ Food(Display& display, uint8_t cols, uint8_t rows, uint8_t top);
 
 Recibe la `Display` (para dibujar) y la geometría del tablero: rejilla de
 `cols`×`rows` celdas de 8 px a partir de la fila `top` (el Body). `Game` la
-construye así: `_food(display, Snake::COLS, Snake::ROWS, BODY_TOP)` (las
+construye así: `_food(display, Snake::COLS, Snake::ROWS, Config::Screen::BODY_TOP)` (las
 constantes del tablero viven en `Snake`).
 
 ### Enum y constantes
@@ -1150,7 +1164,7 @@ static constexpr uint8_t SPECIAL_TIME_DEFAULT = 60;   // segundos iniciales de l
 | `void draw() const` | Dibuja según el tipo: `NORMAL` → rombo (`drawNormal`, dos `fillTriangle`); `SPECIAL` → sprite (`drawSpecial`, píxel a píxel del sprite de 1 bit). Si no hay alimento no dibuja nada. |
 
 `Game` usa `_food` así: lo genera en `reset()` y al comer (`_food.spawn(Food::Type::NORMAL, *this)`; si devuelve `false` se muere), consulta `_food.has()/_food.x()/_food.y()` para detectar comida y boca abierta, dibuja `_food.draw()` al volcar el tablero y muestra `_food.specialTime()` en el Header. La construye en su lista de inicialización:
-`_food(display, Snake::COLS, Snake::ROWS, BODY_TOP)` (las constantes del tablero viven en `Snake`, sección 18).
+`_food(display, Snake::COLS, Snake::ROWS, Config::Screen::BODY_TOP)` (las constantes del tablero viven en `Snake`, sección 18).
 
 ---
 
@@ -1252,3 +1266,53 @@ y probar en el PC (MinGW) sin stubs: los casos del núcleo original (comer/crece
 longitud estable sin comida, colisión real sin avanzar, cabeza sobre la celda de
 la cola, wrap X/Y, cargo de integridad con giros) se conservan y pasan mirando a
 esta clase directamente.
+
+---
+
+## 19. `Config.h` — constantes compartidas (namespace `Config`)
+
+Ubicación: `Config.h`. **Un solo archivo pequeño para lo verdaderamente
+compartido**: constantes que usan varias clases o que son propias del
+hardware/placa. No es un cajón de sastre: lo específico de una clase se queda
+como `static constexpr` dentro de ella (p. ej. `ANIM_TICK` en `Scroller`,
+`NEW_BEST_SIGN_MS` en `Game`, `ARROW_BLINK_PERIOD` en `Menu`).
+
+- **Sin `#define` para valores:** las constantes llevan tipo y viven en
+  namespaces, de modo que no contaminan el ámbito global ni chocan con nombres
+  de librerías (Adafruit / core ESP32). `#define` queda solo para lo que necesita
+  el preprocesador (`#ifdef DEBUG`). Header: `#pragma once` + `#include <Arduino.h>`.
+- **`constexpr` no ocupa RAM** y compila sin problemas en Arduino IDE con el core
+  de ESP32 (C++17).
+
+```cpp
+namespace Config {
+  namespace Pin {
+    constexpr int8_t  BUTTONS[8] = { 2, 1, 42, 41, 38, 40, 39, 47 }; // orden Buttons::Button
+    constexpr uint8_t BUZZER   = 14;   // zumbador
+    constexpr uint8_t OLED_SDA = 8;
+    constexpr uint8_t OLED_SCL = 9;
+  }
+  namespace Screen {
+    constexpr uint8_t WIDTH = 128, HEIGHT = 64, CELL = 8, ADDRESS = 0x3C;
+    constexpr uint8_t HEADER_TOP = 0, HEADER_H = 16;  // Header 0..15
+    constexpr uint8_t BODY_TOP = 16, BODY_H = 48;     // Body 16..63
+  }
+  namespace Difficulty {
+    constexpr uint8_t MIN = 1, MAX = 10, DEFAULT = 5;
+  }
+}
+```
+
+### Qué contiene y quién lo usa
+
+| Namespace | Constantes | Las usan |
+|-----------|------------|----------|
+| `Config::Pin` | `BUTTONS`, `BUZZER`, `OLED_SDA`, `OLED_SCL` | `Snake_II.ino` (pasa `Config::Pin::BUTTONS` a `Buttons`), `Buzzer` (pin por defecto), `Display` (pines I2C por defecto) |
+| `Config::Screen` | `WIDTH`/`HEIGHT`/`CELL`/`ADDRESS` y regiones `HEADER_*`/`BODY_*` | `Display` (defaults del constructor y `regionBounds`), `Boot` (bandas TITULO=Header/CUERPO=Body), `Game` (tablero en el Body), `Credits` (rol del Body) |
+| `Config::Difficulty` | `MIN`/`MAX`/`DEFAULT` | `Menu` (selector de dificultad inline) y `Game` (`setDifficulty`/velocidad): antes duplicadas en ambas clases |
+
+Las regiones `HEADER_TOP/H` y `BODY_TOP/H` reemplazan las constantes repetidas
+`BODY_TOP`/`BODY_H`/`TITLE_TOP`/`TITLE_H` de `Menu`, `Game`, `Boot` y `Credits`.
+Los `static constexpr` de esas clases se eliminaron; solo `Boot` conserva sus
+constantes propias (`BAR_W`, `BAR_SPACING`, `ANIM_TICK`, `TOTAL_MS`), que son de
+su animación.

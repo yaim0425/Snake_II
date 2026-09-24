@@ -79,8 +79,8 @@ Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint16_t bestScore,
     _editingSound(false),
     _soundEnabled(true),
     _editingDifficulty(false),
-    _difficulty(DIFFICULTY_DEFAULT),
-    _editDifficulty(DIFFICULTY_DEFAULT),
+    _difficulty(Config::Difficulty::DEFAULT),
+    _editDifficulty(Config::Difficulty::DEFAULT),
     _repeatStart(0),
     _repeatLast(0),
     _scroller(display, 1, nullptr) {}
@@ -202,11 +202,11 @@ void Menu::update() {
     // repetición al mantener presionado (primer paso inmediato, después
     // repite cada HOLD_REPEAT_TICK ms tras HOLD_REPEAT_DELAY de mantención).
     // El valor mostrado cambia sin aplicarse; solo se aplica al confirmar.
-    if (holdRepeat(Buttons::MOVE_RIGHT) && _editDifficulty < DIFFICULTY_MAX) {
+    if (holdRepeat(Buttons::MOVE_RIGHT) && _editDifficulty < Config::Difficulty::MAX) {
       _editDifficulty++;
       _sound.play(Sound::SFX_CLICK);
     }
-    if (holdRepeat(Buttons::MOVE_LEFT) && _editDifficulty > DIFFICULTY_MIN) {
+    if (holdRepeat(Buttons::MOVE_LEFT) && _editDifficulty > Config::Difficulty::MIN) {
       _editDifficulty--;
       _sound.play(Sound::SFX_CLICK);
     }
@@ -433,9 +433,9 @@ void Menu::drawDifficultySelector() {
   // 25) el botón de ese lado ya no puede avanzar y se procesa igual que si
   // se hubiera soltado (vuelve el parpadeo normal, con el límite oculto).
   bool leftHeld  = _buttons.state(Buttons::MOVE_LEFT) &&
-                   _editDifficulty > DIFFICULTY_MIN;
+                   _editDifficulty > Config::Difficulty::MIN;
   bool rightHeld = _buttons.state(Buttons::MOVE_RIGHT) &&
-                   _editDifficulty < DIFFICULTY_MAX;
+                   _editDifficulty < Config::Difficulty::MAX;
 
   bool arrowsVisible =
       leftHeld || rightHeld ||
@@ -445,14 +445,14 @@ void Menu::drawDifficultySelector() {
   if (arrowsVisible) {
     // Flecha izquierda (-1): fija al mantener MOVE_LEFT; oculta mientras se
     // mantiene MOVE_RIGHT; sin mantener parpadea. No se dibuja en el mínimo.
-    if (_editDifficulty > DIFFICULTY_MIN && !rightHeld) {
+    if (_editDifficulty > Config::Difficulty::MIN && !rightHeld) {
       int16_t base = labelX - ARROW_GAP;  // lado plano, pegado al texto
       s.fillTriangle(base - ARROW_W, yMid, base, yTop, base, yBot,
                      SSD1306_WHITE);
     }
     // Flecha derecha (+1): fija al mantener MOVE_RIGHT; oculta mientras se
     // mantiene MOVE_LEFT; sin mantener parpadea. No se dibuja en el máximo.
-    if (_editDifficulty < DIFFICULTY_MAX && !leftHeld) {
+    if (_editDifficulty < Config::Difficulty::MAX && !leftHeld) {
       int16_t base = labelX + labelW + ARROW_GAP;  // lado plano, pegado al texto
       s.fillTriangle(base + ARROW_W, yMid, base, yTop, base, yBot,
                      SSD1306_WHITE);
