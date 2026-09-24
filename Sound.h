@@ -36,7 +36,8 @@ public:
     SFX_TICK,       // conteo regresivo 3-2-1 (un pitido por dígito)
     SFX_TURN,       // cambio de dirección de la serpiente
     SFX_PAUSE,      // pausar la partida
-    SFX_RESUME      // reanudar la partida
+    SFX_RESUME,     // reanudar la partida
+    SFX_NEW_BEST    // festejo de nuevo récord ("YOU ARE" / "THE BEST")
   };
 
   // ========================================================
@@ -104,6 +105,7 @@ private:
   static const Note SEQ_TURN[];
   static const Note SEQ_PAUSE[];
   static const Note SEQ_RESUME[];
+  static const Note SEQ_NEW_BEST[];
   static const uint8_t LEN_CLICK;
   static const uint8_t LEN_CONFIRM;
   static const uint8_t LEN_BACK;
@@ -115,6 +117,7 @@ private:
   static const uint8_t LEN_TURN;
   static const uint8_t LEN_PAUSE;
   static const uint8_t LEN_RESUME;
+  static const uint8_t LEN_NEW_BEST;
 
   // ========================================================
   // Estado

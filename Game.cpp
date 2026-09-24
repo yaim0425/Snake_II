@@ -48,6 +48,9 @@ void Game::begin(bool newGame) {
   _redrawHeader = true;
   _dirtyBoard = true;
   _nextDir = Dir::NONE;  // ningún giro pendiente al entrar
+  _newBest = false;      // el festejo de récord lo decide die() en cada muerte
+  _celeSfx = 0;
+  _gameOverMs = 0;
 
   if (newGame || !_hasGame) {
     // Nueva partida (velocidad según la dificultad actual del menú)
@@ -352,8 +355,14 @@ void Game::die() {
 
   // El récord solo se verifica/actualiza al terminar en GAME OVER
   // (no durante la partida): el "Best" del menú refleja partidas
-  // terminadas, no puntajes en curso.
-  if (_score > _bestScore) _bestScore = _score;
+  // terminadas, no puntajes en curso. Al establecerse un NUEVO
+  // récord se activa el festejo (ciclo "GAME OVER"/"YOU ARE"/
+  // "THE BEST" en print(), con SFX_NEW_BEST solo la primera vez
+  // que aparece cada letrero).
+  _newBest = _score > _bestScore;
+  if (_newBest) _bestScore = _score;
+  _gameOverMs = millis();
+  _celeSfx = 0;
   _redrawHeader = true;
   _sound.play(Sound::SFX_GAME_OVER);
   _dirtyBoard = true;
@@ -652,7 +661,32 @@ void Game::print() {
       break;
     }
     case State::PAUSE:     drawOverlay("PAUSA", true);   break;
-    case State::GAME_OVER: drawOverlay("GAME OVER", true); break;
+    case State::GAME_OVER: {
+      if (_newBest) {
+        // Festejo de nuevo récord: ciclo "GAME OVER" -> "YOU ARE" ->
+        // "THE BEST" (NEW_BEST_SIGN_MS cada uno) hasta que se presiona
+        // un botón. El sonido (SFX_NEW_BEST) suena solo la primera vez
+        // que aparece cada letrero (_celeSfx; el "GAME OVER" ya sonó
+        // en die() con SFX_GAME_OVER).
+        uint8_t phase = (uint8_t)((millis() - _gameOverMs) / NEW_BEST_SIGN_MS % 3);
+        switch (phase) {
+          case 0:
+            drawOverlay("GAME OVER", true);
+            break;
+          case 1:
+            if (!(_celeSfx & 0x01)) { _celeSfx |= 0x01; _sound.play(Sound::SFX_NEW_BEST); }
+            drawOverlay("YOU ARE", true);
+            break;
+          default:
+            if (!(_celeSfx & 0x02)) { _celeSfx |= 0x02; _sound.play(Sound::SFX_NEW_BEST); }
+            drawOverlay("THE BEST", true);
+            break;
+        }
+        break;
+      }
+      drawOverlay("GAME OVER", true);
+      break;
+    }
     default: break;
   }
 }

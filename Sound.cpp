@@ -75,6 +75,17 @@ const Sound::Note Sound::SEQ_RESUME[] = {
   { 900, 60 }
 };
 
+const Sound::Note Sound::SEQ_NEW_BEST[] = {
+  // Festejo de nuevo récord: fanfarria ascendente (arpegio mayor)
+  { 523, 80 },
+  { 659, 80 },
+  { 784, 80 },
+  { 1047, 100 },
+  { 1319, 120 },
+  { 1568, 160 },
+  { 2093, 240 }
+};
+
 // ========================================================
 // Largos de las secuencias (derivados de los arreglos)
 // ========================================================
@@ -90,6 +101,7 @@ const uint8_t Sound::LEN_TICK = sizeof(SEQ_TICK) / sizeof(Note);
 const uint8_t Sound::LEN_TURN = sizeof(SEQ_TURN) / sizeof(Note);
 const uint8_t Sound::LEN_PAUSE = sizeof(SEQ_PAUSE) / sizeof(Note);
 const uint8_t Sound::LEN_RESUME = sizeof(SEQ_RESUME) / sizeof(Note);
+const uint8_t Sound::LEN_NEW_BEST = sizeof(SEQ_NEW_BEST) / sizeof(Note);
 
 // ========================================================
 // Constructor
@@ -142,6 +154,7 @@ void Sound::play(Sfx effect) {
     case SFX_TURN:       _seq = SEQ_TURN;       _len = LEN_TURN;       break;
     case SFX_PAUSE:      _seq = SEQ_PAUSE;      _len = LEN_PAUSE;      break;
     case SFX_RESUME:     _seq = SEQ_RESUME;     _len = LEN_RESUME;     break;
+    case SFX_NEW_BEST:   _seq = SEQ_NEW_BEST;   _len = LEN_NEW_BEST;   break;
     default:             _seq = nullptr;        _len = 0;              break;
   }
 
