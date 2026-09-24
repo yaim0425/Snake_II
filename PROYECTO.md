@@ -56,9 +56,11 @@ Arquitectura:
 - Al iniciar se muestra la animación de arranque (`Boot`, franjas verticales),
   luego el panel de botones (`Legend`, pad MOVE con flechas + 4 rombos de ACTION
   que parpadean uno a la vez) y
-  después el menú inicial con las opciones `New` y `Continue` (llevan a la ventana
-  `Juego`; al volver del juego la selección del menú queda en `Continue`
-  si la partida sigue en curso o en `New` si terminó en `GAME OVER`), `Sound`
+  después el menú inicial con las opciones `New`, `Continue` (**se oculta si no hay
+  partida en curso**: al arrancar o tras un `GAME OVER` la lista queda en 4 opciones
+  — New, Dificultad, Sound, Créditos —; al volver del juego con la partida en curso
+  vuelve a 5 y la selección queda en `Continue`, si terminó en `GAME OVER` la
+  selección queda en `New` y `Continue` no aparece), `Sound`
   y `Dificultad` (**se editan inline en el propio `Menu`**:
   al confirmar con `ACTION_RIGHT` aparece un selector en la banda de los rombos —
   On/Off para `Sound`, nivel 1..25 para `Dificultad`—, se navega con
@@ -332,6 +334,7 @@ Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t bestScore = 0, co
 |--------|-------------|
 | `void begin()` | Restablece el estado de la animación, del parpadeo y del modo de edición de sonido. **No resetea la selección**: conserva la opción elegida antes de salir del menú (las ventanas son hermanas persistentes; al volver al menú se muestra la misma opción que se tenía, no siempre "New"). |
 | `void setOptions(textos, conteo)` | Fija la lista y la cantidad de opciones (1..`MAX_OPTIONS`=8). El menú (textos y rombos) se adapta al conteo. |
+| `void setContinueAvailable(bool)` | **Muestra/oculta la opción "Continue"** según haya partida en curso que reanudar. `true` = lista de 5 opciones (New, Continue, Dificultad, Sound, Créditos); `false` = lista de 4 (New, Dificultad, Sound, Créditos). Estado inicial: `false` (al arrancar no hay partida). Cambia la lista interna (como `setOptions`) conservando la selección y adaptándola a la nueva cantidad. |
 | `void update()` | Lee botones, navega con `MOVE_RIGHT`/`MOVE_LEFT` y anima el deslizamiento lateral; log en Serial al cambiar de opción; toca `SFX_CLICK` al navegar. En las opciones "Sound" y "Dificultad" gestiona el **modo de edición inline** (ver abajo). |
 | `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Best + versión). En modo de edición de sonido dibuja el **selector On/Off** en la banda de los rombos; en modo de edición de dificultad, el **selector `< N >`** (nivel 1..25). |
 | `int8_t selected()` | Índice de la opción seleccionada. |
@@ -339,7 +342,7 @@ Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t bestScore = 0, co
 | `void setBestScore(uint8_t)` | Actualiza el puntaje máximo mostrado. |
 | `void setTitle(const char*)` | Cambia el título del Header. |
 | `void setShowFooter(bool)` | Ocultar/mostrar el texto del pie ("Best"/versión); la línea de la `54` se dibuja siempre. |
-| `void setSelected(int8_t)` | Fija la selección (clamp al rango) y reinicia la animación (al entrar en la ventana). |
+| `void setSelected(Menu::Option)` | Fija la selección **por opción lógica** (enum `Option`, p. ej. `OPC_NUEVO` u `OPC_CONTINUAR`), se mapea al índice de la lista visible y reinicia la animación (al entrar en la ventana). Si la opción no está visible ("Continue" oculto) la selección cae a `New`. |
 | `void beginSoundEdit()` | Activa el modo de edición de sonido inline (borra los rombos y dibuja el selector On/Off). |
 | `bool isEditingSound()` | `true` mientras el menú está en el modo de edición de sonido. |
 | `void beginDifficultyEdit()` | Activa el modo de edición de dificultad inline (borra los rombos y dibuja el selector `< N >`). |
@@ -416,8 +419,13 @@ enum Option : uint8_t {
 };
 ```
 
-El enum documenta los índices de las 5 opciones por defecto. La cantidad real es
-variable (`setOptions`), con `MAX_OPTIONS = 8`.
+El enum documenta las **5 opciones lógicas**. La lista visible varía: con
+`Continue` disponible (`setContinueAvailable(true)`) los índices de la lista
+coinciden con el enum; sin `Continue` la lista se compacta a 4 opciones y el
+índice 1 pasa a Dificultad, el 2 a Sonido y el 3 a Créditos (mapeo interno
+`optionAt`/`indexOfOption`, privados). `confirm()` devuelve siempre la **opción
+lógica** (enum `Option`), así el `Engine` compara con los mismos valores con o
+sin "Continue". Cantidad real máxima `MAX_OPTIONS = 8`.
 
 ### Diseño del menú (scroller de 1 bit)
 
@@ -709,7 +717,7 @@ enum class State : uint8_t {
 | `BOOT` | `Boot` | Animación de arranque (franjas). Al terminar (`done()`) pasa a `LEGEND`. Cualquier botón la termina. |
 | `LEGEND` | `Legend` | Panel de botones: pad MOVE con 4 flechas + 4 rombos completos de ACTION en las posiciones de un pad que parpadean MUY rápido uno a la vez (ciclo lento) con la función del rombo activo centrada en el pie. Cualquier botón la cierra → menú (suena el efecto según el botón —CLICK/BACK/CONFIRM—; `Engine` no añade `SFX_BACK`). Solo se muestra tras el arranque. |
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
-| `NUEVO` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con la cuenta regresiva "GO !" (`SFX_START`). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setBestScore(game.bestScore())`), deja la selección del menú en `Continue` si la partida sigue en curso o en `New` si hubo `GAME OVER` (`menu.setSelected(...)`) y pasa a `MENU`. |
+| `NUEVO` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con la cuenta regresiva "GO !" (`SFX_START`). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setBestScore(game.bestScore())`), **oculta/muestra "Continue" según haya partida en curso** (`menu.setContinueAvailable(!game.isGameOver())`), deja la selección del menú en `Continue` si la partida sigue en curso o en `New` si hubo `GAME OVER` (`menu.setSelected(...)`) y pasa a `MENU`. |
 | `CONTINUAR` | `Game` | Reanudar la partida anterior (`begin(false)`): queda en pausa y se retoma con `ACTION_RIGHT`/`ACTION_LEFT`; si no hay partida en curso arranca una nueva. Al salir (`done()`) igual que `NUEVO`. |
 | `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo `Scroller` compartido que el menú** pero con **2 bandas sincronizadas** (`BAND_HEIGHTS = {16, 8}` = altos de rol 12x16 y nombre 6x8): rol y nombre se componen por separado en la misma tira (`loadEntry` → `compose`) y deslizan a la vez con el **mismo `_slideX`** interno del `Scroller` (aparecen al mismo tiempo). `drawBand(slot, y, fg, bg)` compone el slot y vuelca su **banda persistente** (`_chipBox[slot]`) con sus colores; la tira la sobrescribe **columna a columna** con sus fondos, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). El deslizamiento **arranca desde el borde** (`startSlide`, fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (igual que el menú, ≈0,5 s). Al navegar suena `SFX_CLICK` y al salir (`done()`) suena `SFX_BACK` (lo toca el `Engine`) y pasa directo a `MENU`. |
 
@@ -754,7 +762,9 @@ Toda ventana implementa:
   para que desajustes como el orden de inicialización de miembros salten a la vista
   en la compilación (no entra en el repo: se configura a nivel del paquete del core).
 - La demo actual (`Snake_II.ino`) usa `Display`, `Buttons` y el sonido integrado:
-  al navegar el menú y los créditos suena `SFX_CLICK`, al confirmar `SFX_CONFIRM`,
+  el menú arranca **sin la opción "Continue"** (no hay partida en curso) y solo
+  aparece al volver del juego con la partida viva; al navegar el menú y los
+  créditos suena `SFX_CLICK`, al confirmar `SFX_CONFIRM`,
   al volver al menú `SFX_BACK`, la `Legend` suena según el botón pulsado (MOVE =
   CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM) y en la opción "Sound" el
   **On/Off se edita inline en el propio menú** (selector con flechas en la banda
@@ -783,7 +793,8 @@ llama a `display.clear()`, lo decide cada ventana.
    **primer `print()`** después de su `begin()` (flag `_redraw` puesto en
    `begin()` y apagado tras ese primer dibujo). Ese primer clear elimina la resaca
    de la ventana anterior y deja el fondo listo. Los métodos que reinician la
-   animación (`Menu::begin/setOptions/setSelected`, `setBestScore` si cambia)
+   animación (`Menu::begin/setOptions/setSelected/setContinueAvailable`,
+   `setBestScore` si cambia)
    también activan ese flag.
 2. **Estáticos una sola vez:** títulos, pies, línea separadora, cuadro de
    selección, rótulos y pads se dibujan en ese primer frame y **ya no se vuelven a
@@ -980,7 +991,10 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   `GAME_OVER` deja `_hasGame = false`. Al salir, el `Engine` deja la selección
   del menú en **`Continue`** si la partida siguió en curso (sale con `ACTION_UP`)
   o en **`New`** si terminó en `GAME OVER` (lo decide con `game.isGameOver()` y
-  lo aplica con `menu.setSelected(...)` antes de pasar a `MENU`).
+  lo aplica con `menu.setSelected(...)` antes de pasar a `MENU`); además la
+  opción **"Continue" en el menú se oculta cuando no hay partida que reanudar**
+  (`menu.setContinueAvailable(!game.isGameOver())`): al arrancar o tras un
+  `GAME OVER` la lista queda con 4 opciones (New, Dificultad, Sound, Créditos).
 - **Sprites (cuerpo persistente):** cada segmento del cuerpo guarda su
   `part` (sprite fijo): cola `TAIL_TO_<dir>` (su `dir` guardada), cuerpo recto
   `BODY_TO_<dir>`, curva `CORNER_<horizontal>_<vertical>` (índice 8..11

@@ -43,6 +43,18 @@ public:
   void setOptions(const char* const* texts, uint8_t count);
 
   // ========================================================
+  // Opción "Continue" (hay partida en curso que reanudar)
+  //
+  // true  -> la lista incluye "Continue" (5 opciones).
+  // false -> se oculta (4 opciones: New, Difficulty, Sound,
+  //          Credits). Es el estado inicial: sin partida no hay
+  //          nada que continuar. La selección se mantiene y se
+  //          adapta a la nueva cantidad de opciones.
+  // ========================================================
+
+  void setContinueAvailable(bool available);
+
+  // ========================================================
   // Apariencia (título del Header y pie opcional)
   // ========================================================
 
@@ -50,11 +62,14 @@ public:
   void setShowFooter(bool show);
 
   // ========================================================
-  // Selección inicial (clamp al rango de opciones) y reinicio
-  // de la animación.
+  // Selección inicial por OPCIÓN LÓGICA (enum Option, p. ej.
+  // OPC_NUEVO u OPC_CONTINUAR) y reinicio de la animación.
+  // Internamente se mapea al índice de la lista visible; si la
+  // opción no está visible (p. ej. "Continue" oculto) la
+  // selección cae a la primera opción (New).
   // ========================================================
 
-  void setSelected(int8_t index);
+  void setSelected(Option option);
 
   // ========================================================
   // Actualizar (consume eventos de botones, navega y anima)
@@ -101,10 +116,23 @@ private:
   // Opciones por defecto
   // ========================================================
 
+  // La lista que se muestra depende de si hay partida en curso:
+  //   - con "Continue": DEFAULT_OPTIONS (5) opciones
+  //   - sin "Continue": DEFAULT_OPTIONS - 1 (4) opciones
   static constexpr uint8_t DEFAULT_OPTIONS = 5;
   static const char* const DEFAULT_OPTION_TEXT[DEFAULT_OPTIONS];
+  static const char* const NO_CONTINUE_OPTIONS[DEFAULT_OPTIONS - 1];
 
   const char* optionText(int8_t index) const;
+
+  // Mapeo entre el índice de la lista y la opción lógica (enum
+  // Option). Con "Continue" el índice coincide con el enum; sin
+  // "Continue" el índice 1 pasa a Dificultad, el 2 a Sonido y el
+  // 3 a Créditos. optionAt() devuelve la opción lógica de un índice
+  // de la lista; indexOfOption() hace lo contrario y devuelve -1 si
+  // la opción no está visible (p. ej. OPC_CONTINUAR sin partida).
+  Option optionAt(int8_t index) const;
+  int8_t indexOfOption(Option option) const;
 
   // ========================================================
   // Geometría del menú
@@ -197,6 +225,7 @@ private:
 
   uint8_t _optionCount;
   const char* const* _optionTexts;
+  bool _continueAvailable;   // muestra/oculta la opción "Continue" (default: oculta)
 
   int8_t _selected;   // opción actual (objetivo central)
   uint32_t _holdStart;  // momento de la última selección (parpadeo del rombo)

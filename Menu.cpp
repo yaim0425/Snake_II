@@ -15,8 +15,46 @@ const char* const Menu::DEFAULT_OPTION_TEXT[Menu::DEFAULT_OPTIONS] = {
   "Credits"
 };
 
+const char* const Menu::NO_CONTINUE_OPTIONS[Menu::DEFAULT_OPTIONS - 1] = {
+  "New",
+  "Difficulty",
+  "Sound",
+  "Credits"
+};
+
 const char* Menu::optionText(int8_t index) const {
   return _optionTexts[index];
+}
+
+// ========================================================
+// Mapeo índice <-> opción lógica (enum Option)
+//
+// Con "Continue" visible, el índice de la lista coincide con
+// el valor del enum (New=0, Continue=1, Difficulty=2, Sound=3,
+// Credits=4). Sin "Continue" la lista se compacta: el índice 1
+// pasa a Dificultad, el 2 a Sonido y el 3 a Créditos; el
+// OPC_CONTINUAR deja de existir (indexOfOption devuelve -1).
+// ========================================================
+
+Menu::Option Menu::optionAt(int8_t index) const {
+  if (_continueAvailable) return (Option)index;
+  switch (index) {
+    case 0:   return OPC_NUEVO;
+    case 1:   return OPC_DIFICULTAD;
+    case 2:   return OPC_SONIDO;
+    default:  return OPC_CREDITOS;
+  }
+}
+
+int8_t Menu::indexOfOption(Option option) const {
+  if (_continueAvailable) return (int8_t)option;
+  switch (option) {
+    case OPC_NUEVO:      return 0;
+    case OPC_DIFICULTAD: return 1;
+    case OPC_SONIDO:     return 2;
+    case OPC_CREDITOS:   return 3;
+    default:             return -1;  // OPC_CONTINUAR sin partida en curso
+  }
 }
 
 // ========================================================
@@ -32,8 +70,9 @@ Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t bestScore,
     _version(version),
     _title("Snake II"),
     _showFooter(true),
-    _optionCount(DEFAULT_OPTIONS),
-    _optionTexts(DEFAULT_OPTION_TEXT),
+    _optionCount(DEFAULT_OPTIONS - 1),  // sin "Continue" al arrancar (no hay partida)
+    _optionTexts(NO_CONTINUE_OPTIONS),
+    _continueAvailable(false),
     _selected(OPC_NUEVO),
     _holdStart(0),
     _redraw(true),
@@ -81,6 +120,25 @@ void Menu::setOptions(const char* const* texts, uint8_t count) {
 }
 
 // ========================================================
+// Opción "Continue" (hay partida en curso que reanudar)
+//
+// Cambia a la lista con/ sin "Continue" (5 o 4 opciones). La
+// selección se conserva y se adapta a la nueva cantidad; si la
+// opción seleccionada ya no existe (p. ej. estaba en "Continue"
+// y se oculta), la navegación vuelve a apuntarla a un rango
+// válido (la misión de dejar la selección en "New" la cumple
+// el Engine con setSelected tras llamarnos).
+// ========================================================
+
+void Menu::setContinueAvailable(bool available) {
+  if (available == _continueAvailable) return;
+
+  _continueAvailable = available;
+  setOptions(available ? DEFAULT_OPTION_TEXT : NO_CONTINUE_OPTIONS,
+             available ? DEFAULT_OPTIONS : DEFAULT_OPTIONS - 1);
+}
+
+// ========================================================
 // Apariencia (título del Header y pie opcional)
 // ========================================================
 
@@ -97,9 +155,9 @@ void Menu::setShowFooter(bool show) {
 // de la animación.
 // ========================================================
 
-void Menu::setSelected(int8_t index) {
-  if (index < 0) index = 0;
-  if (index >= (int8_t)_optionCount) index = (int8_t)_optionCount - 1;
+void Menu::setSelected(Menu::Option option) {
+  int8_t index = indexOfOption(option);
+  if (index < 0) index = 0;  // la opción no está visible (p. ej. "Continue" oculto)
 
   _selected = index;
   _scroller.begin();
@@ -166,12 +224,12 @@ void Menu::update() {
     navigate();
     // Al confirmar la opción "Dificultad" (btn2) se entra en modo edición
     // inline, igual que "Sound" (ver Engine).
-    if (_buttons.actionRightPressed() && _selected == OPC_DIFICULTAD) {
+    if (_buttons.actionRightPressed() && optionAt(_selected) == OPC_DIFICULTAD) {
       _sound.play(Sound::SFX_CLICK);
       beginDifficultyEdit();
       return;
     }
-    if (_buttons.actionRightPressed() && _selected == OPC_SONIDO) {
+    if (_buttons.actionRightPressed() && optionAt(_selected) == OPC_SONIDO) {
       _sound.play(Sound::SFX_CLICK);
       beginSoundEdit();
       return;
@@ -513,10 +571,14 @@ int8_t Menu::selected() const {
 int8_t Menu::confirm() const {
   // Las opciones "Sound" y "Dificultad" NO se devuelven para abrir otra
   // ventana: se editan inline en el propio menú (ver beginSoundEdit /
-  // beginDifficultyEdit y update). Con lo demás se confirma como siempre
-  // (ACTION_RIGHT).
-  if (_buttons.actionRightPressed() && _selected != OPC_SONIDO &&
-      _selected != OPC_DIFICULTAD) return _selected;
+  // beginDifficultyEdit y update). Se devuelve la OPCIÓN LÓGICA (enum
+  // Option): con "Continue" oculto la lista es 4 opciones y los índices
+  // ya no coinciden con el enum, así el Engine compara con los mismos
+  // valores (OPC_NUEVO/OPC_CONTINUAR/OPC_CREDITOS).
+  if (_buttons.actionRightPressed() &&
+      optionAt(_selected) != OPC_SONIDO &&
+      optionAt(_selected) != OPC_DIFICULTAD)
+    return (int8_t)optionAt(_selected);
   return -1;
 }
 

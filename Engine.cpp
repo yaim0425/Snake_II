@@ -64,9 +64,12 @@ void Engine::update() {
       if (_game.done()) {
         _sound.play(Sound::SFX_BACK);
         _menu.setBestScore(_game.bestScore());
-        // Al volver al menú, la selección queda en "Continue" si la partida
-        // sigue en curso (salida sin perderla) o en "New" si terminó en GAME OVER.
-        _menu.setSelected(_game.isGameOver() ? Menu::OPC_NUEVO : Menu::OPC_CONTINUAR);
+        // "Continue" se oculta si no hay partida que reanudar (GAME OVER);
+        // la selección del menú queda en "Continue" si la partida sigue en
+        // curso o en "New" si terminó en GAME OVER.
+        bool gameOver = _game.isGameOver();
+        _menu.setContinueAvailable(!gameOver);
+        _menu.setSelected(gameOver ? Menu::OPC_NUEVO : Menu::OPC_CONTINUAR);
         changeState(State::MENU);
       }
       break;
