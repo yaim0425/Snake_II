@@ -19,6 +19,8 @@ Programación orientada a objetos: cada clase en su archivo `.h` y `.cpp`.
 - **La IA debe actualizar este documento (`PROYECTO.md`) antes de hacer el commit**:
   toda modificación de código debe quedar reflejada (secciones/API) y ese cambio a
   `PROYECTO.md` debe incluirse en el mismo commit.
+- **La IA no compila sin permiso explícito del usuario.** El usuario compila por su
+  cuenta (compilar la IA y después el usuario demora el flujo de trabajo).
 
 ### Frase para iniciar una nueva sesión
 
@@ -717,7 +719,7 @@ enum class State : uint8_t {
 | `BOOT` | `Boot` | Animación de arranque (franjas). Al terminar (`done()`) pasa a `LEGEND`. Cualquier botón la termina. |
 | `LEGEND` | `Legend` | Panel de botones: pad MOVE con 4 flechas + 4 rombos completos de ACTION en las posiciones de un pad que parpadean MUY rápido uno a la vez (ciclo lento) con la función del rombo activo centrada en el pie. Cualquier botón la cierra → menú (suena el efecto según el botón —CLICK/BACK/CONFIRM—; `Engine` no añade `SFX_BACK`). Solo se muestra tras el arranque. |
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
-| `NUEVO` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con la cuenta regresiva "GO !" (`SFX_START`). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setBestScore(game.bestScore())`), **oculta/muestra "Continue" según haya partida en curso** (`menu.setContinueAvailable(!game.isGameOver())`), deja la selección del menú en `Continue` si la partida sigue en curso o en `New` si hubo `GAME OVER` (`menu.setSelected(...)`) y pasa a `MENU`. |
+| `NUEVO` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con el conteo regresivo 3-2-1 (`SFX_START`). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setBestScore(game.bestScore())`), **oculta/muestra "Continue" según haya partida en curso** (`menu.setContinueAvailable(!game.isGameOver())`), deja la selección del menú en `Continue` si la partida sigue en curso o en `New` si hubo `GAME OVER` (`menu.setSelected(...)`) y pasa a `MENU`. |
 | `CONTINUAR` | `Game` | Reanudar la partida anterior (`begin(false)`): queda en pausa y se retoma con `ACTION_RIGHT` (Btn2, "Select / Pause") o `ACTION_LEFT`; si no hay partida en curso arranca una nueva. Al salir (`done()`) igual que `NUEVO`. |
 | `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo `Scroller` compartido que el menú** pero con **2 bandas sincronizadas** (`BAND_HEIGHTS = {16, 8}` = altos de rol 12x16 y nombre 6x8): rol y nombre se componen por separado en la misma tira (`loadEntry` → `compose`) y deslizan a la vez con el **mismo `_slideX`** interno del `Scroller` (aparecen al mismo tiempo). `drawBand(slot, y, fg, bg)` compone el slot y vuelca su **banda persistente** (`_chipBox[slot]`) con sus colores; la tira la sobrescribe **columna a columna** con sus fondos, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). El deslizamiento **arranca desde el borde** (`startSlide`, fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (igual que el menú, ≈0,5 s). Al navegar suena `SFX_CLICK` y al salir (`done()`) suena `SFX_BACK` (lo toca el `Engine`) y pasa directo a `MENU`. |
 
@@ -776,7 +778,7 @@ Toda ventana implementa:
   flecha del botón activo, la contraria se oculta; al llegar al límite se
   procesa igual que haber soltado el botón (vuelve el parpadeo normal)—,
   `ACTION_RIGHT` lo aplica y
-  `ACTION_UP` cancela). En el juego (`Game`): `SFX_START` al iniciar (GO !),
+  `ACTION_UP` cancela). En el juego (`Game`): `SFX_START` al iniciar (conteo 3-2-1),
   `SFX_EAT` al comer, `SFX_GAME_OVER` al morir y `SFX_BACK` al volver al menú.
 - Con SDA=8 y SCL=9, dirección 0x3C.
 
@@ -808,7 +810,7 @@ llama a `display.clear()`, lo decide cada ventana.
    | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria; al llegar al límite se procesa igual que haber soltado el botón, volviendo el parpadeo normal) |
    | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas) |
    | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
-   | `Game` | Primer frame: clear completo + Header (puntaje 12x16 izq., segundos restantes de la comida especial 12x16 der.) y alimento y serpiente | Header solo si cambia el puntaje o `_specialTime` (banda 0..15); tablero (Body 16..63) solo si `_dirtyBoard` (movimiento, comida nueva, transición de estado): borra el Body, redibuja alimento + serpiente; overlay "GO !"/"PAUSA"/"GAME OVER" (cuadro blanco centrado + texto invertido) en cada frame según el estado |
+   | `Game` | Primer frame: clear completo + Header (puntaje 12x16 izq., segundos restantes de la comida especial 12x16 der.) y alimento y serpiente | Header solo si cambia el puntaje o `_specialTime` (banda 0..15); tablero (Body 16..63) solo si `_dirtyBoard` (movimiento, comida nueva, transición de estado): borra el Body, redibuja alimento + serpiente; overlay "3-2-1"/"PAUSA"/"GAME OVER" (texto invertido sobre banda blanca: cuadro centrado para el conteo, de lado a lado para PAUSA y GAME OVER) en cada frame según el estado |
 
 4. Los modos de edición del `Menu` ("Sound" y "Dificultad") comparten la banda
    dinámica de los rombos (45..53): al entrar (`beginSoundEdit()`/
@@ -923,15 +925,15 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 | `COLS`, `ROWS` | 16, 6 | Tablero: rejilla de 16×6 celdas de 8 px en el Body (128×48). |
 | `MAX_LENGTH` | 96 | Cantidad máxima de segmentos (una celda por segmento). |
 | `DIFICULTAD_MIN` / `MAX` / `DEFAULT` | 1 / 25 / 13 | Nivel de dificultad acotado (mismo rango que el menú). |
-| `GO_MS` | 1200 | Duración de la cuenta regresiva inicial ("GO !"). |
+| `COUNTDOWN_MS` | 3000 | Duración del conteo regresivo inicial (3 s, un dígito por segundo: 3-2-1). |
 
 ### Métodos
 
 | Método | Descripción |
 |--------|-------------|
-| `void begin(bool newGame)` | `true` = nueva partida (reinicia todo y arranca la cuenta regresiva). `false` = reanudar la partida anterior en pausa; si no hay partida en curso arranca una nueva. Conserva el récord (`_bestScore`) entre partidas. |
+| `void begin(bool newGame)` | `true` = nueva partida (reinicia todo y arranca el conteo regresivo 3-2-1). `false` = reanudar la partida anterior en pausa; si no hay partida en curso arranca una nueva. Conserva el récord (`_bestScore`) entre partidas. |
 | `void setDifficulty(uint8_t level)` | Nivel 1..25 (clamp). Se aplica a la velocidad cuando ARRANCA una partida (no a las reanudadas). |
-| `void update()` | Estado `START`: pre-gira con MOVE (giro pendiente), entra a `PLAY` con `ACTION_RIGHT` o al agotarse `GO_MS`. `PLAY`: gira con MOVE (sin reversa directa, queda un único giro pendiente que se aplica en el siguiente paso), avanza un paso cada `_moveDelay` ms y `ACTION_RIGHT` (Btn2, "Select / Pause") pausa. `PAUSE`: reanuda con `ACTION_RIGHT` (o `ACTION_LEFT`). `GAME_OVER`: cualquier ACTION vuelve al menú. `ACTION_UP` (Btn1, "Volver") sale en cualquier estado menos `GAME_OVER`. |
+| `void update()` | Estado `START`: pre-gira con MOVE (giro pendiente), entra a `PLAY` con `ACTION_RIGHT` o al agotarse `COUNTDOWN_MS`. `PLAY`: gira con MOVE (sin reversa directa, queda un único giro pendiente que se aplica en el siguiente paso), avanza un paso cada `_moveDelay` ms y `ACTION_RIGHT` (Btn2, "Select / Pause") pausa. `PAUSE`: reanuda con `ACTION_RIGHT` (o `ACTION_LEFT`). `GAME_OVER`: cualquier ACTION vuelve al menú. `ACTION_UP` (Btn1, "Volver") sale en cualquier estado menos `GAME_OVER`. |
 | `void print()` | Renderizado por zonas (ver sección 13). |
 | `bool done()` | `true` al pedir volver al menú. |
 | `bool isGameOver()` | `true` si al salir (`done()`) la partida terminó en `GAME OVER`; lo usa el `Engine` para dejar la selección del menú en `New` (Game Over) o `Continue` (partida en curso). |
@@ -950,7 +952,7 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   izquierda, giro a la derecha— y la contraria (180°) se ignora. Si llega un
   MOVE válido, queda pendiente (el último válido pisa al anterior) y se aplica
   recién en el siguiente paso (`step()`). Así, al girar varias veces entre dos
-  pasos (p. ej. durante la cuenta regresiva "GO !" o a velocidad baja) la cabeza
+  pasos (p. ej. durante el conteo regresivo 3-2-1 o a velocidad baja) la cabeza
   **no puede volverse sobre la dirección con la que avanzará realmente** y no se
   genera un GAME OVER espurio por una reversa falsa del último MOVE (pulsar UP y
   luego LEFT con `_dir` RIGHT deja el giro en UP: LEFT, contraria de `_dir`, se
@@ -1013,10 +1015,14 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   de la **comida especial** en `TEXT_12x16` (der., variable `_specialTime`, por
   ahora valor fijo 60 solo para el layout). Se redibuja solo cuando cambian.
   Ya no muestra el récord `HI` (el "Best: N" queda solo en el menú).
-- **Overlays:** "GO !" (cuenta regresiva), "PAUSA" y "GAME OVER" = cuadro blanco
-  (`fillRoundRect`) centrado en el Body + texto invertido negro `TEXT_12x16`
-  (`drawTextInverted`). Al volver a `PLAY` se marca `_dirtyBoard` (borra el
-  overlay bajo el tablero).
+- **Overlays:** al iniciar el **conteo regresivo 3-2-1** (un dígito por segundo,
+  `COUNTDOWN_MS/3` ms por dígito, texto centrado) y "PAUSA" / "GAME OVER" como
+  **banda blanca de lado a lado** (todo el ancho del Body). `drawOverlay(title,
+  fullWidth)` dibuja **cuadro centrado** alrededor del texto (`fullWidth = false`,
+  el conteo) o **banda de borde a borde** (`fullWidth = true`, PAUSA y GAME OVER);
+  siempre `fillRoundRect` blanco + texto invertido negro `TEXT_12x16`
+  (`drawTextInverted`) centrado en el rectángulo. Al volver a `PLAY` se marca
+  `_dirtyBoard` (borra el overlay bajo el tablero).
 
 ### Validación en host (MinGW)
 

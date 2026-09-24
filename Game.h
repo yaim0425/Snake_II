@@ -25,7 +25,7 @@
 //     agrega una parte nueva delante y elimina la última (cola);
 //     solo la cabeza recalcula su sprite (boca abierta 1
 //     casilla antes de la comida, cerrada al colisionar).
-//   - Estados: START (cuenta regresiva "GO !"), PLAY (se mueve
+//   - Estados: START (conteo regresivo 3-2-1), PLAY (se mueve
 //     cada _moveDelay ms según la dificultad), PAUSE y
 //     GAME_OVER.
 //   - Controles: MOVE deja un único giro PENDIENTE (`_nextDir`)
@@ -65,8 +65,8 @@ public:
   // ========================================================
   // Inicialización (al entrar en la ventana)
   //
-  // `newGame` = true (NUEVO): reinicia todo y arranca la
-  // cuenta regresiva. `false` (CONTINUAR): reanuda la partida
+  // `newGame` = true (NUEVO): reinicia todo y arranca el
+  // conteo regresivo 3-2-1. `false` (CONTINUAR): reanuda la partida
   // anterior en pausa, o arranca una nueva si no hay partida
   // en curso.
   // ========================================================
@@ -120,7 +120,7 @@ private:
   // ========================================================
 
   enum class State : uint8_t {
-    START,       // cuenta regresiva "GO !" (el tablero ya está dibujado)
+    START,       // conteo regresivo 3-2-1 (el tablero ya está dibujado)
     PLAY,        // la serpiente se mueve cada _moveDelay ms
     PAUSE,       // panel "PAUSA" sobre el tablero estático
     GAME_OVER    // panel "GAME OVER"; cualquier ACTION vuelve al menú
@@ -146,7 +146,7 @@ private:
   // ========================================================
 
   static constexpr int16_t BODY_TOP = 16;          // fila superior del tablero (Body)
-  static constexpr uint32_t GO_MS = 1200;          // duración de la cuenta regresiva inicial
+  static constexpr uint32_t COUNTDOWN_MS = 3000;   // duración del conteo regresivo inicial (3 s, uno por dígito)
 
   // ========================================================
   // Métodos internos
@@ -174,7 +174,7 @@ private:
   void drawSnake();
   void drawFood();
   void drawHeader();
-  void drawOverlay(const char* title);
+  void drawOverlay(const char* title, bool fullWidth = false);
 
   // Velocidad según dificultad (1..25): cuanto más alta, más rápido
   uint16_t speedFor(uint8_t level) const;

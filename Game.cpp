@@ -34,8 +34,8 @@ Game::Game(Display& display, Buttons& buttons, Sound& sound)
 // ========================================================
 // Inicialización (al entrar en la ventana)
 //
-// `newGame` = true (NUEVO): reinicia la partida y arranca la
-// cuenta regresiva "GO !". `false` (CONTINUAR): reanuda la
+// `newGame` = true (NUEVO): reinicia la partida y arranca el
+// conteo regresivo 3-2-1. `false` (CONTINUAR): reanuda la
 // partida anterior en pausa (el tablero se conserva) o
 // arranca una nueva si no hay partida en curso (por ejemplo
 // tras un GAME_OVER).
@@ -104,13 +104,13 @@ void Game::reset() {
 }
 
 // ========================================================
-// Entrar a PLAY (fin de la cuenta regresiva o de la pausa)
+// Entrar a PLAY (fin del conteo regresivo o de la pausa)
 // ========================================================
 
 void Game::startPlay() {
   _state = State::PLAY;
   _moveLast = millis();
-  _dirtyBoard = true;  // borra el overlay "GO !"/"PAUSA" del tablero
+  _dirtyBoard = true;  // borra el overlay "3-2-1"/"PAUSA" del tablero
 }
 
 // ========================================================
@@ -123,12 +123,13 @@ void Game::update() {
   switch (_state) {
 
     case State::START: {
-      // Cuenta regresiva "GO !": se puede pre-girar la cabeza;
-      // se entra a PLAY al confirmar con ACTION_RIGHT o al agotarse GO_MS
+      // Conteo regresivo 3-2-1: se puede pre-girar la cabeza;
+      // se entra a PLAY al confirmar con ACTION_RIGHT o al
+      // agotarse el conteo (COUNTDOWN_MS)
       handleTurn();
       if (_buttons.actionRightPressed()) {
         startPlay();
-      } else if (millis() - _startMs >= GO_MS) {
+      } else if (millis() - _startMs >= COUNTDOWN_MS) {
         startPlay();
       }
       break;
@@ -561,17 +562,23 @@ void Game::drawHeader() {
 }
 
 // ========================================================
-// Overlay centrado en el Body (cuadro blanco + texto invertido)
+// Overlay en el Body: banda blanca de lado a lado (fullWidth)
+// o cuadro centrado alrededor del texto, en ambos casos con
+// texto invertido centrado en el rectángulo.
 // ========================================================
 
-void Game::drawOverlay(const char* title) {
+void Game::drawOverlay(const char* title, bool fullWidth) {
   Adafruit_SSD1306& s = _display.screen();
   int16_t w = _display.getTextWidth(title, TEXT_12x16);
   int16_t h = _display.getTextHeight(TEXT_12x16);
   int16_t x = (_display.getWidth() - w) / 2;
   int16_t y = BODY_TOP + (_display.getHeight() - BODY_TOP - h) / 2;
 
-  s.fillRoundRect(x - 4, y - 4, w + 6, h + 4, 0, SSD1306_WHITE);
+  if (fullWidth) {
+    s.fillRoundRect(0, y - 4, _display.getWidth(), h + 8, 0, SSD1306_WHITE);
+  } else {
+    s.fillRoundRect(x - 4, y - 4, w + 6, h + 4, 0, SSD1306_WHITE);
+  }
   _display.drawTextInverted(title, x, y, TEXT_12x16);
 }
 
@@ -594,7 +601,7 @@ uint16_t Game::speedFor(uint8_t level) const {
 //   - Header (puntaje/récord) solo cuando cambian sus valores
 //   - Tablero (alimento + serpiente) solo cuando algo cambió
 //     (movimiento, comida, overlay que desaparece)
-//   - Overlay "GO !"/"PAUSA"/"GAME OVER" en cada frame
+//   - Overlay (conteo "3-2-1"/"PAUSA"/"GAME OVER") en cada frame
 // ========================================================
 
 void Game::print() {
@@ -624,9 +631,19 @@ void Game::print() {
 
   // Overlay según el estado
   switch (_state) {
-    case State::START:    drawOverlay("GO !");     break;
-    case State::PAUSE:    drawOverlay("PAUSA");    break;
-    case State::GAME_OVER: drawOverlay("GAME OVER"); break;
+    case State::START: {
+      // Conteo regresivo 3-2-1: un dígito por segundo (COUNTDOWN_MS/3)
+      char buf[2];
+      uint32_t seg = COUNTDOWN_MS / 3;
+      uint32_t done = (millis() - _startMs) / seg;
+      uint8_t n = (done >= 3) ? 0 : (uint8_t)(3 - done);
+      buf[0] = (char)('0' + n);
+      buf[1] = '\0';
+      drawOverlay(buf);
+      break;
+    }
+    case State::PAUSE:     drawOverlay("PAUSA", true);   break;
+    case State::GAME_OVER: drawOverlay("GAME OVER", true); break;
     default: break;
   }
 }
