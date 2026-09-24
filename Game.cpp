@@ -551,12 +551,13 @@ void Game::drawOverlay(const char* title, bool fullWidth) {
   int16_t w = _display.getTextWidth(title, TEXT_12x16);
   int16_t h = _display.getTextHeight(TEXT_12x16);
   int16_t x = (_display.getWidth() - w) / 2;
-  int16_t y = BODY_TOP + (_display.getHeight() - BODY_TOP - h) / 2;
+  int16_t bandH = h + 2;   // banda: 2 px sobre el texto, 0 debajo
+  int16_t y = BODY_TOP + (_display.getHeight() - BODY_TOP - bandH) / 2 + 2;
 
   if (fullWidth) {
-    s.fillRoundRect(0, y - 4, _display.getWidth(), h + 8, 0, SSD1306_WHITE);
+    s.fillRoundRect(0, y - 2, _display.getWidth(), bandH, 0, SSD1306_WHITE);
   } else {
-    s.fillRoundRect(x - 4, y - 4, w + 6, h + 4, 0, SSD1306_WHITE);
+    s.fillRoundRect(x - 4, y - 2, w + 6, bandH, 0, SSD1306_WHITE);
   }
   _display.drawTextInverted(title, x, y, TEXT_12x16);
 }

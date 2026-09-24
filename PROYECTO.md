@@ -1068,7 +1068,10 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   `COUNTDOWN_MS/3` ms por dígito, texto centrado) y "PAUSA" / "GAME OVER" como
   **banda blanca de lado a lado** (todo el ancho del Body). `drawOverlay(title,
   fullWidth)` dibuja **cuadro centrado** alrededor del texto (`fullWidth = false`,
-  el conteo) o **banda de borde a borde** (`fullWidth = true`, PAUSA y GAME OVER);
+  el conteo) o **banda de borde a borde** (`fullWidth = true`, PAUSA y GAME OVER).
+  La banda sobresale del texto **2 px por arriba y 0 px por abajo** y está
+  **centrada como rectángulo a lo alto del Body** (16..63), no el texto: `y` se
+  deriva del alto de la banda (`bandH = h + 2`), y el texto queda 2 px dentro;
   siempre `fillRoundRect` blanco + texto invertido negro `TEXT_12x16`
   (`drawTextInverted`) centrado en el rectángulo. **Parpadeo del conteo:** al
   final de cada dígito (los últimos `COUNT_HIDE_MS = 250` ms de su segundo) el
