@@ -93,7 +93,11 @@ comida especial. `Game` ahora usa el objeto `_food` donde antes guardaba
 Fases pendientes: la lógica de la serpiente ya está integrada en la ventana
 `Juego` (estados `NUEVO`/`CONTINUAR` del `Engine`): movimiento con wrap,
 sprites del contenido, comida, colisiones, dificultad (velocidad), pausa y
-game over. Queda como mejora opcional conservar el récord (`bestScore`) entre
+game over. La dificultad se aplica **en caliente**: `Game::setDifficulty` ya no
+solo guarda el nivel sino que recalcula la velocidad (`_moveDelay`) al instante,
+de modo que cambiar el nivel desde el menú afecta también a la partida en curso
+(PLAY o PAUSE), no solo a las nuevas.
+Queda como mejora opcional conservar el récord (`bestScore`) entre
 reinicios de la placa (p. ej. con EEPROM); hoy el récord vive solo en la sesión.
 
 ---
@@ -957,7 +961,7 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 | Método | Descripción |
 |--------|-------------|
 | `void begin(bool newGame)` | `true` = nueva partida (reinicia todo y arranca el conteo regresivo 3-2-1). `false` = reanudar la partida anterior en pausa; si no hay partida en curso arranca una nueva. Conserva el récord (`_bestScore`) entre partidas. |
-| `void setDifficulty(uint8_t level)` | Nivel 1..25 (clamp). Se aplica a la velocidad cuando ARRANCA una partida (no a las reanudadas). |
+| `void setDifficulty(uint8_t level)` | Nivel 1..25 (clamp). **Se aplica EN CALIENTE, también con la partida iniciada**: recalcula `_moveDelay` al instante, por lo que una partida en curso (PLAY o PAUSE) sigue el nuevo ritmo al cambiar el nivel desde el menú; también vale para la próxima partida nueva (`reset()` la vuelve a derivar). |
 | `void update()` | Estado `START`: pre-gira con MOVE (giro pendiente), entra a `PLAY` con `ACTION_RIGHT` o al agotarse `COUNTDOWN_MS` (al arrancar la partida suena `SFX_START`, el jingle GO! después del "1"). `PLAY`: gira con MOVE (sin reversa directa, queda un único giro pendiente que se aplica en el siguiente paso), avanza un paso cada `_moveDelay` ms y `ACTION_RIGHT` (Btn2, "Select / Pause") pausa. `PAUSE`: reanuda con `ACTION_RIGHT` (o `ACTION_LEFT`). `GAME_OVER`: cualquier ACTION vuelve al menú. `ACTION_UP` (Btn1, "Volver") sale en cualquier estado menos `GAME_OVER`. |
 | `void print()` | Renderizado por zonas (ver sección 13). |
 | `bool done()` | `true` al pedir volver al menú. |

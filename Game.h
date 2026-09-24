@@ -78,7 +78,10 @@ public:
 
   // ========================================================
   // Dificultad del menú (1..25). Se aplica a la velocidad
-  // cuando ARRANCA una partida nueva (no a las que se reanudan).
+  // (ms por paso) AL INSTANTE, incluso con la partida ya
+  // iniciada: al cambiar el nivel, _moveDelay se recalcula en
+  // caliente y la partida en curso (PLAY o PAUSE) sigue el nuevo
+  // ritmo; también vale para la próxima partida nueva.
   // ========================================================
 
   void setDifficulty(uint8_t level);

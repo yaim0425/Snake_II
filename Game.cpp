@@ -70,6 +70,12 @@ void Game::setDifficulty(uint8_t level) {
   if (level < DIFICULTAD_MIN) level = DIFICULTAD_MIN;
   if (level > DIFICULTAD_MAX) level = DIFICULTAD_MAX;
   _difficulty = level;
+
+  // La dificultad se aplica EN CALIENTE: si hay una partida en curso
+  // (PLAY o PAUSE) su velocidad (_moveDelay) se actualiza al instante
+  // con el nuevo nivel; la próxima partida nueva la vuelve a derivar
+  // en reset().
+  _moveDelay = speedFor(_difficulty);
 }
 
 // ========================================================
