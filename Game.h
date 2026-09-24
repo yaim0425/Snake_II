@@ -28,7 +28,12 @@
 //   - Estados: START (cuenta regresiva "GO !"), PLAY (se mueve
 //     cada _moveDelay ms según la dificultad), PAUSE y
 //     GAME_OVER.
-//   - Controles: MOVE gira la cabeza (sin reversa directa);
+//   - Controles: MOVE deja un único giro PENDIENTE (`_nextDir`)
+//     validado contra la dirección COMMITIDA (`_dir`): desde esa
+//     dirección la cabeza solo tiene 3 posibilidades (seguir,
+//     girar a la izquierda, girar a la derecha) y la contraria
+//     (180°) se ignora; el giro pendiente se aplica en el
+//     siguiente paso (sin reversa directa).
 //     ACTION_RIGHT/ACTION_LEFT pausa/reanuda (como el juego
 //     original); ACTION_UP vuelve al menú en cualquier
 //     momento (la partida NO se pierde: "Continue" la resume);
@@ -143,9 +148,9 @@ private:
   void startPlay();
 
   // Lógica
-  void handleTurn();              // MOVE gira la cabeza (sin reversa directa)
-  void turn(Dir d);
-  void step();                    // un paso del tablero (mover, comer, crecer, morir)
+  void handleTurn();              // MOVE deja el giro pendiente (sin reversa directa)
+  void turn(Dir d);               // fija `_nextDir` si `d` es válido desde la dirección COMMITIDA (_dir)
+  void step();                    // un paso del tablero (aplicar el giro pendiente, mover, comer, crecer, morir)
   void spawnFood();               // alimento en una celda libre (o nada si el tablero está lleno)
   bool occupied(uint8_t x, uint8_t y) const;
   void die();                     // colisión o tablero lleno
@@ -196,7 +201,10 @@ private:
   uint8_t _tailIx;
   uint8_t _length;
 
-  Dir _dir;                // dirección actual de la cabeza
+  Dir _dir;                // dirección COMMITIDA de la cabeza (la que usará en el
+                           // próximo paso); solo cambia en step() al aplicar el giro pendiente
+  Dir _nextDir;            // único giro pendiente ("el siguiente"): se valida contra `_dir` (la
+                           // cabeza no puede volver sobre la dirección con la que avanzará)
   bool _bellyPending;      // la cabeza está sobre la casilla de la comida: al dejarla se pinta BELLY
 
   // Alimento y puntaje

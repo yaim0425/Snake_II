@@ -24,6 +24,7 @@ Game::Game(Display& display, Buttons& buttons, Sound& sound)
     _tailIx(0),
     _length(0),
     _dir(Dir::RIGHT),
+    _nextDir(Dir::NONE),
     _bellyPending(false),
     _hasFood(false),
     _score(0),
@@ -45,6 +46,7 @@ void Game::begin(bool newGame) {
   _redraw = true;
   _redrawHeader = true;
   _dirtyBoard = true;
+  _nextDir = Dir::NONE;  // ningún giro pendiente al entrar
 
   if (newGame || !_hasGame) {
     // Nueva partida (velocidad según la dificultad actual del menú)
@@ -83,6 +85,7 @@ void Game::reset() {
   _tailIx = 0;
   _headIx = 3;
   _dir = Dir::RIGHT;
+  _nextDir = Dir::NONE;
   _bellyPending = false;  // ninguna casilla pendiente de panza
 
   // Serpiente inicial horizontal: células (1,2)..(4,2), cabeza a la derecha.
@@ -171,12 +174,26 @@ void Game::update() {
 
 // ========================================================
 // Cambio de dirección (MOVE), sin reversa directa
+//
+// Solo hay "estado actual" (`_dir`) y "siguiente" (`_nextDir`):
+// un único giro pendiente, sin cola ni buffer. Un MOVE se
+// evalúa SIEMPRE desde la dirección actual de la cabeza
+// (`_dir`, la COMMITIDA, la que usará en el próximo paso): desde
+// ella solo hay 3 posibilidades —seguir, girar a la izquierda o
+// girar a la derecha— y la contraria (180°) se ignora. Si llega
+// un MOVE válido, queda como PENDIENTE (`_nextDir`, el último
+// válido pisa al anterior) y se aplica recién en el próximo
+// `step()`. Así no se produce un GAME OVER espurio por una
+// reversa falsa del último MOVE contra la dirección con la que
+// la cabeza avanzará realmente.
 // ========================================================
 
 void Game::turn(Dir d) {
-  if (d == Dir::NONE || d == _dir) return;
+  if (d == Dir::NONE || d == _dir || d == _nextDir) return;
 
-  // Prohibir la reversa directa (la cabeza no puede volver sobre sí misma)
+  // Prohibir la reversa directa contra la dirección COMMITIDA (_dir),
+  // no contra un giro pendiente intermedio (la cabeza no puede volver
+  // sobre sí misma respecto a la dirección con la que avanzará)
   if ((d == Dir::UP && _dir == Dir::DOWN) ||
       (d == Dir::DOWN && _dir == Dir::UP) ||
       (d == Dir::LEFT && _dir == Dir::RIGHT) ||
@@ -184,7 +201,7 @@ void Game::turn(Dir d) {
     return;
   }
 
-  _dir = d;
+  _nextDir = d;
 }
 
 void Game::handleTurn() {
@@ -205,6 +222,14 @@ void Game::handleTurn() {
 // ========================================================
 
 void Game::step() {
+  // Aplicar el giro pendiente: la cabeza usa la dirección del último
+  // MOVE válido (ya validado contra la dirección COMMITIDA en turn()).
+  // `_dir` pasa a ser la dirección real de este paso.
+  if (_nextDir != Dir::NONE) {
+    _dir = _nextDir;
+    _nextDir = Dir::NONE;
+  }
+
   const Seg& h = _body[_headIx];
   uint8_t nx = h.x;
   uint8_t ny = h.y;

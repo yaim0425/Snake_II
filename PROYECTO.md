@@ -918,7 +918,7 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 |--------|-------------|
 | `void begin(bool newGame)` | `true` = nueva partida (reinicia todo y arranca la cuenta regresiva). `false` = reanudar la partida anterior en pausa; si no hay partida en curso arranca una nueva. Conserva el récord (`_bestScore`) entre partidas. |
 | `void setDifficulty(uint8_t level)` | Nivel 1..25 (clamp). Se aplica a la velocidad cuando ARRANCA una partida (no a las reanudadas). |
-| `void update()` | Estado `START`: pre-gira con MOVE, entra a `PLAY` con `ACTION_RIGHT` o al agotarse `GO_MS`. `PLAY`: gira con MOVE (sin reversa directa) y avanza un paso cada `_moveDelay` ms. `PAUSE`: reanuda con `ACTION_RIGHT`/`ACTION_LEFT`. `GAME_OVER`: cualquier ACTION vuelve al menú. `ACTION_UP` (común "volver al menú") sale en cualquier estado menos `GAME_OVER`. |
+| `void update()` | Estado `START`: pre-gira con MOVE (giro pendiente), entra a `PLAY` con `ACTION_RIGHT` o al agotarse `GO_MS`. `PLAY`: gira con MOVE (sin reversa directa, queda un único giro pendiente que se aplica en el siguiente paso) y avanza un paso cada `_moveDelay` ms. `PAUSE`: reanuda con `ACTION_RIGHT`/`ACTION_LEFT`. `GAME_OVER`: cualquier ACTION vuelve al menú. `ACTION_UP` (común "volver al menú") sale en cualquier estado menos `GAME_OVER`. |
 | `void print()` | Renderizado por zonas (ver sección 13). |
 | `bool done()` | `true` al pedir volver al menú. |
 | `uint8_t score()` / `bestScore()` | Puntaje actual / récord. El `Engine` sincroniza `bestScore()` con el menú al salir. |
@@ -929,8 +929,19 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   (sale por un borde, aparece por el opuesto, estilo Nokia). La velocidad
   (`_moveDelay` ms por paso) es lineal con la dificultad: `1000 - (nivel-1)*38`
   (nivel 1 → 1000 ms, nivel 25 → 88 ms).
-- **No hay reversa directa:** girar hacia la dirección contraria se ignora
-  (los botones MOVE son excluyentes entre sí por el anticonflicto de `Buttons`).
+- **Sin reversa directa (único giro pendiente):** cada MOVE deja un único giro
+  **PENDIENTE** (`_nextDir`), sin cola ni buffer. Un giro se evalúa **siempre**
+  desde la dirección actual de la cabeza (`_dir`, la COMMITIDA, la que usará en
+  el próximo paso): desde ella solo hay 3 posibilidades —seguir, giro a la
+  izquierda, giro a la derecha— y la contraria (180°) se ignora. Si llega un
+  MOVE válido, queda pendiente (el último válido pisa al anterior) y se aplica
+  recién en el siguiente paso (`step()`). Así, al girar varias veces entre dos
+  pasos (p. ej. durante la cuenta regresiva "GO !" o a velocidad baja) la cabeza
+  **no puede volverse sobre la dirección con la que avanzará realmente** y no se
+  genera un GAME OVER espurio por una reversa falsa del último MOVE (pulsar UP y
+  luego LEFT con `_dir` RIGHT deja el giro en UP: LEFT, contraria de `_dir`, se
+  ignora). Los botones MOVE son excluyentes entre sí por el anticonflicto de
+  `Buttons`.
 - **Serpiente:** buffer circular `Seg body[MAX_LENGTH]` (cola en `_tailIx`,
   cabeza en `_headIx`). Cada `Seg` guarda su **posición**, su **dirección** (`dir`,
   hacia el segmento siguiente, más cerca de la cabeza) y su **sprite persistente**
