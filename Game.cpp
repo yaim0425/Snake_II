@@ -358,7 +358,7 @@ void Game::die() {
   // terminadas, no puntajes en curso. Al establecerse un NUEVO
   // récord se activa el festejo (ciclo "GAME OVER"/"BUT"/"YOU ARE"/
   // "THE BEST" en print(), con SFX_NEW_BEST solo la primera vez
-  // que aparece cada letrero).
+  // que aparece el letrero "THE BEST").
   _newBest = _score > _bestScore;
   if (_newBest) _bestScore = _score;
   _gameOverMs = millis();
@@ -665,8 +665,8 @@ void Game::print() {
       if (_newBest) {
         // Festejo de nuevo récord: ciclo "GAME OVER" -> "BUT" -> "YOU ARE" ->
         // "THE BEST" (NEW_BEST_SIGN_MS cada uno) hasta que se presiona
-        // un botón. El sonido (SFX_NEW_BEST) suena solo la primera vez
-        // que aparece cada letrero (_celeSfx; el "GAME OVER" ya sonó
+        // un botón. La fanfarria (SFX_NEW_BEST) suena solo la primera vez
+        // que aparece el letrero "THE BEST" (_celeSfx; el "GAME OVER" ya sonó
         // en die() con SFX_GAME_OVER).
         uint8_t phase = (uint8_t)((millis() - _gameOverMs) / NEW_BEST_SIGN_MS % 4);
         switch (phase) {
@@ -677,11 +677,10 @@ void Game::print() {
             drawOverlay("BUT", true);
             break;
           case 2:
-            if (!(_celeSfx & 0x01)) { _celeSfx |= 0x01; _sound.play(Sound::SFX_NEW_BEST); }
             drawOverlay("YOU ARE", true);
             break;
           default:
-            if (!(_celeSfx & 0x02)) { _celeSfx |= 0x02; _sound.play(Sound::SFX_NEW_BEST); }
+            if (!(_celeSfx & 0x01)) { _celeSfx |= 0x01; _sound.play(Sound::SFX_NEW_BEST); }
             drawOverlay("THE BEST", true);
             break;
         }

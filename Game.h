@@ -44,8 +44,8 @@
 //     en GAME_OVER cualquier ACTION vuelve al menú. Al ESTABLECER UN
 //     NUEVO RÉCORD (bestScore), en vez del letrero estático se muestra
 //     en ciclo "GAME OVER" → "BUT" → "YOU ARE" → "THE BEST" (cada letrero
-//     NEW_BEST_SIGN_MS) hasta que se presiona un botón; el festejo
-//     (SFX_NEW_BEST) suena solo la PRIMERA vez que aparece cada letrero.
+//     NEW_BEST_SIGN_MS) hasta que se presiona un botón; la fanfarria
+//     (SFX_NEW_BEST) suena solo la PRIMERA vez que aparece el letrero "THE BEST".
 // ========================================================
 
 class Game {
@@ -226,8 +226,9 @@ private:
   // Festejo de nuevo récord (GAME OVER con _newBest): ciclo de letreros
   // "GAME OVER"/"BUT"/"YOU ARE"/"THE BEST" hasta que se presiona un botón
   bool _newBest;    // este fin de partida estableció un nuevo récord
-  uint8_t _celeSfx; // bitmask: bit0 = ya sonó "YOU ARE", bit1 = ya sonó "THE BEST"
-                    // (el festejo solo suena la primera vez que aparece cada letrero)
+  uint8_t _celeSfx; // flag: 0 = la fanfarria aún no sonó en "THE BEST";
+                    // al sonar pasa a 1 (suena solo la primera vez que
+                    // aparece ese letrero del festejo)
 
   // Serpiente (ring buffer: los segmentos van de _tailIx a _headIx)
   Seg _body[MAX_LENGTH];
