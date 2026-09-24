@@ -16,6 +16,7 @@ Game::Game(Display& display, Buttons& buttons, Sound& sound)
     _redrawHeader(true),
     _dirtyBoard(true),
     _overlayHidden(false),
+    _lastCount(0xFF),
     _hasGame(false),
     _difficulty(DIFICULTAD_DEFAULT),
     _moveDelay(0),
@@ -82,6 +83,7 @@ void Game::reset() {
   _hasGame = true;  // arranca una partida en curso (reanudable desde "Continue")
   _score = 0;  // el récord (_bestScore) se conserva entre partidas
   _overlayHidden = false;  // el conteo arranca con el primer dígito visible
+  _lastCount = 0xFF;  // ningún dígito del conteo mostrado aún
 
   _length = 4;
   _tailIx = 0;
@@ -102,7 +104,8 @@ void Game::reset() {
   _moveLast = 0;
 
   spawnFood();
-  _sound.play(Sound::SFX_START);
+  // El conteo regresivo 3-2-1 suena solo con sus propios pitidos (SFX_TICK,
+  // uno por dígito, en print()): ya no hay jingle SFX_START al entrar a START.
 }
 
 // ========================================================
@@ -143,6 +146,7 @@ void Game::update() {
       // partida se congela el tablero y se muestra el panel "PAUSA".
       // En PAUSE se retoma con el mismo botón (o ACTION_LEFT).
       if (_buttons.actionRightPressed()) {
+        _sound.play(Sound::SFX_PAUSE);
         _state = State::PAUSE;
         break;
       }
@@ -157,6 +161,7 @@ void Game::update() {
       // Reanudar con Btn2 (ACTION_RIGHT, "Select / Pause") o ACTION_LEFT
       if (_buttons.pressed(Buttons::ACTION_RIGHT) ||
           _buttons.pressed(Buttons::ACTION_LEFT)) {
+        _sound.play(Sound::SFX_RESUME);
         startPlay();
       }
       break;
@@ -211,7 +216,9 @@ void Game::turn(Dir d) {
     return;
   }
 
+  // Giro aceptado: queda pendiente y suena el blip de dirección
   _nextDir = d;
+  _sound.play(Sound::SFX_TURN);
 }
 
 void Game::handleTurn() {
@@ -646,6 +653,13 @@ void Game::print() {
       uint32_t pos = elapsed % seg;   // posición dentro del dígito actual
       uint32_t done = elapsed / seg;  // cuántos dígitos se completaron
       uint8_t n = (done >= 3) ? 0 : (uint8_t)(3 - done);
+
+      // Pitido del conteo: un SFX_TICK por dígito, al cambiar el mostrado
+      // (incluido el "3" inicial: _lastCount arranca en 0xFF)
+      if (n != _lastCount) {
+        _lastCount = n;
+        _sound.play(Sound::SFX_TICK);
+      }
 
       if (pos >= seg - COUNT_HIDE_MS) {
         // Fase de parpadeo: el dígito y su cuadro desaparecen. Se marca

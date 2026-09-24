@@ -200,6 +200,7 @@ private:
   bool _redrawHeader;  // el Header (puntaje/récord) cambió
   bool _dirtyBoard;    // hay que volcar el tablero (movimiento, comida, overlay)
   bool _overlayHidden; // el conteo está en su fase de parpadeo (cuadro + dígito ocultos)
+  uint8_t _lastCount;  // último dígito del conteo mostrado (0xFF = ninguno aún: pitido al aparecer el 3)
 
   // Partida
   bool _hasGame;          // hay una partida en curso (para "Continue")

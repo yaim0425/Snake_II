@@ -621,7 +621,8 @@ Sound(Buzzer& buzzer);
 ```cpp
 enum Sfx : uint8_t {
   SFX_NONE = 0, SFX_CLICK, SFX_CONFIRM, SFX_BACK,
-  SFX_EAT, SFX_START, SFX_LEVEL_UP, SFX_GAME_OVER
+  SFX_EAT, SFX_START, SFX_LEVEL_UP, SFX_GAME_OVER,
+  SFX_TICK, SFX_TURN, SFX_PAUSE, SFX_RESUME
 };
 ```
 
@@ -634,6 +635,10 @@ enum Sfx : uint8_t {
 | `SFX_START` | GO! al iniciar | 800/60, 1100/60, 1500/150 |
 | `SFX_LEVEL_UP` | Subir de nivel | 523/60, 659/60, 784/60, 1047/120, 1319/180 |
 | `SFX_GAME_OVER` | Muerte de la serpiente | 800/100, 650/100, 500/150, 300/300 |
+| `SFX_TICK` | Conteo regresivo 3-2-1 (un pitido por dígito) | 900/40 |
+| `SFX_TURN` | Cambio de dirección de la serpiente | 1319/20 |
+| `SFX_PAUSE` | Pausar la partida | 600/50, 300/60 |
+| `SFX_RESUME` | Reanudar la partida | 500/50, 900/60 |
 
 Los tonos siguen la paleta del `GameBuzzer` original.
 
@@ -722,7 +727,7 @@ enum class State : uint8_t {
 | `BOOT` | `Boot` | Animación de arranque (franjas). Al terminar (`done()`) pasa a `LEGEND`. Cualquier botón la termina. |
 | `LEGEND` | `Legend` | Panel de botones: pad MOVE con 4 flechas + 4 rombos completos de ACTION en las posiciones de un pad que parpadean MUY rápido uno a la vez (ciclo lento) con la función del rombo activo centrada en el pie. Cualquier botón la cierra → menú (suena el efecto según el botón —CLICK/BACK/CONFIRM—; `Engine` no añade `SFX_BACK`). Solo se muestra tras el arranque. |
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
-| `NUEVO` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con el conteo regresivo 3-2-1 (`SFX_START`). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setBestScore(game.bestScore())`), **oculta/muestra "Continue" al volver** (`menu.setContinueAvailable(resumable)`, donde `resumable = !game.isGameOver() && game.score() > 0`: partida en curso **y** con puntos), deja la selección del menú en `Continue` si `resumable`, o en `New` en caso contrario (`menu.setSelected(...)`) y pasa a `MENU`. |
+| `NUEVO` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con el conteo regresivo 3-2-1 (un `SFX_TICK` por dígito). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setBestScore(game.bestScore())`), **oculta/muestra "Continue" al volver** (`menu.setContinueAvailable(resumable)`, donde `resumable = !game.isGameOver() && game.score() > 0`: partida en curso **y** con puntos), deja la selección del menú en `Continue` si `resumable`, o en `New` en caso contrario (`menu.setSelected(...)`) y pasa a `MENU`. |
 | `CONTINUAR` | `Game` | Reanudar la partida anterior (`begin(false)`): queda en pausa y se retoma con `ACTION_RIGHT` (Btn2, "Select / Pause") o `ACTION_LEFT`; si no hay partida en curso arranca una nueva. Al salir (`done()`) igual que `NUEVO`. |
 | `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo `Scroller` compartido que el menú** pero con **2 bandas sincronizadas** (`BAND_HEIGHTS = {16, 8}` = altos de rol 12x16 y nombre 6x8): rol y nombre se componen por separado en la misma tira (`loadEntry` → `compose`) y deslizan a la vez con el **mismo `_slideX`** interno del `Scroller` (aparecen al mismo tiempo). `drawBand(slot, y, fg, bg)` compone el slot y vuelca su **banda persistente** (`_chipBox[slot]`) con sus colores; la tira la sobrescribe **columna a columna** con sus fondos, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). El deslizamiento **arranca desde el borde** (`startSlide`, fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (igual que el menú, ≈0,5 s). Al navegar suena `SFX_CLICK` y al salir (`done()`) suena `SFX_BACK` (lo toca el `Engine`) y pasa directo a `MENU`. |
 
@@ -782,7 +787,8 @@ Toda ventana implementa:
   flecha del botón activo, la contraria se oculta; al llegar al límite se
   procesa igual que haber soltado el botón (vuelve el parpadeo normal)—,
   `ACTION_RIGHT` lo aplica y
-  `ACTION_UP` cancela). En el juego (`Game`): `SFX_START` al iniciar (conteo 3-2-1),
+  `ACTION_UP` cancela). En el juego (`Game`): `SFX_TICK` en cada dígito del
+  conteo 3-2-1, `SFX_TURN` al girar, `SFX_PAUSE`/`SFX_RESUME` al pausar/reanudar,
   `SFX_EAT` al comer, `SFX_GAME_OVER` al morir y `SFX_BACK` al volver al menú.
 - Con SDA=8 y SCL=9, dirección 0x3C.
 
@@ -961,7 +967,8 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   el próximo paso): desde ella solo hay 3 posibilidades —seguir, giro a la
   izquierda, giro a la derecha— y la contraria (180°) se ignora. Si llega un
   MOVE válido, queda pendiente (el último válido pisa al anterior) y se aplica
-  recién en el siguiente paso (`step()`). Así, al girar varias veces entre dos
+  recién en el siguiente paso (`step()`). Al aceptar un giro suena `SFX_TURN`.
+  Así, al girar varias veces entre dos
   pasos (p. ej. durante el conteo regresivo 3-2-1 o a velocidad baja) la cabeza
   **no puede volverse sobre la dirección con la que avanzará realmente** y no se
   genera un GAME OVER espurio por una reversa falsa del último MOVE (pulsar UP y
@@ -1003,8 +1010,9 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   el destino resulta legal, por lo que la cabeza conserva la orientación real de su
   último movimiento (el sprite de la cabeza se dibuja según `_dir`).
 - **Pausa y salida:** `ACTION_RIGHT` (Btn2, "Select / Pause") durante `PLAY`
-  pausa la partida (panel "PAUSA"); en `PAUSE` retoma con el mismo botón o con
-  `ACTION_LEFT`. `ACTION_UP` (Btn1, "Volver") durante la partida vuelve al menú
+  pausa la partida (panel "PAUSA", suena `SFX_PAUSE`); en `PAUSE` retoma con el
+  mismo botón o con `ACTION_LEFT` (suena `SFX_RESUME`). `ACTION_UP` (Btn1, "Volver")
+  durante la partida vuelve al menú
   **sin perderla** (`_hasGame` mantiene el tablero; `Continue` la reanuda en
   pausa).
   `GAME_OVER` deja `_hasGame = false`. Al salir, el `Engine` deja la selección
@@ -1042,6 +1050,9 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   número **y su cuadro desaparecen** antes de que aparezca el siguiente: el cambio
   es como un parpadeo. Al ocultarlo se marca `_dirtyBoard` una sola vez (restaura
   el tablero debajo del cuadro; flag `_overlayHidden`, reiniciado en `reset()`).
+  **Pitido por dígito:** cada dígito suena `SFX_TICK` al aparecer (flag
+  `_lastCount`, reiniciado en `reset()`; se quita el jingle `SFX_START` de
+  `reset()`, el conteo tiene sus propios pitidos).
   Al volver a `PLAY` se marca
   `_dirtyBoard` (borra el overlay bajo el tablero).
 

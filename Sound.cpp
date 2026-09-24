@@ -53,6 +53,28 @@ const Sound::Note Sound::SEQ_GAME_OVER[] = {
   { 300, 300 }
 };
 
+const Sound::Note Sound::SEQ_TICK[] = {
+  // Conteo regresivo: un pitido corto por dígito
+  { 900, 40 }
+};
+
+const Sound::Note Sound::SEQ_TURN[] = {
+  // Cambio de dirección: blip muy corto
+  { 1319, 20 }
+};
+
+const Sound::Note Sound::SEQ_PAUSE[] = {
+  // Pausar: descendente
+  { 600, 50 },
+  { 300, 60 }
+};
+
+const Sound::Note Sound::SEQ_RESUME[] = {
+  // Reanudar: ascendente
+  { 500, 50 },
+  { 900, 60 }
+};
+
 // ========================================================
 // Largos de las secuencias (derivados de los arreglos)
 // ========================================================
@@ -64,6 +86,10 @@ const uint8_t Sound::LEN_EAT = sizeof(SEQ_EAT) / sizeof(Note);
 const uint8_t Sound::LEN_START = sizeof(SEQ_START) / sizeof(Note);
 const uint8_t Sound::LEN_LEVEL_UP = sizeof(SEQ_LEVEL_UP) / sizeof(Note);
 const uint8_t Sound::LEN_GAME_OVER = sizeof(SEQ_GAME_OVER) / sizeof(Note);
+const uint8_t Sound::LEN_TICK = sizeof(SEQ_TICK) / sizeof(Note);
+const uint8_t Sound::LEN_TURN = sizeof(SEQ_TURN) / sizeof(Note);
+const uint8_t Sound::LEN_PAUSE = sizeof(SEQ_PAUSE) / sizeof(Note);
+const uint8_t Sound::LEN_RESUME = sizeof(SEQ_RESUME) / sizeof(Note);
 
 // ========================================================
 // Constructor
@@ -112,6 +138,10 @@ void Sound::play(Sfx effect) {
     case SFX_START:      _seq = SEQ_START;      _len = LEN_START;      break;
     case SFX_LEVEL_UP:   _seq = SEQ_LEVEL_UP;   _len = LEN_LEVEL_UP;   break;
     case SFX_GAME_OVER:  _seq = SEQ_GAME_OVER;  _len = LEN_GAME_OVER;  break;
+    case SFX_TICK:       _seq = SEQ_TICK;       _len = LEN_TICK;       break;
+    case SFX_TURN:       _seq = SEQ_TURN;       _len = LEN_TURN;       break;
+    case SFX_PAUSE:      _seq = SEQ_PAUSE;      _len = LEN_PAUSE;      break;
+    case SFX_RESUME:     _seq = SEQ_RESUME;     _len = LEN_RESUME;     break;
     default:             _seq = nullptr;        _len = 0;              break;
   }
 

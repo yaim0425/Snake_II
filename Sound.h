@@ -32,7 +32,11 @@ public:
     SFX_EAT,        // comer el alimento (crece la serpiente)
     SFX_START,      // GO! al iniciar la partida
     SFX_LEVEL_UP,   // subir de nivel
-    SFX_GAME_OVER   // muerte de la serpiente
+    SFX_GAME_OVER,  // muerte de la serpiente
+    SFX_TICK,       // conteo regresivo 3-2-1 (un pitido por dígito)
+    SFX_TURN,       // cambio de dirección de la serpiente
+    SFX_PAUSE,      // pausar la partida
+    SFX_RESUME      // reanudar la partida
   };
 
   // ========================================================
@@ -96,6 +100,10 @@ private:
   static const Note SEQ_START[];
   static const Note SEQ_LEVEL_UP[];
   static const Note SEQ_GAME_OVER[];
+  static const Note SEQ_TICK[];
+  static const Note SEQ_TURN[];
+  static const Note SEQ_PAUSE[];
+  static const Note SEQ_RESUME[];
   static const uint8_t LEN_CLICK;
   static const uint8_t LEN_CONFIRM;
   static const uint8_t LEN_BACK;
@@ -103,6 +111,10 @@ private:
   static const uint8_t LEN_START;
   static const uint8_t LEN_LEVEL_UP;
   static const uint8_t LEN_GAME_OVER;
+  static const uint8_t LEN_TICK;
+  static const uint8_t LEN_TURN;
+  static const uint8_t LEN_PAUSE;
+  static const uint8_t LEN_RESUME;
 
   // ========================================================
   // Estado
