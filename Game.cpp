@@ -15,6 +15,7 @@ Game::Game(Display& display, Buttons& buttons, Sound& sound)
     _redraw(true),
     _redrawHeader(true),
     _dirtyBoard(true),
+    _overlayHidden(false),
     _hasGame(false),
     _difficulty(DIFICULTAD_DEFAULT),
     _moveDelay(0),
@@ -80,6 +81,7 @@ void Game::reset() {
 
   _hasGame = true;  // arranca una partida en curso (reanudable desde "Continue")
   _score = 0;  // el récord (_bestScore) se conserva entre partidas
+  _overlayHidden = false;  // el conteo arranca con el primer dígito visible
 
   _length = 4;
   _tailIx = 0;
@@ -634,14 +636,31 @@ void Game::print() {
   // Overlay según el estado
   switch (_state) {
     case State::START: {
-      // Conteo regresivo 3-2-1: un dígito por segundo (COUNTDOWN_MS/3)
-      char buf[2];
+      // Conteo regresivo 3-2-1: un dígito por segundo (COUNTDOWN_MS/3).
+      // Al final de cada fracción el número (y su cuadro) desaparece antes
+      // de que aparezca el siguiente: el cambio es como un parpadeo
+      // (COUNT_HIDE_MS ocultos por dígito; al ocultarlo se restaura el
+      // tablero que hay debajo del cuadro).
+      uint32_t elapsed = millis() - _startMs;
       uint32_t seg = COUNTDOWN_MS / 3;
-      uint32_t done = (millis() - _startMs) / seg;
+      uint32_t pos = elapsed % seg;   // posición dentro del dígito actual
+      uint32_t done = elapsed / seg;  // cuántos dígitos se completaron
       uint8_t n = (done >= 3) ? 0 : (uint8_t)(3 - done);
-      buf[0] = (char)('0' + n);
-      buf[1] = '\0';
-      drawOverlay(buf);
+
+      if (pos >= seg - COUNT_HIDE_MS) {
+        // Fase de parpadeo: el dígito y su cuadro desaparecen. Se marca
+        // el tablero para borrar la zona del overlay una sola vez.
+        if (!_overlayHidden) {
+          _overlayHidden = true;
+          _dirtyBoard = true;
+        }
+      } else {
+        _overlayHidden = false;
+        char buf[2];
+        buf[0] = (char)('0' + n);
+        buf[1] = '\0';
+        drawOverlay(buf);
+      }
       break;
     }
     case State::PAUSE:     drawOverlay("PAUSA", true);   break;

@@ -814,7 +814,7 @@ llama a `display.clear()`, lo decide cada ventana.
    | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria; al llegar al límite se procesa igual que haber soltado el botón, volviendo el parpadeo normal) |
    | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas) |
    | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
-   | `Game` | Primer frame: clear completo + Header (puntaje 12x16 izq., segundos restantes de la comida especial 12x16 der.) y alimento y serpiente | Header solo si cambia el puntaje o `_specialTime` (banda 0..15); tablero (Body 16..63) solo si `_dirtyBoard` (movimiento, comida nueva, transición de estado): borra el Body, redibuja alimento + serpiente; overlay "3-2-1"/"PAUSA"/"GAME OVER" (texto invertido sobre banda blanca: cuadro centrado para el conteo, de lado a lado para PAUSA y GAME OVER) en cada frame según el estado |
+   | `Game` | Primer frame: clear completo + Header (puntaje 12x16 izq., segundos restantes de la comida especial 12x16 der.) y alimento y serpiente | Header solo si cambia el puntaje o `_specialTime` (banda 0..15); tablero (Body 16..63) solo si `_dirtyBoard` (movimiento, comida nueva, transición de estado): borra el Body, redibuja alimento + serpiente; overlay "3-2-1"/"PAUSA"/"GAME OVER" (texto invertido sobre banda blanca: cuadro centrado para el conteo, de lado a lado para PAUSA y GAME OVER) en cada frame según el estado —en el conteo, al final de cada dígito el número y su cuadro se ocultan (`COUNT_HIDE_MS`), marcando `_dirtyBoard` una sola vez para restaurar el tablero |
 
 4. Los modos de edición del `Menu` ("Sound" y "Dificultad") comparten la banda
    dinámica de los rombos (45..53): al entrar (`beginSoundEdit()`/
@@ -935,6 +935,7 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 | `MAX_LENGTH` | 96 | Cantidad máxima de segmentos (una celda por segmento). |
 | `DIFICULTAD_MIN` / `MAX` / `DEFAULT` | 1 / 25 / 13 | Nivel de dificultad acotado (mismo rango que el menú). |
 | `COUNTDOWN_MS` | 3000 | Duración del conteo regresivo inicial (3 s, un dígito por segundo: 3-2-1). |
+| `COUNT_HIDE_MS` | 250 | Fase de parpadeo al final de cada dígito: el número (y su cuadro) se ocultan antes de que aparezca el siguiente. |
 
 ### Métodos
 
@@ -1036,7 +1037,12 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   fullWidth)` dibuja **cuadro centrado** alrededor del texto (`fullWidth = false`,
   el conteo) o **banda de borde a borde** (`fullWidth = true`, PAUSA y GAME OVER);
   siempre `fillRoundRect` blanco + texto invertido negro `TEXT_12x16`
-  (`drawTextInverted`) centrado en el rectángulo. Al volver a `PLAY` se marca
+  (`drawTextInverted`) centrado en el rectángulo. **Parpadeo del conteo:** al
+  final de cada dígito (los últimos `COUNT_HIDE_MS = 250` ms de su segundo) el
+  número **y su cuadro desaparecen** antes de que aparezca el siguiente: el cambio
+  es como un parpadeo. Al ocultarlo se marca `_dirtyBoard` una sola vez (restaura
+  el tablero debajo del cuadro; flag `_overlayHidden`, reiniciado en `reset()`).
+  Al volver a `PLAY` se marca
   `_dirtyBoard` (borra el overlay bajo el tablero).
 
 ### Validación en host (MinGW)

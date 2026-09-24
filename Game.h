@@ -149,6 +149,7 @@ private:
 
   static constexpr int16_t BODY_TOP = 16;          // fila superior del tablero (Body)
   static constexpr uint32_t COUNTDOWN_MS = 3000;   // duración del conteo regresivo inicial (3 s, uno por dígito)
+  static constexpr uint32_t COUNT_HIDE_MS = 250;   // al final de cada dígito: el número (y su cuadro) se ocultan antes del siguiente (parpadeo)
 
   // ========================================================
   // Métodos internos
@@ -198,6 +199,7 @@ private:
   bool _redraw;        // primer frame tras begin(): clear() completo + estáticos
   bool _redrawHeader;  // el Header (puntaje/récord) cambió
   bool _dirtyBoard;    // hay que volcar el tablero (movimiento, comida, overlay)
+  bool _overlayHidden; // el conteo está en su fase de parpadeo (cuadro + dígito ocultos)
 
   // Partida
   bool _hasGame;          // hay una partida en curso (para "Continue")
