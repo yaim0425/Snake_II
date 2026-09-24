@@ -3,6 +3,7 @@
 
 #include "Display.h"
 #include "Buttons.h"
+#include "Food.h"
 #include "Sound.h"
 #include "Sprite.h"
 
@@ -115,6 +116,13 @@ public:
   uint8_t score() const;
   uint8_t bestScore() const;
 
+  // ========================================================
+  // ¿Una celda está ocupada por la serpiente? Lo consulta
+  // Food (al colocar el alimento en una celda libre).
+  // ========================================================
+
+  bool occupied(uint8_t x, uint8_t y) const;
+
 private:
 
   // ========================================================
@@ -163,8 +171,6 @@ private:
   void handleTurn();              // MOVE deja el giro pendiente (sin reversa directa)
   void turn(Dir d);               // fija `_nextDir` si `d` es válido desde la dirección COMMITIDA (_dir)
   void step();                    // un paso del tablero (aplicar el giro pendiente, mover, comer, crecer, morir)
-  void spawnFood();               // alimento en una celda libre (o nada si el tablero está lleno)
-  bool occupied(uint8_t x, uint8_t y) const;
   void die();                     // colisión o tablero lleno
 
   // Render
@@ -175,7 +181,6 @@ private:
   Sprite::Part bellyPartFor(Dir in, Dir out) const; // BELLY recto o curvo (al comer)
   void drawSprite(Sprite::Part part, uint8_t x, uint8_t y);
   void drawSnake();
-  void drawFood();
   void drawHeader();
   void drawOverlay(const char* title, bool fullWidth = false);
 
@@ -222,11 +227,9 @@ private:
   bool _bellyPending;      // la cabeza está sobre la casilla de la comida: al dejarla se pinta BELLY
 
   // Alimento y puntaje
-  Seg _food;
-  bool _hasFood;
+  Food _food;          // alimento del tablero (normal / especial) en la clase Food
   uint8_t _score;
   uint8_t _bestScore;
-  uint8_t _specialTime;    // segundos restantes de la comida especial (por ahora fijo, solo layout)
 };
 
 #endif

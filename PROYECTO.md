@@ -83,6 +83,13 @@ proyecto, sección
 15): la tabla de sprites de la serpiente del juego original, lista para que la
 lógica del juego la consuma cuando exista.
 
+El alimento del tablero (normal + especial) se extrajo de `Game` a una clase
+propia `Food` (`Food.h`/`Food.cpp`, sección 17): estado (posición, presencia,
+tipo), generación en celdas libres (`spawn`, consulta la ocupación al tablero
+vía `Game::occupied`), dibujo (rombo / sprite especial) y el temporizador de la
+comida especial. `Game` ahora usa el objeto `_food` donde antes guardaba
+`_food`/`_hasFood`/`_specialTime` y tenía `spawnFood()`/`drawFood()`.
+
 Fases pendientes: la lógica de la serpiente ya está integrada en la ventana
 `Juego` (estados `NUEVO`/`CONTINUAR` del `Engine`): movimiento con wrap,
 sprites del contenido, comida, colisiones, dificultad (velocidad), pausa y
@@ -127,6 +134,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit —1 banda del `Scroller` compartido— y rombos de posición). Completa. **Incluye la edición inline de la opción "Sound"** (selector On/Off en la banda de los rombos) **y de la opción "Dificultad"** (selector `< N >`, nivel 1..25, con repetición al mantener presionado; al mantener, solo queda fija la flecha del botón activo). |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral —2 bandas sincronizadas del `Scroller` compartido— y `SFX_CLICK` al navegar, vuelve al menú con `ACTION_UP`). Completa. |
 | `Game.h` / `Game.cpp` | Clase `Game` (ventana del juego de la serpiente: estados NUEVO/CONTINUAR del `Engine`). Completa. |
+| `Food.h` / `Food.cpp` | Clase `Food` (alimento del tablero, extraído de `Game`): estado (posición, presencia, tipo normal/especial), generación en celdas libres (`spawn`, que consulta la ocupación al tablero vía `Game::occupied`), dibujo del rombo (normal) o del sprite `SPECIAL_FOOD` (especial) y el temporizador de la comida especial. Completa. |
 | `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas**: las recibe por referencia y su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Todos los `begin()` se lanzan desde `setup()`. Completa. |
 | `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`Game` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` hace la **única lectura de botones del frame** (`buttons.read()`) y llama `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`. |
 | `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). Completa. |
@@ -821,7 +829,7 @@ llama a `display.clear()`, lo decide cada ventana.
    | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria; al llegar al límite se procesa igual que haber soltado el botón, volviendo el parpadeo normal) |
    | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas) |
    | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
-   | `Game` | Primer frame: clear completo + Header (puntaje 12x16 izq., segundos restantes de la comida especial 12x16 der.) y alimento y serpiente | Header solo si cambia el puntaje o `_specialTime` (banda 0..15); tablero (Body 16..63) solo si `_dirtyBoard` (movimiento, comida nueva, transición de estado): borra el Body, redibuja alimento + serpiente; overlay "3-2-1"/"PAUSA"/"GAME OVER" (texto invertido sobre banda blanca: cuadro centrado para el conteo, de lado a lado para PAUSA y GAME OVER) en cada frame según el estado —en el conteo, al final de cada dígito el número y su cuadro se ocultan (`COUNT_HIDE_MS`), marcando `_dirtyBoard` una sola vez para restaurar el tablero |
+   | `Game` | Primer frame: clear completo + Header (puntaje 12x16 izq., segundos restantes de la comida especial 12x16 der.) y alimento y serpiente | Header solo si cambia el puntaje o `_food.specialTime()` (banda 0..15); tablero (Body 16..63) solo si `_dirtyBoard` (movimiento, comida nueva, transición de estado): borra el Body, redibuja alimento + serpiente; overlay "3-2-1"/"PAUSA"/"GAME OVER" (texto invertido sobre banda blanca: cuadro centrado para el conteo, de lado a lado para PAUSA y GAME OVER) en cada frame según el estado —en el conteo, al final de cada dígito el número y su cuadro se ocultan (`COUNT_HIDE_MS`), marcando `_dirtyBoard` una sola vez para restaurar el tablero |
 
 4. Los modos de edición del `Menu` ("Sound" y "Dificultad") comparten la banda
    dinámica de los rombos (45..53): al entrar (`beginSoundEdit()`/
@@ -995,9 +1003,10 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   y, al dejarla en el siguiente paso, esa casilla se dibuja como **`BELLY`**
   (panza recta o curva según el giro) que queda guardada en el segmento y viaja
   con el cuerpo hasta que la cola lo borra. El alimento se regenera en una
-  **celda libre al azar**. Si no hay celdas libres (tablero lleno) la partida
-  **se gana** (termina). Dibujado como **rombo** simétrico centrado en la celda
-  (dos `fillTriangle`), como el rombo del menú.
+  **celda libre al azar** (lo genera la clase `Food`, `_food.spawn(...)`, que
+  consulta `occupied` al tablero). Si no hay celdas libres (tablero lleno) la
+  partida **se gana** (termina). Dibujado por `Food` como **rombo** simétrico
+  centrado en la celda (dos `fillTriangle`), como el rombo del menú.
 - **Colisión con el cuerpo:** al mover, la celda destino es ilegal si coincide
   con el cuerpo **salvo la celda de la cola cuando NO come** (la cola se libera
   ese paso, como en el Nokia original; la cola es bloqueante solo cuando come).
@@ -1037,7 +1046,7 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   del sprite 4×4 como un bloque 2×2 (completa la celda de 8×8). La cabeza se
   dibuja al final (queda encima).
 - **Header:** puntaje en `TEXT_12x16` (izq., NO se mueve) y segundos restantes
-  de la **comida especial** en `TEXT_12x16` (der., variable `_specialTime`, por
+  de la **comida especial** en `TEXT_12x16` (der., `_food.specialTime()`, por
   ahora valor fijo 60 solo para el layout). Se redibuja solo cuando cambian.
   Ya no muestra el récord `HI` (el "Best: N" queda solo en el menú).
 - **Overlays:** al iniciar el **conteo regresivo 3-2-1** (un dígito por segundo,
@@ -1069,3 +1078,51 @@ celda de la cola (anillo casi cerrado), wrap horizontal y vertical, y cargo de
 integridad de 400 pasos con giros (celdas únicas + adyacencia sin romper).
 `Game.cpp` además se compiló en host con stubs de `Display`/`Buttons`/`Sound`/
 `Adafruit_SSD1306` reproduciendo las firmas reales (0 errores).
+
+---
+
+## 17. Clase `Food` — API (alimento del tablero)
+
+Ubicación: `Food.h` / `Food.cpp`. Encapsula el estado y la lógica del alimento
+de la serpiente, extraídos de `Game` (antes `_food`/`_hasFood`/`_specialTime` y
+los métodos `spawnFood()`/`drawFood()` vivían en `Game`). Es un componente del
+juego (no una ventana): no tiene `begin()`/`update()` propios sino que es usado
+por `Game` (miembro `_food`).
+
+### Constructor
+
+```cpp
+Food(Display& display, uint8_t cols, uint8_t rows, uint8_t top);
+```
+
+Recibe la `Display` (para dibujar) y la geometría del tablero: rejilla de
+`cols`×`rows` celdas de 8 px a partir de la fila `top` (el Body). `Game` la
+construye así: `_food(display, COLS, ROWS, BODY_TOP)`.
+
+### Enum y constantes
+
+```cpp
+enum class Type : uint8_t { NORMAL = 0, SPECIAL };
+static constexpr uint8_t SPECIAL_TIME_DEFAULT = 60;   // segundos iniciales de la especial (layout)
+```
+
+| Tipo | Significado |
+|------|-------------|
+| `NORMAL` | Comida común, dibujada como rombo simétrico centrado en la celda (como el rombo seleccionado del menú). |
+| `SPECIAL` | Comida especial, dibujada con el sprite `Sprite::SPECIAL_FOOD` (8×4 px, centrado verticalmente en la celda) y con temporizador (`specialTime`, los segundos que el Header muestra a la derecha). Por ahora el temporizador es solo layout (valor fijo). |
+
+### Métodos
+
+| Método | Descripción |
+|--------|-------------|
+| `void begin()` | No hay alimento. |
+| `bool spawn(Type, const Game&)` | Coloca un alimento del tipo dado en una **celda libre al azar**. La ocupación la responde el tablero (`Game::occupied`, que quedó público para esto): se cuentan las libres y se elige la `pick`-ésima (dos recorridos, sin buffer). Devuelve `false` si no hay celdas libres (tablero lleno → partida ganada), en cuyo caso queda sin alimento. |
+| `void clear()` | Quita el alimento (no hay). |
+| `bool has()` | `true` si hay alimento en el tablero. |
+| `Type type()` | Tipo del alimento actual. |
+| `uint8_t x()` / `y()` | Columna (0..`COLS`-1) / fila (0..`ROWS`-1). |
+| `uint8_t specialTime()` | Segundos restantes de la comida especial. |
+| `void setSpecialTime(uint8_t s)` | Actualiza el temporizador de la especial. |
+| `void draw() const` | Dibuja según el tipo: `NORMAL` → rombo (`drawNormal`, dos `fillTriangle`); `SPECIAL` → sprite (`drawSpecial`, píxel a píxel del sprite de 1 bit). Si no hay alimento no dibuja nada. |
+
+`Game` usa `_food` así: lo genera en `reset()` y al comer (`_food.spawn(Food::Type::NORMAL, *this)`; si devuelve `false` se muere), consulta `_food.has()/_food.x()/_food.y()` para detectar comida y boca abierta, dibuja `_food.draw()` al volcar el tablero y muestra `_food.specialTime()` en el Header.

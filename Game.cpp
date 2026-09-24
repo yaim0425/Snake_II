@@ -28,10 +28,9 @@ Game::Game(Display& display, Buttons& buttons, Sound& sound)
     _dir(Dir::RIGHT),
     _nextDir(Dir::NONE),
     _bellyPending(false),
-    _hasFood(false),
+    _food(display, COLS, ROWS, BODY_TOP),
     _score(0),
-    _bestScore(0),
-    _specialTime(60) {}
+    _bestScore(0) {}
 
 // ========================================================
 // Inicialización (al entrar en la ventana)
@@ -103,7 +102,8 @@ void Game::reset() {
   _startMs = millis();
   _moveLast = 0;
 
-  spawnFood();
+  // Alimento en una celda libre (al arrancar siempre hay celdas)
+  _food.spawn(Food::Type::NORMAL, *this);
   // El conteo regresivo 3-2-1 suena solo con sus propios pitidos (SFX_TICK,
   // uno por dígito, en print()): ya no hay jingle SFX_START al entrar a START.
 }
@@ -267,7 +267,7 @@ void Game::step() {
     default: break;
   }
 
-  bool eat = _hasFood && nx == _food.x && ny == _food.y;
+  bool eat = _food.has() && nx == _food.x() && ny == _food.y();
 
   // Colisión con el cuerpo. Al comer la cola NO se mueve (es bloqueante);
   // sin comer, la celda de la cola se libera y es legal pisarla.
@@ -323,8 +323,8 @@ void Game::step() {
     _bellyPending = true;  // la cabeza quedó sobre la comida: al moverse pintará BELLY
     _redrawHeader = true;
     _sound.play(Sound::SFX_EAT);
-    spawnFood();  // si el tablero quedó lleno, _hasFood se apaga y se muere abajo
-    if (!_hasFood) {
+    // Si el tablero quedó lleno, spawn devuelve false y se muere abajo
+    if (!_food.spawn(Food::Type::NORMAL, *this)) {
       die();
       return;
     }
@@ -351,39 +351,8 @@ void Game::die() {
 }
 
 // ========================================================
-// Alimento: se ubica en una celda libre cualquiera (al azar).
-// Si el tablero está lleno, _hasFood = false (partida ganada).
-// ========================================================
-
-void Game::spawnFood() {
-  Seg freeCells[MAX_LENGTH];
-  uint8_t n = 0;
-
-  for (uint8_t y = 0; y < ROWS; y++) {
-    for (uint8_t x = 0; x < COLS; x++) {
-      if (!occupied(x, y)) {
-        freeCells[n].x = x;
-        freeCells[n].y = y;
-        n++;
-      }
-    }
-  }
-
-  if (n == 0) {
-    _hasFood = false;
-    _dirtyBoard = true;
-    return;
-  }
-
-  Seg pick = freeCells[random(n)];
-  _food.x = pick.x;
-  _food.y = pick.y;
-  _hasFood = true;
-  _dirtyBoard = true;
-}
-
-// ========================================================
-// ¿Una celda está ocupada por la serpiente?
+// ¿Una celda está ocupada por la serpiente? Lo consulta Food
+// (al colocar el alimento en una celda libre).
 // ========================================================
 
 bool Game::occupied(uint8_t x, uint8_t y) const {
@@ -427,7 +396,7 @@ Sprite::Part Game::headPart() const {
     default: break;
   }
 
-  bool aboutToEat = _hasFood && nx == _food.x && ny == _food.y;
+  bool aboutToEat = _food.has() && nx == _food.x() && ny == _food.y();
   uint8_t base = aboutToEat ? Sprite::HEAD_UP_OPEN
                             : Sprite::HEAD_UP_CLOSE;
   return (Sprite::Part)(base + off);
@@ -544,22 +513,9 @@ void Game::drawSnake() {
 }
 
 // ========================================================
-// Alimento: rombo simétrico centrado en la celda (como el
-// rombo seleccionado del menú)
-// ========================================================
-
-void Game::drawFood() {
-  Adafruit_SSD1306& s = _display.screen();
-  int16_t cx = (int16_t)_food.x * 8 + 4;
-  int16_t cy = BODY_TOP + (int16_t)_food.y * 8 + 4;
-
-  s.fillTriangle(cx, cy - 3, cx + 3, cy, cx, cy + 3, SSD1306_WHITE);
-  s.fillTriangle(cx, cy - 3, cx - 3, cy, cx, cy + 3, SSD1306_WHITE);
-}
-
-// ========================================================
 // Header del juego: puntuación (izq., 12x16) y segundos
-// restantes de la comida especial (der., 12x16)
+// restantes de la comida especial (der., 12x16; por ahora
+// valor fijo solo para el layout, en la clase Food)
 // ========================================================
 
 void Game::drawHeader() {
@@ -570,7 +526,7 @@ void Game::drawHeader() {
   _display.drawText(buf, 0, 0, TEXT_12x16);
 
   // Segundos restantes de la comida especial, a la derecha
-  snprintf(buf, sizeof(buf), "%u", (unsigned)_specialTime);
+  snprintf(buf, sizeof(buf), "%u", (unsigned)_food.specialTime());
   int16_t w = _display.getTextWidth(buf, TEXT_12x16);
   _display.drawText(buf, _display.getWidth() - w, 0, TEXT_12x16);
 }
@@ -638,7 +594,7 @@ void Game::print() {
   if (_dirtyBoard) {
     _display.screen().fillRect(0, BODY_TOP, _display.getWidth(),
                                _display.getHeight() - BODY_TOP, SSD1306_BLACK);
-    if (_hasFood) drawFood();
+    if (_food.has()) _food.draw();
     drawSnake();
     _dirtyBoard = false;
   }
