@@ -308,7 +308,6 @@ void Game::step() {
   } else {
     _length++;
     _score++;
-    if (_score > _bestScore) _bestScore = _score;
     _bellyPending = true;  // la cabeza quedó sobre la comida: al moverse pintará BELLY
     _redrawHeader = true;
     _sound.play(Sound::SFX_EAT);
@@ -330,6 +329,9 @@ void Game::die() {
   _state = State::GAME_OVER;
   _hasGame = false;  // "Continue" ya no reanuda: arranca una nueva
 
+  // El récord solo se verifica/actualiza al terminar en GAME OVER
+  // (no durante la partida): el "Best" del menú refleja partidas
+  // terminadas, no puntajes en curso.
   if (_score > _bestScore) _bestScore = _score;
   _redrawHeader = true;
   _sound.play(Sound::SFX_GAME_OVER);

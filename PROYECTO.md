@@ -940,7 +940,7 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 | `void print()` | Renderizado por zonas (ver sección 13). |
 | `bool done()` | `true` al pedir volver al menú. |
 | `bool isGameOver()` | `true` si al salir (`done()`) la partida terminó en `GAME OVER`; lo usa el `Engine` (junto con `score() > 0`) para dejar la selección del menú en `New` (Game Over o sin puntos) o `Continue` (partida en curso con puntos). |
-| `uint8_t score()` / `bestScore()` | Puntaje actual / récord. El `Engine` sincroniza `bestScore()` con el menú al salir. |
+| `uint8_t score()` / `bestScore()` | Puntaje actual / récord (el récord solo se actualiza al terminar en GAME OVER, ver "Comer"/"Colisión"). El `Engine` sincroniza `bestScore()` con el menú al salir. |
 
 ### Reglas del juego
 
@@ -975,7 +975,8 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   sube, o bajaba y cruza a la derecha, conectan el lado derecho con el superior
   → `CORNER_RIGHT_UP`.
 - **Comer:** al tocar el alimento (`SFX_EAT`): crece (+1 segmento, la cola NO
-  avanza ese paso, puntaje +1). La cabeza queda **sobre la casilla del alimento**
+  avanza ese paso, puntaje +1, **sin verificar el récord**: el "Best" no se
+  toca durante la partida). La cabeza queda **sobre la casilla del alimento**
   y, al dejarla en el siguiente paso, esa casilla se dibuja como **`BELLY`**
   (panza recta o curva según el giro) que queda guardada en el segmento y viaja
   con el cuerpo hasta que la cola lo borra. El alimento se regenera en una
@@ -986,7 +987,10 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   con el cuerpo **salvo la celda de la cola cuando NO come** (la cola se libera
   ese paso, como en el Nokia original; la cola es bloqueante solo cuando come).
   Si colisiona: `GAME_OVER` (`SFX_GAME_OVER`), informa `SFX_BACK` al volver y
-  `_hasGame = false` (un `Continue` posterior arranca de nuevo). Al colisionar, la
+  `_hasGame = false` (un `Continue` posterior arranca de nuevo). **El récord
+  (`_bestScore`) se verifica/actualiza solo aquí, en el GAME OVER** (o al terminar
+  el tablero lleno, que también pasa por `die()`): partidas abandonadas con
+  `ACTION_UP` no cuentan. Al colisionar, la
   cabeza **no aparece volteada hacia el choque**: el giro pendiente se evalúa con
   una copia local (`dir`) y `_dir` (la dirección COMMITIDA) solo se actualiza si
   el destino resulta legal, por lo que la cabeza conserva la orientación real de su
