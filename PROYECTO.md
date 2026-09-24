@@ -103,9 +103,9 @@ el récord pasaron a `uint16_t` (`Game::score/bestScore`, `Menu::setBestScore` y
 teórico (~960) ya desbordaba `uint8_t`.
 También se agregó el **festejo de nuevo récord**: al morir superando el "Best"
 (ej. se pasa de `_bestScore`), en vez del letrero estático "GAME OVER" la ventana
-muestra en ciclo los letreros "GAME OVER" → "YOU ARE" → "THE BEST"
+muestra en ciclo los letreros "GAME OVER" → "BUT" → "YOU ARE" → "THE BEST"
 (`NEW_BEST_SIGN_MS = 1500` ms cada uno, banda blanca de lado a lado) hasta que se
-presiona un botón; el festejo (`SFX_NEW_BEST`, fanfarria ascendente) suena solo la
+presiona un botón; el festejo (`SFX_NEW_BEST`, fanfarria de victoria) suena solo la
 **primera** vez que aparece cada letrero.
 Queda como mejora opcional conservar el récord (`bestScore`) entre
 reinicios de la placa (p. ej. con EEPROM); hoy el récord vive solo en la sesión.
@@ -662,7 +662,7 @@ enum Sfx : uint8_t {
 | `SFX_TURN` | Cambio de dirección de la serpiente | 1319/20 |
 | `SFX_PAUSE` | Pausar la partida | 600/50, 300/60 |
 | `SFX_RESUME` | Reanudar la partida | 500/50, 900/60 |
-| `SFX_NEW_BEST` | Festejo de nuevo récord ("YOU ARE" / "THE BEST") | 523/80, 659/80, 784/80, 1047/100, 1319/120, 1568/160, 2093/240 |
+| `SFX_NEW_BEST` | Festejo de nuevo récord ("BUT" / "YOU ARE" / "THE BEST") | 523/100, 659/100, 784/100, 1047/140, 784/100, 1047/140, 1319/420 |
 
 Los tonos siguen la paleta del `GameBuzzer` original.
 
@@ -845,7 +845,7 @@ llama a `display.clear()`, lo decide cada ventana.
    | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria; al llegar al límite se procesa igual que haber soltado el botón, volviendo el parpadeo normal) |
    | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas) |
    | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
-   | `Game` | Primer frame: clear completo + Header (puntaje 12x16 izq., segundos restantes de la comida especial 12x16 der.) y alimento y serpiente | Header solo si cambia el puntaje o `_food.specialTime()` (banda 0..15); tablero (Body 16..63) solo si `_dirtyBoard` (movimiento, comida nueva, transición de estado): borra el Body, redibuja alimento + serpiente; overlay "3-2-1"/"PAUSA"/"GAME OVER"/festejo de récord (texto invertido sobre banda blanca: cuadro centrado para el conteo, de lado a lado para PAUSA, GAME OVER y los letreros del festejo "YOU ARE"/"THE BEST") en cada frame según el estado —en el conteo, al final de cada dígito el número y su cuadro se ocultan (`COUNT_HIDE_MS`), marcando `_dirtyBoard` una sola vez para restaurar el tablero —; al morir superando el récord, el "GAME OVER" es un ciclo "GAME OVER" → "YOU ARE" → "THE BEST" (`NEW_BEST_SIGN_MS` cada uno) que se repite hasta que se presiona un botón, y el `SFX_NEW_BEST` suena solo la primera vez que aparece cada letrero |
+   | `Game` | Primer frame: clear completo + Header (puntaje 12x16 izq., segundos restantes de la comida especial 12x16 der.) y alimento y serpiente | Header solo si cambia el puntaje o `_food.specialTime()` (banda 0..15); tablero (Body 16..63) solo si `_dirtyBoard` (movimiento, comida nueva, transición de estado): borra el Body, redibuja alimento + serpiente; overlay "3-2-1"/"PAUSA"/"GAME OVER"/festejo de récord (texto invertido sobre banda blanca: cuadro centrado para el conteo, de lado a lado para PAUSA, GAME OVER y los letreros del festejo "BUT"/"YOU ARE"/"THE BEST") en cada frame según el estado —en el conteo, al final de cada dígito el número y su cuadro se ocultan (`COUNT_HIDE_MS`), marcando `_dirtyBoard` una sola vez para restaurar el tablero —; al morir superando el récord, el "GAME OVER" es un ciclo "GAME OVER" → "BUT" → "YOU ARE" → "THE BEST" (`NEW_BEST_SIGN_MS` cada uno) que se repite hasta que se presiona un botón, y el `SFX_NEW_BEST` suena solo la primera vez que aparece cada letrero |
 
 4. Los modos de edición del `Menu` ("Sound" y "Dificultad") comparten la banda
    dinámica de los rombos (45..53): al entrar (`beginSoundEdit()`/
@@ -1038,10 +1038,10 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   (`_bestScore`) se verifica/actualiza solo aquí, en el GAME OVER** (o al terminar
   el tablero lleno, que también pasa por `die()`): partidas abandonadas con
   `ACTION_UP` no cuentan. Si el puntaje **supera el récord**, se activa el
-  **festejo de nuevo récord**: en vez del letrero estático, la secuencia
-  "GAME OVER" → "YOU ARE" → "THE BEST" se repite en ciclo
-  (`NEW_BEST_SIGN_MS` por letrero, `_newBest`/`_gameOverMs`/`_celeSfx`) hasta que
-  se presiona un botón, y el festejo (`SFX_NEW_BEST`) suena solo la primera vez
+**festejo de nuevo récord**: en vez del letrero estático, la secuencia
+   "GAME OVER" → "BUT" → "YOU ARE" → "THE BEST" se repite en ciclo
+   (`NEW_BEST_SIGN_MS` por letrero, `_newBest`/`_gameOverMs`/`_celeSfx`) hasta que
+   se presiona un botón, y el festejo (`SFX_NEW_BEST`) suena solo la primera vez
   que aparece cada letrero (el "GAME OVER" ya sonó en `die()` con `SFX_GAME_OVER`).
   Al colisionar, la
   cabeza **no aparece volteada hacia el choque**: el giro pendiente se evalúa con
@@ -1088,8 +1088,8 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   deriva del alto de la banda (`bandH = h + 2`), y el texto queda 2 px dentro;
   siempre `fillRoundRect` blanco + texto invertido negro `TEXT_12x16`
   (`drawTextInverted`) centrado en el rectángulo. **Festejo de nuevo récord:** si al
-  morir se supera el "Best", el "GAME OVER" pasa a un **ciclo** de los tres letreros
-  ("GAME OVER" → "YOU ARE" → "THE BEST", banda de borde a borde, `NEW_BEST_SIGN_MS`
+  morir se supera el "Best", el "GAME OVER" pasa a un **ciclo** de los cuatro letreros
+  ("GAME OVER" → "BUT" → "YOU ARE" → "THE BEST", banda de borde a borde, `NEW_BEST_SIGN_MS`
   cada uno) que se repite hasta que se presiona un botón; el `SFX_NEW_BEST` (festejo)
   suena solo la **primera** vez que aparece cada letrero. **Parpadeo del conteo:** al
   final de cada dígito (los últimos `COUNT_HIDE_MS = 250` ms de su segundo) el

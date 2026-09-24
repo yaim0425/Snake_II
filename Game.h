@@ -43,7 +43,7 @@
 //     sigue en curso Y tiene score > 0; sin puntos se oculta);
 //     en GAME_OVER cualquier ACTION vuelve al menú. Al ESTABLECER UN
 //     NUEVO RÉCORD (bestScore), en vez del letrero estático se muestra
-//     en ciclo "GAME OVER" → "YOU ARE" → "THE BEST" (cada letrero
+//     en ciclo "GAME OVER" → "BUT" → "YOU ARE" → "THE BEST" (cada letrero
 //     NEW_BEST_SIGN_MS) hasta que se presiona un botón; el festejo
 //     (SFX_NEW_BEST) suena solo la PRIMERA vez que aparece cada letrero.
 // ========================================================
@@ -140,7 +140,7 @@ private:
     START,       // conteo regresivo 3-2-1 (el tablero ya está dibujado)
     PLAY,        // la serpiente se mueve cada _moveDelay ms
     PAUSE,       // panel "PAUSA" sobre el tablero estático
-    GAME_OVER    // panel "GAME OVER"; al batir el récord muestra el ciclo YOU ARE/THE BEST; cualquier ACTION vuelve al menú
+    GAME_OVER    // panel "GAME OVER"; al batir el récord muestra el ciclo BUT/YOU ARE/THE BEST; cualquier ACTION vuelve al menú
   };
 
   // Direcciones del tablero. El orden (UP=1, RIGHT, DOWN, LEFT)
@@ -165,7 +165,7 @@ private:
   static constexpr int16_t BODY_TOP = 16;          // fila superior del tablero (Body)
   static constexpr uint32_t COUNTDOWN_MS = 3000;   // duración del conteo regresivo inicial (3 s, uno por dígito)
   static constexpr uint32_t COUNT_HIDE_MS = 250;   // al final de cada dígito: el número (y su cuadro) se ocultan antes del siguiente (parpadeo)
-  static constexpr uint32_t NEW_BEST_SIGN_MS = 1500; // duración de cada letrero del festejo de nuevo récord ("GAME OVER"/"YOU ARE"/"THE BEST")
+  static constexpr uint32_t NEW_BEST_SIGN_MS = 1500; // duración de cada letrero del festejo de nuevo récord ("GAME OVER"/"BUT"/"YOU ARE"/"THE BEST")
 
   // ========================================================
   // Métodos internos
@@ -224,7 +224,7 @@ private:
   uint32_t _gameOverMs;   // instante del fin de partida (arranca el festejo de récord)
 
   // Festejo de nuevo récord (GAME OVER con _newBest): ciclo de letreros
-  // "GAME OVER"/"YOU ARE"/"THE BEST" hasta que se presiona un botón
+  // "GAME OVER"/"BUT"/"YOU ARE"/"THE BEST" hasta que se presiona un botón
   bool _newBest;    // este fin de partida estableció un nuevo récord
   uint8_t _celeSfx; // bitmask: bit0 = ya sonó "YOU ARE", bit1 = ya sonó "THE BEST"
                     // (el festejo solo suena la primera vez que aparece cada letrero)

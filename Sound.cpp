@@ -76,14 +76,15 @@ const Sound::Note Sound::SEQ_RESUME[] = {
 };
 
 const Sound::Note Sound::SEQ_NEW_BEST[] = {
-  // Festejo de nuevo récord: fanfarria ascendente (arpegio mayor)
-  { 523, 80 },
-  { 659, 80 },
-  { 784, 80 },
-  { 1047, 100 },
-  { 1319, 120 },
-  { 1568, 160 },
-  { 2093, 240 }
+  // Festejo de nuevo récord: fanfarria de victoria (marcha triunfal:
+  // motivo ascendente C5-E5-G5-C6 y cierre largo en E6)
+  { 523, 100 },   // C5  "ta"
+  { 659, 100 },   // E5  "ra"
+  { 784, 100 },   // G5  "ra"
+  { 1047, 140 },  // C6  "pum"
+  { 784, 100 },   // G5
+  { 1047, 140 },  // C6
+  { 1319, 420 }   // E6  cierre largo
 };
 
 // ========================================================

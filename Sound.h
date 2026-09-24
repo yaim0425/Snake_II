@@ -37,7 +37,7 @@ public:
     SFX_TURN,       // cambio de dirección de la serpiente
     SFX_PAUSE,      // pausar la partida
     SFX_RESUME,     // reanudar la partida
-    SFX_NEW_BEST    // festejo de nuevo récord ("YOU ARE" / "THE BEST")
+    SFX_NEW_BEST    // festejo de nuevo récord ("BUT" / "YOU ARE" / "THE BEST")
   };
 
   // ========================================================

@@ -356,7 +356,7 @@ void Game::die() {
   // El récord solo se verifica/actualiza al terminar en GAME OVER
   // (no durante la partida): el "Best" del menú refleja partidas
   // terminadas, no puntajes en curso. Al establecerse un NUEVO
-  // récord se activa el festejo (ciclo "GAME OVER"/"YOU ARE"/
+  // récord se activa el festejo (ciclo "GAME OVER"/"BUT"/"YOU ARE"/
   // "THE BEST" en print(), con SFX_NEW_BEST solo la primera vez
   // que aparece cada letrero).
   _newBest = _score > _bestScore;
@@ -663,17 +663,20 @@ void Game::print() {
     case State::PAUSE:     drawOverlay("PAUSA", true);   break;
     case State::GAME_OVER: {
       if (_newBest) {
-        // Festejo de nuevo récord: ciclo "GAME OVER" -> "YOU ARE" ->
+        // Festejo de nuevo récord: ciclo "GAME OVER" -> "BUT" -> "YOU ARE" ->
         // "THE BEST" (NEW_BEST_SIGN_MS cada uno) hasta que se presiona
         // un botón. El sonido (SFX_NEW_BEST) suena solo la primera vez
         // que aparece cada letrero (_celeSfx; el "GAME OVER" ya sonó
         // en die() con SFX_GAME_OVER).
-        uint8_t phase = (uint8_t)((millis() - _gameOverMs) / NEW_BEST_SIGN_MS % 3);
+        uint8_t phase = (uint8_t)((millis() - _gameOverMs) / NEW_BEST_SIGN_MS % 4);
         switch (phase) {
           case 0:
             drawOverlay("GAME OVER", true);
             break;
           case 1:
+            drawOverlay("BUT", true);
+            break;
+          case 2:
             if (!(_celeSfx & 0x01)) { _celeSfx |= 0x01; _sound.play(Sound::SFX_NEW_BEST); }
             drawOverlay("YOU ARE", true);
             break;
