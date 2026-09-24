@@ -37,8 +37,10 @@
 //     ACTION_RIGHT (Btn2) es "Select / Pause": en PLAY pausa
 //     (panel "PAUSA") y en PAUSE/CONTINUAR reanuda (ACTION_LEFT
 //     también reanuda). ACTION_UP (Btn1, "Volver") vuelve al menú
-//     en cualquier momento (la partida NO se pierde: "Continue" la
-//     resume); en GAME_OVER cualquier ACTION vuelve al menú.
+//     en cualquier momento (la partida NO se pierde mientras haya
+//     puntos: el menú muestra "Continue" al volver solo si la partida
+//     sigue en curso Y tiene score > 0; sin puntos se oculta);
+//     en GAME_OVER cualquier ACTION vuelve al menú.
 // ========================================================
 
 class Game {

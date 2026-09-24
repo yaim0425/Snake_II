@@ -64,12 +64,14 @@ void Engine::update() {
       if (_game.done()) {
         _sound.play(Sound::SFX_BACK);
         _menu.setBestScore(_game.bestScore());
-        // "Continue" se oculta si no hay partida que reanudar (GAME OVER);
-        // la selección del menú queda en "Continue" si la partida sigue en
-        // curso o en "New" si terminó en GAME OVER.
+        // "Continue" solo se habilita si la partida sigue en curso Y el
+        // jugador tiene puntos (score > 0): al salir sin haber comido no
+        // hay nada que reanudar. Con GAME OVER o sin puntos las opciones
+        // son 4 y la selección queda en "New".
         bool gameOver = _game.isGameOver();
-        _menu.setContinueAvailable(!gameOver);
-        _menu.setSelected(gameOver ? Menu::OPC_NUEVO : Menu::OPC_CONTINUAR);
+        bool resumable = !gameOver && _game.score() > 0;
+        _menu.setContinueAvailable(resumable);
+        _menu.setSelected(resumable ? Menu::OPC_CONTINUAR : Menu::OPC_NUEVO);
         changeState(State::MENU);
       }
       break;

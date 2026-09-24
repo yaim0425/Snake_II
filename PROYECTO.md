@@ -59,9 +59,11 @@ Arquitectura:
   luego el panel de botones (`Legend`, pad MOVE con flechas + 4 rombos de ACTION
   que parpadean uno a la vez) y
   después el menú inicial con las opciones `New`, `Continue` (**se oculta si no hay
-  partida en curso**: al arrancar o tras un `GAME OVER` la lista queda en 4 opciones
+  partida en curso o si la partida no tiene puntos**: al arrancar, tras un
+  `GAME OVER` o al volver del juego sin haber comido la lista queda en 4 opciones
   — New, Dificultad, Sound, Créditos —; al volver del juego con la partida en curso
-  vuelve a 5 y la selección queda en `Continue`, si terminó en `GAME OVER` la
+  y puntos vuelve a 5 y la selección queda en `Continue`, si terminó en `GAME OVER`
+  o salió sin puntos la
   selección queda en `New` y `Continue` no aparece), `Sound`
   y `Dificultad` (**se editan inline en el propio `Menu`**:
   al confirmar con `ACTION_RIGHT` aparece un selector en la banda de los rombos —
@@ -336,7 +338,7 @@ Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t bestScore = 0, co
 |--------|-------------|
 | `void begin()` | Restablece el estado de la animación, del parpadeo y del modo de edición de sonido. **No resetea la selección**: conserva la opción elegida antes de salir del menú (las ventanas son hermanas persistentes; al volver al menú se muestra la misma opción que se tenía, no siempre "New"). |
 | `void setOptions(textos, conteo)` | Fija la lista y la cantidad de opciones (1..`MAX_OPTIONS`=8). El menú (textos y rombos) se adapta al conteo. |
-| `void setContinueAvailable(bool)` | **Muestra/oculta la opción "Continue"** según haya partida en curso que reanudar. `true` = lista de 5 opciones (New, Continue, Dificultad, Sound, Créditos); `false` = lista de 4 (New, Dificultad, Sound, Créditos). Estado inicial: `false` (al arrancar no hay partida). Cambia la lista interna (como `setOptions`) conservando la selección y adaptándola a la nueva cantidad. |
+| `void setContinueAvailable(bool)` | **Muestra/oculta la opción "Continue"** según haya partida en curso que reanudar. `true` = lista de 5 opciones (New, Continue, Dificultad, Sound, Créditos); `false` = lista de 4 (New, Dificultad, Sound, Créditos). Estado inicial: `false` (al arrancar no hay partida). Quién lo decide: el `Engine` al volver del juego solo pasa `true` si la partida sigue en curso **y** tiene puntos (`!gameOver && score() > 0`). Cambia la lista interna (como `setOptions`) conservando la selección y adaptándola a la nueva cantidad. |
 | `void update()` | Lee botones, navega con `MOVE_RIGHT`/`MOVE_LEFT` y anima el deslizamiento lateral; log en Serial al cambiar de opción; toca `SFX_CLICK` al navegar. En las opciones "Sound" y "Dificultad" gestiona el **modo de edición inline** (ver abajo). |
 | `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Best + versión). En modo de edición de sonido dibuja el **selector On/Off** en la banda de los rombos; en modo de edición de dificultad, el **selector `< N >`** (nivel 1..25). |
 | `int8_t selected()` | Índice de la opción seleccionada. |
@@ -719,7 +721,7 @@ enum class State : uint8_t {
 | `BOOT` | `Boot` | Animación de arranque (franjas). Al terminar (`done()`) pasa a `LEGEND`. Cualquier botón la termina. |
 | `LEGEND` | `Legend` | Panel de botones: pad MOVE con 4 flechas + 4 rombos completos de ACTION en las posiciones de un pad que parpadean MUY rápido uno a la vez (ciclo lento) con la función del rombo activo centrada en el pie. Cualquier botón la cierra → menú (suena el efecto según el botón —CLICK/BACK/CONFIRM—; `Engine` no añade `SFX_BACK`). Solo se muestra tras el arranque. |
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
-| `NUEVO` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con el conteo regresivo 3-2-1 (`SFX_START`). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setBestScore(game.bestScore())`), **oculta/muestra "Continue" según haya partida en curso** (`menu.setContinueAvailable(!game.isGameOver())`), deja la selección del menú en `Continue` si la partida sigue en curso o en `New` si hubo `GAME OVER` (`menu.setSelected(...)`) y pasa a `MENU`. |
+| `NUEVO` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con el conteo regresivo 3-2-1 (`SFX_START`). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setBestScore(game.bestScore())`), **oculta/muestra "Continue" al volver** (`menu.setContinueAvailable(resumable)`, donde `resumable = !game.isGameOver() && game.score() > 0`: partida en curso **y** con puntos), deja la selección del menú en `Continue` si `resumable`, o en `New` en caso contrario (`menu.setSelected(...)`) y pasa a `MENU`. |
 | `CONTINUAR` | `Game` | Reanudar la partida anterior (`begin(false)`): queda en pausa y se retoma con `ACTION_RIGHT` (Btn2, "Select / Pause") o `ACTION_LEFT`; si no hay partida en curso arranca una nueva. Al salir (`done()`) igual que `NUEVO`. |
 | `CREDITOS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo `Scroller` compartido que el menú** pero con **2 bandas sincronizadas** (`BAND_HEIGHTS = {16, 8}` = altos de rol 12x16 y nombre 6x8): rol y nombre se componen por separado en la misma tira (`loadEntry` → `compose`) y deslizan a la vez con el **mismo `_slideX`** interno del `Scroller` (aparecen al mismo tiempo). `drawBand(slot, y, fg, bg)` compone el slot y vuelca su **banda persistente** (`_chipBox[slot]`) con sus colores; la tira la sobrescribe **columna a columna** con sus fondos, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). El deslizamiento **arranca desde el borde** (`startSlide`, fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (igual que el menú, ≈0,5 s). Al navegar suena `SFX_CLICK` y al salir (`done()`) suena `SFX_BACK` (lo toca el `Engine`) y pasa directo a `MENU`. |
 
@@ -765,7 +767,8 @@ Toda ventana implementa:
   en la compilación (no entra en el repo: se configura a nivel del paquete del core).
 - La demo actual (`Snake_II.ino`) usa `Display`, `Buttons` y el sonido integrado:
   el menú arranca **sin la opción "Continue"** (no hay partida en curso) y solo
-  aparece al volver del juego con la partida viva; al navegar el menú y los
+  aparece al volver del juego con la partida viva **y con puntos** (score > 0);
+  al navegar el menú y los
   créditos suena `SFX_CLICK`, al confirmar `SFX_CONFIRM`,
   al volver al menú `SFX_BACK`, la `Legend` suena según el botón pulsado (MOVE =
   CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM) y en la opción "Sound" el
@@ -936,7 +939,7 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 | `void update()` | Estado `START`: pre-gira con MOVE (giro pendiente), entra a `PLAY` con `ACTION_RIGHT` o al agotarse `COUNTDOWN_MS`. `PLAY`: gira con MOVE (sin reversa directa, queda un único giro pendiente que se aplica en el siguiente paso), avanza un paso cada `_moveDelay` ms y `ACTION_RIGHT` (Btn2, "Select / Pause") pausa. `PAUSE`: reanuda con `ACTION_RIGHT` (o `ACTION_LEFT`). `GAME_OVER`: cualquier ACTION vuelve al menú. `ACTION_UP` (Btn1, "Volver") sale en cualquier estado menos `GAME_OVER`. |
 | `void print()` | Renderizado por zonas (ver sección 13). |
 | `bool done()` | `true` al pedir volver al menú. |
-| `bool isGameOver()` | `true` si al salir (`done()`) la partida terminó en `GAME OVER`; lo usa el `Engine` para dejar la selección del menú en `New` (Game Over) o `Continue` (partida en curso). |
+| `bool isGameOver()` | `true` si al salir (`done()`) la partida terminó en `GAME OVER`; lo usa el `Engine` (junto con `score() > 0`) para dejar la selección del menú en `New` (Game Over o sin puntos) o `Continue` (partida en curso con puntos). |
 | `uint8_t score()` / `bestScore()` | Puntaje actual / récord. El `Engine` sincroniza `bestScore()` con el menú al salir. |
 
 ### Reglas del juego
@@ -994,12 +997,14 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   **sin perderla** (`_hasGame` mantiene el tablero; `Continue` la reanuda en
   pausa).
   `GAME_OVER` deja `_hasGame = false`. Al salir, el `Engine` deja la selección
-  del menú en **`Continue`** si la partida siguió en curso (sale con `ACTION_UP`)
-  o en **`New`** si terminó en `GAME OVER` (lo decide con `game.isGameOver()` y
+  del menú en **`Continue`** si la partida siguió en curso **y con puntos** (sale
+  con `ACTION_UP` tras haber comido) o en **`New`** si terminó en `GAME OVER` o la
+  partida no tiene puntos (`resumable = !game.isGameOver() && game.score() > 0`;
   lo aplica con `menu.setSelected(...)` antes de pasar a `MENU`); además la
-  opción **"Continue" en el menú se oculta cuando no hay partida que reanudar**
-  (`menu.setContinueAvailable(!game.isGameOver())`): al arrancar o tras un
-  `GAME OVER` la lista queda con 4 opciones (New, Dificultad, Sound, Créditos).
+  opción **"Continue" en el menú se oculta cuando no hay partida que reanudar o
+  cuando la partida no tiene puntos**
+  (`menu.setContinueAvailable(resumable)`): al arrancar, tras un
+  `GAME OVER` o al salir sin puntos la lista queda con 4 opciones (New, Dificultad, Sound, Créditos).
 - **Sprites (cuerpo persistente):** cada segmento del cuerpo guarda su
   `part` (sprite fijo): cola `TAIL_TO_<dir>` (su `dir` guardada), cuerpo recto
   `BODY_TO_<dir>`, curva `CORNER_<horizontal>_<vertical>` (índice 8..11
