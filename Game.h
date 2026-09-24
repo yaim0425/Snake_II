@@ -116,8 +116,8 @@ public:
   // Puntajes (el Engine sincroniza el récord con el menú)
   // ========================================================
 
-  uint8_t score() const;
-  uint8_t bestScore() const;
+  uint16_t score() const;
+  uint16_t bestScore() const;
 
   // ========================================================
   // ¿Una celda está ocupada por la serpiente? Lo consulta
@@ -231,8 +231,8 @@ private:
 
   // Alimento y puntaje
   Food _food;          // alimento del tablero (normal / especial) en la clase Food
-  uint8_t _score;
-  uint8_t _bestScore;
+  uint16_t _score;
+  uint16_t _bestScore;
 };
 
 #endif

@@ -124,7 +124,7 @@ void Engine::print() {
 // Puntaje máximo (lo conserva el menú entre sesiones)
 // ========================================================
 
-void Engine::setBestScore(uint8_t value) {
+void Engine::setBestScore(uint16_t value) {
   _menu.setBestScore(value);
 }
 

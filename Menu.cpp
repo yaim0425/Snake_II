@@ -61,7 +61,7 @@ int8_t Menu::indexOfOption(Option option) const {
 // Constructor
 // ========================================================
 
-Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t bestScore,
+Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint16_t bestScore,
            const char* version)
   : _display(display),
     _buttons(buttons),
@@ -522,7 +522,7 @@ void Menu::print() {
                                     SSD1306_WHITE);
     if (_showFooter) {
       char buf[16];
-      sprintf(buf, "Best: %u", _bestScore);
+      sprintf(buf, "Best: %u", (unsigned)_bestScore);
 
       TextPos tPos = _display.getTextPos(buf, LEFT_DOWN, TEXT_6x8, REGION_BODY);
       _display.drawText(buf, tPos.x, PIE_TOP, TEXT_6x8);
@@ -582,7 +582,7 @@ int8_t Menu::confirm() const {
   return -1;
 }
 
-void Menu::setBestScore(uint8_t value) {
+void Menu::setBestScore(uint16_t value) {
   if (value != _bestScore) {
     _bestScore = value;
     _redraw = true;  // el pie cambia: se redibija al volver al menú

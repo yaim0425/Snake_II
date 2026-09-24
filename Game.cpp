@@ -325,7 +325,10 @@ void Game::step() {
                   ((uint8_t)tail.dir - 1));
   } else {
     _length++;
-    _score++;
+    // El valor de la comida es el nivel de dificultad actual: como la
+    // dificultad puede cambiar en caliente, el puntaje suma el `_difficulty`
+    // del momento de comer (no el de arranque).
+    _score += _difficulty;
     _bellyPending = true;  // la cabeza quedó sobre la comida: al moverse pintará BELLY
     _redrawHeader = true;
     _sound.play(Sound::SFX_EAT);
@@ -671,11 +674,11 @@ bool Game::isGameOver() const {
 // Puntajes
 // ========================================================
 
-uint8_t Game::score() const {
+uint16_t Game::score() const {
   return _score;
 }
 
-uint8_t Game::bestScore() const {
+uint16_t Game::bestScore() const {
   return _bestScore;
 }
 

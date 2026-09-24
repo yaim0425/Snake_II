@@ -96,7 +96,11 @@ sprites del contenido, comida, colisiones, dificultad (velocidad), pausa y
 game over. La dificultad se aplica **en caliente**: `Game::setDifficulty` ya no
 solo guarda el nivel sino que recalcula la velocidad (`_moveDelay`) al instante,
 de modo que cambiar el nivel desde el menú afecta también a la partida en curso
-(PLAY o PAUSE), no solo a las nuevas.
+(PLAY o PAUSE), no solo a las nuevas. **Cada comida vale el nivel de dificultad
+actual** (`_score += _difficulty` en `step()`, no +1 fijo); por eso el puntaje y
+el récord pasaron a `uint16_t` (`Game::score/bestScore`, `Menu::setBestScore` y
+`Engine::setBestScore`): con dificultad 25 y ~96 comidas el máximo teórico
+(~2400) ya desbordaba `uint8_t`.
 Queda como mejora opcional conservar el récord (`bestScore`) entre
 reinicios de la placa (p. ej. con EEPROM); hoy el récord vive solo en la sesión.
 
@@ -342,7 +346,7 @@ Ubicación: `Menu.h` / `Menu.cpp`.
 ### Constructor
 
 ```cpp
-Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t bestScore = 0, const char* version = "v0.1");
+Menu(Display& display, Buttons& buttons, Sound& sound, uint16_t bestScore = 0, const char* version = "v0.1");
 ```
 
 ### Métodos
@@ -356,7 +360,7 @@ Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t bestScore = 0, co
 | `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Best + versión). En modo de edición de sonido dibuja el **selector On/Off** en la banda de los rombos; en modo de edición de dificultad, el **selector `< N >`** (nivel 1..25). |
 | `int8_t selected()` | Índice de la opción seleccionada. |
 | `int8_t confirm()` | Devuelve la opción seleccionada si se confirma con `ACTION_RIGHT` (pulse recién presionado), o `-1`. **`OPC_SONIDO` y `OPC_DIFICULTAD` nunca se devuelven**: esas opciones se editan inline (ver abajo). Es el "activar opción" del resto del menú. |
-| `void setBestScore(uint8_t)` | Actualiza el puntaje máximo mostrado. |
+| `void setBestScore(uint16_t)` | Actualiza el puntaje máximo mostrado. |
 | `void setTitle(const char*)` | Cambia el título del Header. |
 | `void setShowFooter(bool)` | Ocultar/mostrar el texto del pie ("Best"/versión); la línea de la `54` se dibuja siempre. |
 | `void setSelected(Menu::Option)` | Fija la selección **por opción lógica** (enum `Option`, p. ej. `OPC_NUEVO` u `OPC_CONTINUAR`), se mapea al índice de la lista visible y reinicia la animación (al entrar en la ventana). Si la opción no está visible ("Continue" oculto) la selección cae a `New`. |
@@ -752,7 +756,7 @@ enum class State : uint8_t {
 | `void print()` | Despacha el dibujo a la ventana activa. **Ya no limpia la
   pantalla (`display.clear()`)**: cada ventana la usa solo en su primer frame tras
   `begin()` y luego limpia/redibuja solo sus zonas dinámicas (sección 13). |
-| `void setBestScore(uint8_t)` | Reenvía al menú para conservar el puntaje máximo entre sesiones. |
+| `void setBestScore(uint16_t)` | Reenvía al menú para conservar el puntaje máximo entre sesiones. |
 
 ### Patrón de ventana
 
@@ -966,7 +970,7 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 | `void print()` | Renderizado por zonas (ver sección 13). |
 | `bool done()` | `true` al pedir volver al menú. |
 | `bool isGameOver()` | `true` si al salir (`done()`) la partida terminó en `GAME OVER`; lo usa el `Engine` (junto con `score() > 0`) para dejar la selección del menú en `New` (Game Over o sin puntos) o `Continue` (partida en curso con puntos). |
-| `uint8_t score()` / `bestScore()` | Puntaje actual / récord (el récord solo se actualiza al terminar en GAME OVER, ver "Comer"/"Colisión"). El `Engine` sincroniza `bestScore()` con el menú al salir. |
+| `uint16_t score()` / `bestScore()` | Puntaje actual / récord (el récord solo se actualiza al terminar en GAME OVER, ver "Comer"/"Colisión"). El `Engine` sincroniza `bestScore()` con el menú al salir. |
 
 ### Reglas del juego
 
@@ -1002,7 +1006,10 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   sube, o bajaba y cruza a la derecha, conectan el lado derecho con el superior
   → `CORNER_RIGHT_UP`.
 - **Comer:** al tocar el alimento (`SFX_EAT`): crece (+1 segmento, la cola NO
-  avanza ese paso, puntaje +1, **sin verificar el récord**: el "Best" no se
+  avanza ese paso, **el puntaje suma el nivel de dificultad actual**
+  (`_score += _difficulty`, no +1 fijo; al poder cambiar la dificultad en
+  caliente, vale la del momento de comer), **sin verificar el récord**: el
+  "Best" no se
   toca durante la partida). La cabeza queda **sobre la casilla del alimento**
   y, al dejarla en el siguiente paso, esa casilla se dibuja como **`BELLY`**
   (panza recta o curva según el giro) que queda guardada en el segmento y viaja

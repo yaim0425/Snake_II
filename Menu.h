@@ -27,7 +27,7 @@ public:
   // Constructor
   // ========================================================
 
-  Menu(Display& display, Buttons& buttons, Sound& sound, uint8_t bestScore = 0,
+  Menu(Display& display, Buttons& buttons, Sound& sound, uint16_t bestScore = 0,
        const char* version = "v0.1");
 
   // ========================================================
@@ -88,7 +88,7 @@ public:
   // ========================================================
 
   int8_t selected() const;
-  void setBestScore(uint8_t value);
+  void setBestScore(uint16_t value);
 
   // Devuelve la opción elegida si se confirma (ACTION_RIGHT), o -1
   int8_t confirm() const;
@@ -217,7 +217,7 @@ private:
   // Estado
   // ========================================================
 
-  uint8_t _bestScore;
+  uint16_t _bestScore;
   const char* _version;
 
   const char* _title;      // título del Header (default "Snake II")

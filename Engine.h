@@ -60,7 +60,7 @@ public:
   // Puntaje máximo (lo conserva el menú entre sesiones)
   // ========================================================
 
-  void setBestScore(uint8_t value);
+  void setBestScore(uint16_t value);
 
 private:
 
