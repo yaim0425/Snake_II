@@ -222,11 +222,16 @@ void Game::handleTurn() {
 // ========================================================
 
 void Game::step() {
-  // Aplicar el giro pendiente: la cabeza usa la dirección del último
-  // MOVE válido (ya validado contra la dirección COMMITIDA en turn()).
-  // `_dir` pasa a ser la dirección real de este paso.
+  // Dirección real de este paso: el giro pendiente del último MOVE
+  // válido (ya validado contra la dirección COMMITIDA en turn()).
+  // Se trabaja con una copia local `dir`: `_dir` (la dirección
+  // COMMITIDA) SOLO se actualiza si el destino resulta legal, así al
+  // colisionar la cabeza conserva su orientación real de movimiento
+  // y no aparece dibujada "volteada" hacia el choque (headPart()
+  // dibuja la cabeza según `_dir`).
+  Dir dir = _dir;
   if (_nextDir != Dir::NONE) {
-    _dir = _nextDir;
+    dir = _nextDir;
     _nextDir = Dir::NONE;
   }
 
@@ -234,7 +239,7 @@ void Game::step() {
   uint8_t nx = h.x;
   uint8_t ny = h.y;
 
-  switch (_dir) {
+  switch (dir) {
     case Dir::UP:    ny = (ny == 0) ? (uint8_t)(ROWS - 1) : (uint8_t)(ny - 1); break;
     case Dir::RIGHT: nx = (nx + 1) % COLS; break;
     case Dir::DOWN:  ny = (ny == ROWS - 1) ? 0 : (uint8_t)(ny + 1); break;
@@ -256,16 +261,21 @@ void Game::step() {
     }
   }
 
+  // El destino es legal: la cabeza "commitea" la nueva dirección tras
+  // el giro (si no se superó la validación, `_dir` quedó intacto y la
+  // cabeza sigue apuntando hacia donde realmente viajaba).
+  _dir = dir;
+
   // El cuerpo NO se mueve: la casilla que la cabeza deja pasa a ser
   // cuerpo nuevo con su sprite persistente (BODY recto, CORNER si
   // giró, BELLY si era la casilla de la comida recién comida).
   const Seg& oldHead = _body[_headIx];
   Dir in  = oldHead.dir;   // con qué dirección llegó la cabeza a esta casilla
-  Dir out = _dir;          // con qué dirección se va hacia la nueva casilla
+  Dir out = dir;           // con qué dirección se va hacia la nueva casilla
 
   // La cabeza avanza a la nueva casilla (se agrega la nueva parte)
   uint8_t ni = (_headIx + 1) % MAX_LENGTH;
-  _body[ni] = { nx, ny, _dir, SnakeSprites::HEAD_RIGHT_CLOSE };
+  _body[ni] = { nx, ny, dir, SnakeSprites::HEAD_RIGHT_CLOSE };
   _headIx = ni;
 
   // La casilla que dejó la cabeza se convierte en cuerpo (parte persistente)

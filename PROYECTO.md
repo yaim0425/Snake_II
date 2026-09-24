@@ -967,7 +967,11 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   con el cuerpo **salvo la celda de la cola cuando NO come** (la cola se libera
   ese paso, como en el Nokia original; la cola es bloqueante solo cuando come).
   Si colisiona: `GAME_OVER` (`SFX_GAME_OVER`), informa `SFX_BACK` al volver y
-  `_hasGame = false` (un `Continue` posterior arranca de nuevo).
+  `_hasGame = false` (un `Continue` posterior arranca de nuevo). Al colisionar, la
+  cabeza **no aparece volteada hacia el choque**: el giro pendiente se evalúa con
+  una copia local (`dir`) y `_dir` (la dirección COMMITIDA) solo se actualiza si
+  el destino resulta legal, por lo que la cabeza conserva la orientación real de su
+  último movimiento (el sprite de la cabeza se dibuja según `_dir`).
 - **Pausa y salida:** `ACTION_UP` durante la partida vuelve al menú **sin
   perderla** (`_hasGame` mantiene el tablero; `Continue` la reanuda en pausa).
   `GAME_OVER` deja `_hasGame = false`.
