@@ -56,8 +56,8 @@ public:
   static constexpr uint8_t MAX_LENGTH = COLS * ROWS;  // 96: a lo sumo hay tantas celdas como segmentos
 
   static constexpr uint8_t DIFICULTAD_MIN = 1;
-  static constexpr uint8_t DIFICULTAD_MAX = 25;
-  static constexpr uint8_t DIFICULTAD_DEFAULT = 13;
+  static constexpr uint8_t DIFICULTAD_MAX = 10;
+  static constexpr uint8_t DIFICULTAD_DEFAULT = 5;
 
   // ========================================================
   // Constructor (recibe Display, Buttons y Sound compartidos)
@@ -77,7 +77,7 @@ public:
   void begin(bool newGame);
 
   // ========================================================
-  // Dificultad del menú (1..25). Se aplica a la velocidad
+  // Dificultad del menú (1..10). Se aplica a la velocidad
   // (ms por paso) AL INSTANTE, incluso con la partida ya
   // iniciada: al cambiar el nivel, _moveDelay se recalcula en
   // caliente y la partida en curso (PLAY o PAUSE) sigue el nuevo
@@ -187,7 +187,7 @@ private:
   void drawHeader();
   void drawOverlay(const char* title, bool fullWidth = false);
 
-  // Velocidad según dificultad (1..25): cuanto más alta, más rápido
+  // Velocidad según dificultad (1..10): cuanto más alta, más rápido
   uint16_t speedFor(uint8_t level) const;
 
   // ========================================================
@@ -212,7 +212,7 @@ private:
 
   // Partida
   bool _hasGame;          // hay una partida en curso (para "Continue")
-  uint8_t _difficulty;    // nivel del menú (1..25, default 13)
+  uint8_t _difficulty;    // nivel del menú (1..10, default 5)
   uint16_t _moveDelay;    // ms por paso, derivado de la dificultad
   uint32_t _moveLast;     // instante del último paso
   uint32_t _startMs;      // instante de entrada a START

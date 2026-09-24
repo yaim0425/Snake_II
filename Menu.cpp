@@ -394,11 +394,11 @@ void Menu::drawSoundSelector() {
 // Selector de dificultad (modo edición de dificultad)
 //
 // Reemplaza a los rombos de posición mientras se edita la
-// dificultad. Texto 6x8 con el número 1..25 centrado con
+// dificultad. Texto 6x8 con el número 1..10 centrado con
 // ancho constante (1 dígito se alinea a la derecha con un
-// espacio inicial: " 5" mide lo mismo que "13", 12 px, y el
+// espacio inicial: " 5" mide lo mismo que "10", 12 px, y el
 // centrado no se desplaza) y DOS flechas parpadeantes a los
-// lados, apuntando al exterior ("< 13 >"):
+// lados, apuntando al exterior ("< 5 >"):
 //   - flecha izquierda: MOVE_LEFT (-1), oculta en el mínimo
 //   - flecha derecha:   MOVE_RIGHT (+1), oculta en el máximo
 // Las flechas parpadean juntas (visible 75%, oculto 25% de

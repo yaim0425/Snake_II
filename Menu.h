@@ -167,21 +167,21 @@ private:
   static constexpr uint32_t ARROW_BLINK_PERIOD   = 500;  // período del parpadeo de la flecha (ms)
   static constexpr uint8_t  ARROW_BLINK_OFF_PCT  = 25;   // % del período en que la flecha está oculta
 
-  // Selector de dificultad (modo edición): número 1..25 centrado con ancho
+  // Selector de dificultad (modo edición): número 1..10 centrado con ancho
   // constante (1 dígito se alinea a la derecha con un espacio inicial: " 5"
-  // mide lo mismo que "13", 12 px, y el centrado no se desplaza) y dos
-  // flechas parpadeantes a los lados ("< 13 >"). La flecha del lado en su
-  // límite se oculta: en 1 no hay flecha izquierda (-1 no existe); en 25 no
+  // mide lo mismo que "10", 12 px, y el centrado no se desplaza) y dos
+  // flechas parpadeantes a los lados ("< 5 >"). La flecha del lado en su
+  // límite se oculta: en 1 no hay flecha izquierda (-1 no existe); en 10 no
   // hay derecha (+1 no existe). MOVE_LEFT -1, MOVE_RIGHT +1, con repetición
   // al mantener presionado: el primer cambio es inmediato y tras
   // HOLD_REPEAT_DELAY ms repele cada HOLD_REPEAT_TICK ms. Al mantener un
   // botón el parpadeo se detiene: solo la flecha del botón activo queda fija
   // y la contraria se oculta (señal visual de la repetición continua). Al
-  // llegar al límite (1 o 25) se procesa igual que haber soltado el botón:
+  // llegar al límite (1 o 10) se procesa igual que haber soltado el botón:
   // vuelve el parpadeo normal (con el límite oculto).
   static constexpr uint8_t  DIFICULTAD_MIN     = 1;
-  static constexpr uint8_t  DIFICULTAD_MAX     = 25;
-  static constexpr uint8_t  DIFICULTAD_DEFAULT = 13;
+  static constexpr uint8_t  DIFICULTAD_MAX     = 10;
+  static constexpr uint8_t  DIFICULTAD_DEFAULT = 5;
 
   static constexpr uint32_t HOLD_REPEAT_DELAY = 400;  // mantener para empezar a repetir (ms)
   static constexpr uint32_t HOLD_REPEAT_TICK  = 100;  // intervalo de repetición mientras se mantiene (ms)
@@ -237,7 +237,7 @@ private:
 
   // Edición inline de dificultad
   bool _editingDifficulty;
-  uint8_t _difficulty;      // valor persistente (default 13; se aplica al confirmar)
+  uint8_t _difficulty;      // valor persistente (default 5; se aplica al confirmar)
   uint8_t _editDifficulty;  // valor en edición (no aplicado hasta confirmar)
   uint32_t _repeatStart;    // inicio de la mantención (repetición por hold)
   uint32_t _repeatLast;     // último paso de la repetición

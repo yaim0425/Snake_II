@@ -67,7 +67,7 @@ Arquitectura:
   selección queda en `New` y `Continue` no aparece), `Sound`
   y `Dificultad` (**se editan inline en el propio `Menu`**:
   al confirmar con `ACTION_RIGHT` aparece un selector en la banda de los rombos —
-  On/Off para `Sound`, nivel 1..25 para `Dificultad`—, se navega con
+  On/Off para `Sound`, nivel 1..10 para `Dificultad`—, se navega con
   `MOVE_LEFT`/`MOVE_RIGHT` y se aplica
   con `ACTION_RIGHT`; `ACTION_UP` cancela) y los créditos. La `Legend` solo se muestra al arranque;
   al volver al menú desde cualquier ventana se pasa directo a `Menu` (ya no se
@@ -99,8 +99,8 @@ de modo que cambiar el nivel desde el menú afecta también a la partida en curs
 (PLAY o PAUSE), no solo a las nuevas. **Cada comida vale el nivel de dificultad
 actual** (`_score += _difficulty` en `step()`, no +1 fijo); por eso el puntaje y
 el récord pasaron a `uint16_t` (`Game::score/bestScore`, `Menu::setBestScore` y
-`Engine::setBestScore`): con dificultad 25 y ~96 comidas el máximo teórico
-(~2400) ya desbordaba `uint8_t`.
+`Engine::setBestScore`): con la dificultad máxima (10) y ~96 comidas el máximo
+teórico (~960) ya desbordaba `uint8_t`.
 Queda como mejora opcional conservar el récord (`bestScore`) entre
 reinicios de la placa (p. ej. con EEPROM); hoy el récord vive solo en la sesión.
 
@@ -139,7 +139,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
 | `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: Back, Select / Pause, None, None; cualquier botón la cierra con un sonido según el botón pulsado: MOVE = CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM). Completa. |
 | `Scroller.h` / `Scroller.cpp` | Clase `Scroller` (scroller de 1 bit compartido: compone una tira 128x16 y desliza lateralmente N bandas sincronizadas con el mismo desplazamiento; cada banda tiene su canvas persistente y sus colores de frente/fondo; usada por `Menu` con 1 banda y por `Credits` con 2). Completa. |
-| `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit —1 banda del `Scroller` compartido— y rombos de posición). Completa. **Incluye la edición inline de la opción "Sound"** (selector On/Off en la banda de los rombos) **y de la opción "Dificultad"** (selector `< N >`, nivel 1..25, con repetición al mantener presionado; al mantener, solo queda fija la flecha del botón activo). |
+| `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit —1 banda del `Scroller` compartido— y rombos de posición). Completa. **Incluye la edición inline de la opción "Sound"** (selector On/Off en la banda de los rombos) **y de la opción "Dificultad"** (selector `< N >`, nivel 1..10, con repetición al mantener presionado; al mantener, solo queda fija la flecha del botón activo). |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral —2 bandas sincronizadas del `Scroller` compartido— y `SFX_CLICK` al navegar, vuelve al menú con `ACTION_UP`). Completa. |
 | `Game.h` / `Game.cpp` | Clase `Game` (ventana del juego de la serpiente: estados NUEVO/CONTINUAR del `Engine`). Completa. |
 | `Food.h` / `Food.cpp` | Clase `Food` (alimento del tablero, extraído de `Game`): estado (posición, presencia, tipo normal/especial), generación en celdas libres (`spawn`, que consulta la ocupación al tablero vía `Game::occupied`), dibujo del rombo (normal) o del sprite `SPECIAL_FOOD` (especial) y el temporizador de la comida especial. Completa. |
@@ -357,7 +357,7 @@ Menu(Display& display, Buttons& buttons, Sound& sound, uint16_t bestScore = 0, c
 | `void setOptions(textos, conteo)` | Fija la lista y la cantidad de opciones (1..`MAX_OPTIONS`=8). El menú (textos y rombos) se adapta al conteo. |
 | `void setContinueAvailable(bool)` | **Muestra/oculta la opción "Continue"** según haya partida en curso que reanudar. `true` = lista de 5 opciones (New, Continue, Dificultad, Sound, Créditos); `false` = lista de 4 (New, Dificultad, Sound, Créditos). Estado inicial: `false` (al arrancar no hay partida). Quién lo decide: el `Engine` al volver del juego solo pasa `true` si la partida sigue en curso **y** tiene puntos (`!gameOver && score() > 0`). Cambia la lista interna (como `setOptions`) conservando la selección y adaptándola a la nueva cantidad. |
 | `void update()` | Lee botones, navega con `MOVE_RIGHT`/`MOVE_LEFT` y anima el deslizamiento lateral; log en Serial al cambiar de opción; toca `SFX_CLICK` al navegar. En las opciones "Sound" y "Dificultad" gestiona el **modo de edición inline** (ver abajo). |
-| `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Best + versión). En modo de edición de sonido dibuja el **selector On/Off** en la banda de los rombos; en modo de edición de dificultad, el **selector `< N >`** (nivel 1..25). |
+| `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Best + versión). En modo de edición de sonido dibuja el **selector On/Off** en la banda de los rombos; en modo de edición de dificultad, el **selector `< N >`** (nivel 1..10). |
 | `int8_t selected()` | Índice de la opción seleccionada. |
 | `int8_t confirm()` | Devuelve la opción seleccionada si se confirma con `ACTION_RIGHT` (pulse recién presionado), o `-1`. **`OPC_SONIDO` y `OPC_DIFICULTAD` nunca se devuelven**: esas opciones se editan inline (ver abajo). Es el "activar opción" del resto del menú. |
 | `void setBestScore(uint16_t)` | Actualiza el puntaje máximo mostrado. |
@@ -369,7 +369,7 @@ Menu(Display& display, Buttons& buttons, Sound& sound, uint16_t bestScore = 0, c
 | `void beginDifficultyEdit()` | Activa el modo de edición de dificultad inline (borra los rombos y dibuja el selector `< N >`). |
 | `void endDifficultyEdit()` | Sale del modo de edición de dificultad (el menú se repinta: vuelven los rombos). |
 | `bool isEditingDifficulty()` | `true` mientras el menú está en el modo de edición de dificultad. |
-| `uint8_t difficulty()` | Nivel de dificultad persistente (1..25, default 13). |
+| `uint8_t difficulty()` | Nivel de dificultad persistente (1..10, default 5). |
 
 ### Modo de edición de sonido (inline, en el propio `Menu`)
 
@@ -406,20 +406,20 @@ Al confirmar la opción **"Dificultad"** con `ACTION_RIGHT` (btn2) el menú entr
 modo de edición inline, igual que "Sound" (no se abre ninguna ventana).
 
 - En la **banda de los rombos (45..53)** se dibuja el selector con el **nivel
-  1..25** en `TEXT_6x8` centrado con **ancho constante** (1 dígito se alinea a la
-  derecha con un espacio inicial: `" 5"` mide lo mismo que `"13"`, 12 px, y el
+  1..10** en `TEXT_6x8` centrado con **ancho constante** (1 dígito se alinea a la
+  derecha con un espacio inicial: `" 5"` mide lo mismo que `"10"`, 12 px, y el
   centrado no se desplaza) y **dos flechas** (`fillTriangle`) que **parpadean
-  juntas** a los lados del texto (`"< 13 >"`), visible 75% / oculto 25% de
+  juntas** a los lados del texto (`"< 5 >"`), visible 75% / oculto 25% de
   `ARROW_BLINK_PERIOD = 500` ms; el número no parpadea. En el **límite** la
   flecha de ese lado se oculta: en `1` no hay flecha izquierda (-1 no existe) y
-  en `25` no hay derecha (+1 no existe). **Al mantener presionado**
+  en `10` no hay derecha (+1 no existe). **Al mantener presionado**
   `MOVE_LEFT`/`MOVE_RIGHT` (paso continuo) el parpadeo se **detiene**: solo la
   flecha del botón activo queda **fija** y la contraria se oculta (señal visual
-  de la repetición). **Al llegar al límite (1 o 25)** el botón de ese lado ya no
+  de la repetición). **Al llegar al límite (1 o 10)** el botón de ese lado ya no
   puede avanzar y se procesa **igual que haber soltado el botón**: vuelve el
   parpadeo normal, con la flecha del límite oculta.
 - `MOVE_RIGHT` = **+1**, `MOVE_LEFT` = **-1** (clamp entre `DIFICULTAD_MIN = 1`
-  y `DIFICULTAD_MAX = 25`, cada paso toca `SFX_CLICK`). **Repetición al
+  y `DIFICULTAD_MAX = 10`, cada paso toca `SFX_CLICK`). **Repetición al
   mantener presionado:** el primer paso es inmediato (`pressed`) y, manteniendo
   el botón, tras `HOLD_REPEAT_DELAY = 400` ms se repite +1/-1 cada
   `HOLD_REPEAT_TICK = 100` ms (helper `holdRepeat`). El valor mostrado cambia
@@ -427,7 +427,7 @@ modo de edición inline, igual que "Sound" (no se abre ninguna ventana).
 - `ACTION_RIGHT` (btn2): **aplica** el valor (`_difficulty`, visible con
   `difficulty()`) y vuelve al menú (`SFX_CONFIRM`).
 - `ACTION_UP` (btn1): **cancela** sin cambiar el valor guardado (`SFX_BACK`).
-- Valor por defecto `DIFICULTAD_DEFAULT = 13`, conservado en el miembro
+- Valor por defecto `DIFICULTAD_DEFAULT = 5`, conservado en el miembro
   persistente `_difficulty`; `beginDifficultyEdit()` copia a `_editDifficulty`
   (el valor en edición). `OPC_DIFICULTAD` no se entrega a `Engine::confirm()`
   (devuelve `-1`), por lo que el `Engine` permanece en `MENU`.
@@ -796,7 +796,7 @@ Toda ventana implementa:
   CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM) y en la opción "Sound" el
   **On/Off se edita inline en el propio menú** (selector con flechas en la banda
   de los rombos; `MOVE_LEFT`/`MOVE_RIGHT` cambian el valor, `ACTION_RIGHT` lo
-  aplica y `ACTION_UP` cancela). En la opción "Dificultad" el **nivel 1..25
+  aplica y `ACTION_UP` cancela). En la opción "Dificultad" el **nivel 1..10
   también se edita inline** (selector `< N >` con dos flechas parpadeantes que se
   ocultan en los límites; `MOVE_RIGHT` +1, `MOVE_LEFT` -1 con repetición al
   mantener presionado —al mantener, el parpadeo se detiene y solo queda fija la
@@ -842,7 +842,7 @@ llama a `display.clear()`, lo decide cada ventana.
 4. Los modos de edición del `Menu` ("Sound" y "Dificultad") comparten la banda
    dinámica de los rombos (45..53): al entrar (`beginSoundEdit()`/
    `beginDifficultyEdit()`) se borra y se dibuja el selector (ON/OFF o `< N >`
-   con el nivel 1..25) y, como las flechas parpadean, la banda se borra/redibuja
+   con el nivel 1..10) y, como las flechas parpadean, la banda se borra/redibuja
    en **cada frame**; al salir (`_redraw = true`) el menú se repinta completo
    (vuelven los rombos). El flag `_redrawSound` ya no existe.
 
@@ -956,7 +956,7 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 |-----------|-------|-------------|
 | `COLS`, `ROWS` | 16, 6 | Tablero: rejilla de 16×6 celdas de 8 px en el Body (128×48). |
 | `MAX_LENGTH` | 96 | Cantidad máxima de segmentos (una celda por segmento). |
-| `DIFICULTAD_MIN` / `MAX` / `DEFAULT` | 1 / 25 / 13 | Nivel de dificultad acotado (mismo rango que el menú). |
+| `DIFICULTAD_MIN` / `MAX` / `DEFAULT` | 1 / 10 / 5 | Nivel de dificultad acotado (mismo rango que el menú). |
 | `COUNTDOWN_MS` | 3000 | Duración del conteo regresivo inicial (3 s, un dígito por segundo: 3-2-1). |
 | `COUNT_HIDE_MS` | 250 | Fase de parpadeo al final de cada dígito: el número (y su cuadro) se ocultan antes de que aparezca el siguiente. |
 
@@ -965,7 +965,7 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 | Método | Descripción |
 |--------|-------------|
 | `void begin(bool newGame)` | `true` = nueva partida (reinicia todo y arranca el conteo regresivo 3-2-1). `false` = reanudar la partida anterior en pausa; si no hay partida en curso arranca una nueva. Conserva el récord (`_bestScore`) entre partidas. |
-| `void setDifficulty(uint8_t level)` | Nivel 1..25 (clamp). **Se aplica EN CALIENTE, también con la partida iniciada**: recalcula `_moveDelay` al instante, por lo que una partida en curso (PLAY o PAUSE) sigue el nuevo ritmo al cambiar el nivel desde el menú; también vale para la próxima partida nueva (`reset()` la vuelve a derivar). |
+| `void setDifficulty(uint8_t level)` | Nivel 1..10 (clamp). **Se aplica EN CALIENTE, también con la partida iniciada**: recalcula `_moveDelay` al instante, por lo que una partida en curso (PLAY o PAUSE) sigue el nuevo ritmo al cambiar el nivel desde el menú; también vale para la próxima partida nueva (`reset()` la vuelve a derivar). |
 | `void update()` | Estado `START`: pre-gira con MOVE (giro pendiente), entra a `PLAY` con `ACTION_RIGHT` o al agotarse `COUNTDOWN_MS` (al arrancar la partida suena `SFX_START`, el jingle GO! después del "1"). `PLAY`: gira con MOVE (sin reversa directa, queda un único giro pendiente que se aplica en el siguiente paso), avanza un paso cada `_moveDelay` ms y `ACTION_RIGHT` (Btn2, "Select / Pause") pausa. `PAUSE`: reanuda con `ACTION_RIGHT` (o `ACTION_LEFT`). `GAME_OVER`: cualquier ACTION vuelve al menú. `ACTION_UP` (Btn1, "Volver") sale en cualquier estado menos `GAME_OVER`. |
 | `void print()` | Renderizado por zonas (ver sección 13). |
 | `bool done()` | `true` al pedir volver al menú. |
@@ -976,8 +976,8 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 
 - **Movimiento:** la cabeza avanza 1 celda por paso con **wrap en X y en Y**
   (sale por un borde, aparece por el opuesto, estilo Nokia). La velocidad
-  (`_moveDelay` ms por paso) es lineal con la dificultad: `1000 - (nivel-1)*38`
-  (nivel 1 → 1000 ms, nivel 25 → 88 ms).
+  (`_moveDelay` ms por paso) es lineal con la dificultad: `(1 + DIFICULTAD_MAX - nivel) * 100`
+  (nivel 1 → 1000 ms, nivel 10 → 100 ms; salto constante de 100 ms por nivel).
 - **Sin reversa directa (único giro pendiente):** cada MOVE deja un único giro
   **PENDIENTE** (`_nextDir`), sin cola ni buffer. Un giro se evalúa **siempre**
   desde la dirección actual de la cabeza (`_dir`, la COMMITIDA, la que usará en
