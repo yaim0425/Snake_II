@@ -788,7 +788,8 @@ Toda ventana implementa:
   procesa igual que haber soltado el botón (vuelve el parpadeo normal)—,
   `ACTION_RIGHT` lo aplica y
   `ACTION_UP` cancela). En el juego (`Game`): `SFX_TICK` en cada dígito del
-  conteo 3-2-1, `SFX_TURN` al girar, `SFX_PAUSE`/`SFX_RESUME` al pausar/reanudar,
+  conteo 3-2-1, `SFX_START` (jingle GO!) al arrancar la partida después del "1",
+  `SFX_TURN` al girar, `SFX_PAUSE`/`SFX_RESUME` al pausar/reanudar,
   `SFX_EAT` al comer, `SFX_GAME_OVER` al morir y `SFX_BACK` al volver al menú.
 - Con SDA=8 y SCL=9, dirección 0x3C.
 
@@ -949,7 +950,7 @@ Game(Display& display, Buttons& buttons, Sound& sound);
 |--------|-------------|
 | `void begin(bool newGame)` | `true` = nueva partida (reinicia todo y arranca el conteo regresivo 3-2-1). `false` = reanudar la partida anterior en pausa; si no hay partida en curso arranca una nueva. Conserva el récord (`_bestScore`) entre partidas. |
 | `void setDifficulty(uint8_t level)` | Nivel 1..25 (clamp). Se aplica a la velocidad cuando ARRANCA una partida (no a las reanudadas). |
-| `void update()` | Estado `START`: pre-gira con MOVE (giro pendiente), entra a `PLAY` con `ACTION_RIGHT` o al agotarse `COUNTDOWN_MS`. `PLAY`: gira con MOVE (sin reversa directa, queda un único giro pendiente que se aplica en el siguiente paso), avanza un paso cada `_moveDelay` ms y `ACTION_RIGHT` (Btn2, "Select / Pause") pausa. `PAUSE`: reanuda con `ACTION_RIGHT` (o `ACTION_LEFT`). `GAME_OVER`: cualquier ACTION vuelve al menú. `ACTION_UP` (Btn1, "Volver") sale en cualquier estado menos `GAME_OVER`. |
+| `void update()` | Estado `START`: pre-gira con MOVE (giro pendiente), entra a `PLAY` con `ACTION_RIGHT` o al agotarse `COUNTDOWN_MS` (al arrancar la partida suena `SFX_START`, el jingle GO! después del "1"). `PLAY`: gira con MOVE (sin reversa directa, queda un único giro pendiente que se aplica en el siguiente paso), avanza un paso cada `_moveDelay` ms y `ACTION_RIGHT` (Btn2, "Select / Pause") pausa. `PAUSE`: reanuda con `ACTION_RIGHT` (o `ACTION_LEFT`). `GAME_OVER`: cualquier ACTION vuelve al menú. `ACTION_UP` (Btn1, "Volver") sale en cualquier estado menos `GAME_OVER`. |
 | `void print()` | Renderizado por zonas (ver sección 13). |
 | `bool done()` | `true` al pedir volver al menú. |
 | `bool isGameOver()` | `true` si al salir (`done()`) la partida terminó en `GAME OVER`; lo usa el `Engine` (junto con `score() > 0`) para dejar la selección del menú en `New` (Game Over o sin puntos) o `Continue` (partida en curso con puntos). |
@@ -1051,8 +1052,10 @@ Game(Display& display, Buttons& buttons, Sound& sound);
   es como un parpadeo. Al ocultarlo se marca `_dirtyBoard` una sola vez (restaura
   el tablero debajo del cuadro; flag `_overlayHidden`, reiniciado en `reset()`).
   **Pitido por dígito:** cada dígito suena `SFX_TICK` al aparecer (flag
-  `_lastCount`, reiniciado en `reset()`; se quita el jingle `SFX_START` de
-  `reset()`, el conteo tiene sus propios pitidos).
+  `_lastCount`, reiniciado en `reset()`; el jingle `SFX_START` ya no suena en
+  `reset()`: se reserva para el arranque real de la partida). Al pasar de
+  `START` a `PLAY` —por `ACTION_RIGHT` o al agotarse el conteo— suena
+  `SFX_START` (GO!), justo después del "1", para iniciar la partida.
   Al volver a `PLAY` se marca
   `_dirtyBoard` (borra el overlay bajo el tablero).
 

@@ -130,11 +130,14 @@ void Game::update() {
     case State::START: {
       // Conteo regresivo 3-2-1: se puede pre-girar la cabeza;
       // se entra a PLAY al confirmar con ACTION_RIGHT o al
-      // agotarse el conteo (COUNTDOWN_MS)
+      // agotarse el conteo (COUNTDOWN_MS). Al arrancar la partida
+      // (después del "1") suena el jingle GO! (SFX_START).
       handleTurn();
       if (_buttons.actionRightPressed()) {
+        _sound.play(Sound::SFX_START);
         startPlay();
       } else if (millis() - _startMs >= COUNTDOWN_MS) {
+        _sound.play(Sound::SFX_START);
         startPlay();
       }
       break;
