@@ -4,7 +4,7 @@
 #include "Display.h"
 #include "Buttons.h"
 #include "Sound.h"
-#include "SnakeSprites.h"
+#include "Sprite.h"
 
 // ========================================================
 // Game — ventana del juego de la serpiente
@@ -16,7 +16,7 @@
 //     Body (filas 16..63). La serpiente sale por un borde y
 //     reaparece por el opuesto (wrap en X y en Y, estilo
 //     Nokia del juego original).
-//   - Sprites: los 4x4 px de SnakeSprites, dibujados con
+//   - Sprites: los 4x4 px de Sprite, dibujados con
 //     píxel doble (2x2 px) para ocupar la celda de 8x8. Cada
 //     segmento del cuerpo guarda su DIRECCIÓN y su SPRITE
 //     persistente: BODY recto, CORNER al girar y BELLY al
@@ -140,7 +140,7 @@ private:
     uint8_t x;
     uint8_t y;
     Dir dir;                 // dirección hacia el siguiente segmento (más cerca de la cabeza)
-    SnakeSprites::Part part; // sprite persistente del segmento (TAIL, BODY, CORNER o BELLY)
+    Sprite::Part part; // sprite persistente del segmento (TAIL, BODY, CORNER o BELLY)
   };
 
   // ========================================================
@@ -169,10 +169,10 @@ private:
   // Render
   uint8_t slot(uint8_t index) const;             // índice del ring buffer para el segmento `index`
   Dir opposite(Dir d) const;                     // dirección opuesta (RIGHT<->LEFT, UP<->DOWN)
-  SnakeSprites::Part headPart() const;           // sprite de la cabeza (boca según la comida adyacente)
-  SnakeSprites::Part bodyPartFor(Dir in, Dir out) const;  // BODY recto o CORNER al girar
-  SnakeSprites::Part bellyPartFor(Dir in, Dir out) const; // BELLY recto o curvo (al comer)
-  void drawSprite(SnakeSprites::Part part, uint8_t x, uint8_t y);
+  Sprite::Part headPart() const;           // sprite de la cabeza (boca según la comida adyacente)
+  Sprite::Part bodyPartFor(Dir in, Dir out) const;  // BODY recto o CORNER al girar
+  Sprite::Part bellyPartFor(Dir in, Dir out) const; // BELLY recto o curvo (al comer)
+  void drawSprite(Sprite::Part part, uint8_t x, uint8_t y);
   void drawSnake();
   void drawFood();
   void drawHeader();

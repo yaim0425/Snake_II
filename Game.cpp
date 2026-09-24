@@ -90,10 +90,10 @@ void Game::reset() {
 
   // Serpiente inicial horizontal: células (1,2)..(4,2), cabeza a la derecha.
   // Cada segmento guarda su dirección y su sprite persistente.
-  _body[0] = { 1, 2, Dir::RIGHT, SnakeSprites::TAIL_TO_RIGHT };
-  _body[1] = { 2, 2, Dir::RIGHT, SnakeSprites::BODY_TO_RIGHT };
-  _body[2] = { 3, 2, Dir::RIGHT, SnakeSprites::BODY_TO_RIGHT };
-  _body[3] = { 4, 2, Dir::RIGHT, SnakeSprites::HEAD_RIGHT_CLOSE };
+  _body[0] = { 1, 2, Dir::RIGHT, Sprite::TAIL_TO_RIGHT };
+  _body[1] = { 2, 2, Dir::RIGHT, Sprite::BODY_TO_RIGHT };
+  _body[2] = { 3, 2, Dir::RIGHT, Sprite::BODY_TO_RIGHT };
+  _body[3] = { 4, 2, Dir::RIGHT, Sprite::HEAD_RIGHT_CLOSE };
 
   _moveDelay = speedFor(_difficulty);
   _startMs = millis();
@@ -283,7 +283,7 @@ void Game::step() {
 
   // La cabeza avanza a la nueva casilla (se agrega la nueva parte)
   uint8_t ni = (_headIx + 1) % MAX_LENGTH;
-  _body[ni] = { nx, ny, dir, SnakeSprites::HEAD_RIGHT_CLOSE };
+  _body[ni] = { nx, ny, dir, Sprite::HEAD_RIGHT_CLOSE };
   _headIx = ni;
 
   // La casilla que dejó la cabeza se convierte en cuerpo (parte persistente)
@@ -303,7 +303,7 @@ void Game::step() {
     // pasa a ser cola y recibe su sprite de cola apuntando como su dir
     _tailIx = (_tailIx + 1) % MAX_LENGTH;
     Seg& tail = _body[_tailIx];
-    tail.part = (SnakeSprites::Part)(SnakeSprites::TAIL_TO_UP +
+    tail.part = (Sprite::Part)(Sprite::TAIL_TO_UP +
                   ((uint8_t)tail.dir - 1));
   } else {
     _length++;
@@ -400,7 +400,7 @@ uint8_t Game::slot(uint8_t index) const {
 // (dir - 1).
 // ========================================================
 
-SnakeSprites::Part Game::headPart() const {
+Sprite::Part Game::headPart() const {
   uint8_t off = (uint8_t)_dir - 1;
 
   // Próxima celda según la dirección actual
@@ -416,9 +416,9 @@ SnakeSprites::Part Game::headPart() const {
   }
 
   bool aboutToEat = _hasFood && nx == _food.x && ny == _food.y;
-  uint8_t base = aboutToEat ? SnakeSprites::HEAD_UP_OPEN
-                            : SnakeSprites::HEAD_UP_CLOSE;
-  return (SnakeSprites::Part)(base + off);
+  uint8_t base = aboutToEat ? Sprite::HEAD_UP_OPEN
+                            : Sprite::HEAD_UP_CLOSE;
+  return (Sprite::Part)(base + off);
 }
 
 // ========================================================
@@ -447,9 +447,9 @@ Game::Dir Game::opposite(Dir d) const {
 // horiz LEFT -> vert UP +2 / DOWN +3).
 // ========================================================
 
-SnakeSprites::Part Game::bodyPartFor(Dir in, Dir out) const {
+Sprite::Part Game::bodyPartFor(Dir in, Dir out) const {
   if (in == out) {
-    return (SnakeSprites::Part)(SnakeSprites::BODY_TO_UP + ((uint8_t)out - 1));
+    return (Sprite::Part)(Sprite::BODY_TO_UP + ((uint8_t)out - 1));
   }
 
   // La esquina conecta el lado por el que la tubería ENTRA a la
@@ -463,11 +463,11 @@ SnakeSprites::Part Game::bodyPartFor(Dir in, Dir out) const {
   Dir horiz = (entry == Dir::RIGHT || entry == Dir::LEFT) ? entry : out;
   Dir vert  = (entry == Dir::RIGHT || entry == Dir::LEFT) ? out   : entry;
 
-  uint8_t base = SnakeSprites::CORNER_RIGHT_UP;
+  uint8_t base = Sprite::CORNER_RIGHT_UP;
   if (horiz == Dir::RIGHT) base += (vert == Dir::UP) ? 0 : 1;
   else                     base += (vert == Dir::UP) ? 2 : 3;
 
-  return (SnakeSprites::Part)base;
+  return (Sprite::Part)base;
 }
 
 // ========================================================
@@ -477,12 +477,12 @@ SnakeSprites::Part Game::bodyPartFor(Dir in, Dir out) const {
 // -> BELLY_RIGHT_UP(22) + desplazamiento (igual que CORNER).
 // ========================================================
 
-SnakeSprites::Part Game::bellyPartFor(Dir in, Dir out) const {
+Sprite::Part Game::bellyPartFor(Dir in, Dir out) const {
   if (in == out) {
     // Panza recta: comparte sprite por par de direcciones
     if (out == Dir::UP || out == Dir::RIGHT)
-      return SnakeSprites::BELLY_TO_RIGHT;
-    return SnakeSprites::BELLY_TO_LEFT;
+      return Sprite::BELLY_TO_RIGHT;
+    return Sprite::BELLY_TO_LEFT;
   }
 
   // Giro (igual que CORNER): la esquina conecta el lado por el que
@@ -492,11 +492,11 @@ SnakeSprites::Part Game::bellyPartFor(Dir in, Dir out) const {
   Dir horiz = (entry == Dir::RIGHT || entry == Dir::LEFT) ? entry : out;
   Dir vert  = (entry == Dir::RIGHT || entry == Dir::LEFT) ? out   : entry;
 
-  uint8_t base = SnakeSprites::BELLY_RIGHT_UP;
+  uint8_t base = Sprite::BELLY_RIGHT_UP;
   if (horiz == Dir::RIGHT) base += (vert == Dir::UP) ? 0 : 1;
   else                     base += (vert == Dir::UP) ? 2 : 3;
 
-  return (SnakeSprites::Part)base;
+  return (Sprite::Part)base;
 }
 
 // ========================================================
@@ -504,14 +504,14 @@ SnakeSprites::Part Game::bellyPartFor(Dir in, Dir out) const {
 // 4x4 se dibuja como un bloque 2x2 px (completa la celda 8x8).
 // ========================================================
 
-void Game::drawSprite(SnakeSprites::Part part, uint8_t x, uint8_t y) {
+void Game::drawSprite(Sprite::Part part, uint8_t x, uint8_t y) {
   Adafruit_SSD1306& s = _display.screen();
   int16_t baseX = (int16_t)x * 8;
   int16_t baseY = BODY_TOP + (int16_t)y * 8;
 
-  for (uint8_t i = 0; i < SnakeSprites::SIZE; i++) {
-    for (uint8_t j = 0; j < SnakeSprites::SIZE; j++) {
-      if (SnakeSprites::SPRITES[part][i][j])
+  for (uint8_t i = 0; i < Sprite::SIZE; i++) {
+    for (uint8_t j = 0; j < Sprite::SIZE; j++) {
+      if (Sprite::SPRITES[part][i][j])
         s.fillRect(baseX + 2 * j, baseY + 2 * i, 2, 2, SSD1306_WHITE);
     }
   }
@@ -526,7 +526,7 @@ void Game::drawSprite(SnakeSprites::Part part, uint8_t x, uint8_t y) {
 void Game::drawSnake() {
   for (uint8_t i = 0; i < _length; i++) {
     const Seg& seg = _body[slot(i)];
-    SnakeSprites::Part part = (i == _length - 1) ? headPart() : seg.part;
+    Sprite::Part part = (i == _length - 1) ? headPart() : seg.part;
     drawSprite(part, seg.x, seg.y);
   }
 }

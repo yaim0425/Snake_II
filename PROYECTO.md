@@ -78,7 +78,8 @@ Arquitectura:
 La clase `Engine` (despachador de ventanas, antes `App`) está separada del `.ino`
 en `Engine.h` / `Engine.cpp`, y recibe las ventanas **sin anidarlas**.
 
-También se incorporó `SnakeSprites.h` (adaptada al estilo del proyecto, sección
+También se incorporó `Sprite.h` (antes `SnakeSprites.h`, adaptada al estilo del
+proyecto, sección
 15): la tabla de sprites de la serpiente del juego original, lista para que la
 lógica del juego la consuma cuando exista.
 
@@ -130,7 +131,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`Game` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` hace la **única lectura de botones del frame** (`buttons.read()`) y llama `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`. |
 | `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). Completa. |
 | `Sound.h` / `Sound.cpp` | Clase `Sound` (secuencias de los efectos del juego sobre `Buzzer`, con `setEnabled` para silenciar). Completa. |
-| `SnakeSprites.h` | Clase `SnakeSprites` (tabla de sprites de la serpiente, estilo Nokia: cola, cuerpo, curvas, cabeza cerrada/abierta y panza; sprites de 4×4 px). Solo datos (header-only, sin `.cpp`). Adaptada al estilo del proyecto. |
+| `Sprite.h` | Clase `Sprite` (tabla de sprites de la serpiente, estilo Nokia: cola, cuerpo, curvas, cabeza cerrada/abierta y panza; sprites de 4×4 px + sprite de la comida especial de 8×4 px). Solo datos (header-only, sin `.cpp`). Adaptada al estilo del proyecto. |
 | `PROYECTO.md` | Este documento. |
 
 Nota: Arduino solo compila el `.ino` del sketch. El respaldo quedó como `.txt`
@@ -866,11 +867,13 @@ bit** y la desliza lateralmente sobre **N bandas sincronizadas** (todas usan el
 
 ---
 
-## 15. Clase `SnakeSprites` — API (sprites de la serpiente)
+## 15. Clase `Sprite` — API (sprites de la serpiente y comida especial)
 
-Ubicación: `SnakeSprites.h`. Tabla estática con los sprites de las partes de la
-serpiente (estilo Nokia). Es una clase de **solo datos**: no necesita instancia
-ni archivo `.cpp`; los sprites se leen con `SnakeSprites::SPRITES[Part]`.
+Ubicación: `Sprite.h`. Tabla estática con los sprites de las partes de la
+serpiente (estilo Nokia) y el sprite de la **comida especial**. Es una clase
+de **solo datos**: no necesita instancia
+ni archivo `.cpp`; los sprites se leen con `Sprite::SPRITES[Part]` y
+`Sprite::SPECIAL_FOOD`.
 
 ```cpp
 static constexpr uint8_t SIZE = 4;          // sprite de 4×4 px
@@ -896,11 +899,14 @@ enum Part : uint8_t {
 | `SPRITES[COUNT][SIZE][SIZE]` | Tabla de sprites de 1 bit (`1` = glifo, `0` = fondo) indexada por `Part`. Rango: 0..3 cola, 4..7 cuerpo, 8..11 curvas, 12..15 cabeza cerrada, 16..19 cabeza abierta, 20..25 panza, 26 `EMPTY`, 27 `COUNT`. |
 | `EMPTY` | Sprite vacío (todo fondo). |
 | `COUNT` | Cantidad de sprites de la tabla. |
+| `SPECIAL_FOOD_W` / `SPECIAL_FOOD_H` | Ancho (8) y alto (4) en píxeles del sprite de la comida especial. |
+| `SPECIAL_FOOD[SPECIAL_FOOD_H][SPECIAL_FOOD_W]` | Sprite de 1 bit de la **comida especial** (8×4 px), tabla aparte por no encajar en los 4×4 de la serpiente. |
 
 La panza recta comparte sprite por par de direcciones: `BELLY_TO_RIGHT` =
 `BELLY_TO_UP` y `BELLY_TO_LEFT` = `BELLY_TO_DOWN`.
 
-`SnakeSprites.h` forma parte del respaldo del juego original adaptado al estilo
+`Sprite.h` (antes `SnakeSprites.h`) forma parte del respaldo del juego original
+adaptado al estilo
 del proyecto (pie `// Fin`, cabecera descriptiva, comentarios de los sprites
 corregidos). Los consume la ventana `Game` (ver sección 16): la parte de cada
 segmento (cola/cuerpo/curva/cabeza) se deriva en cada frame de la geometría de

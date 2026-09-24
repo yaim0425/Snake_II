@@ -1,22 +1,25 @@
-#ifndef SNAKE_SPRITES_H
-#define SNAKE_SPRITES_H
+#ifndef SPRITE_H
+#define SPRITE_H
 
 #include <Arduino.h>
 
 // ========================================================
-// SnakeSprites — sprites de la serpiente (contenido)
+// Sprite — sprites de la serpiente y comida especial
+// (contenido)
 //
 // Tabla estática con los sprites de las partes de la
 // serpiente (estilo Nokia): cola, cuerpo, curvas, cabeza
-// (fauces cerradas/abiertas) y panza. Cada sprite es una
-// matriz de 4×4 px (SIZE) de 1 bit: 1 = glifo, 0 = fondo.
+// (fauces cerradas/abiertas) y panza. Cada sprite de la
+// serpiente es una matriz de 4×4 px (SIZE) de 1 bit:
+// 1 = glifo, 0 = fondo. También incluye el sprite de la
+// comida especial (SPECIAL_FOOD, 8×4 px).
 //
 // Es una clase de SOLO datos: no necesita instancia ni
-// archivo .cpp; los sprites se leen con
-// SnakeSprites::SPRITES[Part].
+// archivo .cpp; los sprites se leen con Sprite::SPRITES[Part]
+// y Sprite::SPECIAL_FOOD.
 // ========================================================
 
-class SnakeSprites {
+class Sprite {
 public:
 
   // ========================================================
@@ -70,7 +73,7 @@ public:
   };
 
   // ========================================================
-  // Sprites
+  // Sprites de la serpiente
   // ========================================================
 
   static constexpr uint8_t SPRITES[COUNT][SIZE][SIZE] = {
@@ -134,6 +137,19 @@ public:
     // ------------------------------------------------------
 
     { { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, { 0, 0, 0, 0 } }   // EMPTY
+  };
+
+  // ========================================================
+  // Comida especial (8×4 px)
+  // ========================================================
+
+  static constexpr uint8_t SPECIAL_FOOD_W = 8;   // ancho en px
+  static constexpr uint8_t SPECIAL_FOOD_H = 4;   // alto en px
+  static constexpr uint8_t SPECIAL_FOOD[SPECIAL_FOOD_H][SPECIAL_FOOD_W] = {
+    { 0, 1, 0, 1, 0, 1, 0, 0 },
+    { 1, 0, 1, 1, 1, 1, 1, 0 },
+    { 1, 1, 1, 1, 1, 1, 1, 1 },
+    { 0, 0, 1, 0, 0, 1, 0, 0 }
   };
 };
 
