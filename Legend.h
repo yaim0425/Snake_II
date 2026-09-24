@@ -15,8 +15,8 @@
 //     parpadean MUY rápido uno a la vez recorriéndolos en
 //     ciclo lento y automático. El texto del pie indica la
 //     función del rombo activo:
-//       Btn1 (↑ = ACTION_UP):    "Back / Pause"
-//       Btn2 (→ = ACTION_RIGHT): "Select"
+//       Btn1 (↑ = ACTION_UP):    "Back"
+//       Btn2 (→ = ACTION_RIGHT): "Select / Pause"
 //       Btn3 (↓ = ACTION_DOWN):  "None"
 //       Btn4 (← = ACTION_LEFT):  "None"
 //
@@ -24,7 +24,7 @@
 // volver al menú desde cualquier ventana. Cualquier botón la
 // cierra (done() = true) y Engine pasa al menú; el sonido
 // depende del botón presionado: MOVE = SFX_CLICK,
-// ACTION_UP (Back/Pause) = SFX_BACK, ACTION_RIGHT (Select) =
+// ACTION_UP (Back) = SFX_BACK, ACTION_RIGHT (Select / Pause) =
 // SFX_CONFIRM, ACTION_DOWN/ACTION_LEFT (None) = SFX_CLICK.
 // ========================================================
 

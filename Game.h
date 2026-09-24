@@ -34,10 +34,11 @@
 //     girar a la izquierda, girar a la derecha) y la contraria
 //     (180°) se ignora; el giro pendiente se aplica en el
 //     siguiente paso (sin reversa directa).
-//     ACTION_RIGHT/ACTION_LEFT pausa/reanuda (como el juego
-//     original); ACTION_UP vuelve al menú en cualquier
-//     momento (la partida NO se pierde: "Continue" la resume);
-//     en GAME_OVER cualquier ACTION vuelve al menú.
+//     ACTION_RIGHT (Btn2) es "Select / Pause": en PLAY pausa
+//     (panel "PAUSA") y en PAUSE/CONTINUAR reanuda (ACTION_LEFT
+//     también reanuda). ACTION_UP (Btn1, "Volver") vuelve al menú
+//     en cualquier momento (la partida NO se pierde: "Continue" la
+//     resume); en GAME_OVER cualquier ACTION vuelve al menú.
 // ========================================================
 
 class Game {

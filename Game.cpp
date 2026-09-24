@@ -136,6 +136,13 @@ void Game::update() {
 
     case State::PLAY: {
       handleTurn();
+      // Btn2 (ACTION_RIGHT) = Select / Pause: al presionar durante la
+      // partida se congela el tablero y se muestra el panel "PAUSA".
+      // En PAUSE se retoma con el mismo botón (o ACTION_LEFT).
+      if (_buttons.actionRightPressed()) {
+        _state = State::PAUSE;
+        break;
+      }
       if (millis() - _moveLast >= _moveDelay) {
         _moveLast = millis();
         step();
@@ -144,7 +151,7 @@ void Game::update() {
     }
 
     case State::PAUSE: {
-      // Reanudar con ACTION_RIGHT o ACTION_LEFT (como el juego original)
+      // Reanudar con Btn2 (ACTION_RIGHT, "Select / Pause") o ACTION_LEFT
       if (_buttons.pressed(Buttons::ACTION_RIGHT) ||
           _buttons.pressed(Buttons::ACTION_LEFT)) {
         startPlay();

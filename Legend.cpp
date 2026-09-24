@@ -10,7 +10,7 @@
 
 const char* const Legend::BTN_NAME[4] = { "Btn1", "Btn2", "Btn3", "Btn4" };
 const char* const Legend::BTN_FUNC[4] = {
-  "Back / Pause", "Select", "None", "None"
+  "Back", "Select / Pause", "None", "None"
 };
 
 // ========================================================
@@ -49,8 +49,8 @@ void Legend::begin() {
 void Legend::update() {
   // Cualquier botón cierra la leyenda. El sonido depende del
   // botón presionado (prioridad si se pulsan varios a la vez):
-  // MOVE = SFX_CLICK, ACTION_UP (Back/Pause) = SFX_BACK,
-  // ACTION_RIGHT (Select) = SFX_CONFIRM,
+  // MOVE = SFX_CLICK, ACTION_UP (Back) = SFX_BACK,
+  // ACTION_RIGHT (Select / Pause) = SFX_CONFIRM,
   // ACTION_DOWN/ACTION_LEFT (None) = SFX_CLICK
   bool exit = false;
 
