@@ -164,7 +164,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`Game` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` hace la **única lectura de botones del frame** (`buttons.read()`) y llama `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`. |
 | `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). Completa. |
 | `Sound.h` / `Sound.cpp` | Clase `Sound` (secuencias de los efectos del juego sobre `Buzzer`, con `setEnabled` para silenciar). Completa. |
-| `Sprite.h` | Clase `Sprite` (tabla de sprites de la serpiente, estilo Nokia: cola, cuerpo, curvas, cabeza cerrada/abierta y panza; sprites de 4×4 px + sprite de la comida especial de 8×4 px). Solo datos (header-only, sin `.cpp`). Adaptada al estilo del proyecto. |
+| `Sprite.h` | Namespace `Sprite` (tabla de sprites de la serpiente, estilo Nokia: cola, cuerpo, curvas, cabeza cerrada/abierta y panza; sprites de 4×4 px + sprite de la comida especial de 8×4 px). Solo datos (header-only, sin `.cpp`). Adaptada al estilo del proyecto. |
 | `PROYECTO.md` | Este documento. |
 
 Nota: Arduino solo compila el `.ino` del sketch. El respaldo quedó como `.txt`
@@ -912,16 +912,16 @@ bit** y la desliza lateralmente sobre **N bandas sincronizadas** (todas usan el
 
 ---
 
-## 15. Clase `Sprite` — API (sprites de la serpiente y comida especial)
+## 15. Namespace `Sprite` — API (sprites de la serpiente y comida especial)
 
 Ubicación: `Sprite.h`. Tabla estática con los sprites de las partes de la
-serpiente (estilo Nokia) y el sprite de la **comida especial**. Es una clase
-de **solo datos**: no necesita instancia
+serpiente (estilo Nokia) y el sprite de la **comida especial**. Es un
+**namespace de solo datos** (no una clase): no necesita instancia
 ni archivo `.cpp`; los sprites se leen con `Sprite::SPRITES[Part]` y
 `Sprite::SPECIAL_FOOD`.
 
 ```cpp
-static constexpr uint8_t SIZE = 4;          // sprite de 4×4 px
+constexpr uint8_t SIZE = 4;                 // sprite de 4×4 px
 
 enum Part : uint8_t {
   TAIL_TO_UP = 0, TAIL_TO_RIGHT, TAIL_TO_DOWN, TAIL_TO_LEFT,   // cola

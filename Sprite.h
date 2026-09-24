@@ -14,19 +14,18 @@
 // 1 = glifo, 0 = fondo. También incluye el sprite de la
 // comida especial (SPECIAL_FOOD, 8×4 px).
 //
-// Es una clase de SOLO datos: no necesita instancia ni
+// Es un namespace de SOLO datos: no necesita instancia ni
 // archivo .cpp; los sprites se leen con Sprite::SPRITES[Part]
 // y Sprite::SPECIAL_FOOD.
 // ========================================================
 
-class Sprite {
-public:
+namespace Sprite {
 
   // ========================================================
   // Dimensiones
   // ========================================================
 
-  static constexpr uint8_t SIZE = 4;
+  constexpr uint8_t SIZE = 4;
 
   // ========================================================
   // Partes de la serpiente
@@ -76,7 +75,7 @@ public:
   // Sprites de la serpiente
   // ========================================================
 
-  static constexpr uint8_t SPRITES[COUNT][SIZE][SIZE] = {
+  constexpr uint8_t SPRITES[COUNT][SIZE][SIZE] = {
     // ------------------------------------------------------
     // TAIL
     // ------------------------------------------------------
@@ -143,15 +142,15 @@ public:
   // Comida especial (8×4 px)
   // ========================================================
 
-  static constexpr uint8_t SPECIAL_FOOD_W = 8;   // ancho en px
-  static constexpr uint8_t SPECIAL_FOOD_H = 4;   // alto en px
-  static constexpr uint8_t SPECIAL_FOOD[SPECIAL_FOOD_H][SPECIAL_FOOD_W] = {
+  constexpr uint8_t SPECIAL_FOOD_W = 8;   // ancho en px
+  constexpr uint8_t SPECIAL_FOOD_H = 4;   // alto en px
+  constexpr uint8_t SPECIAL_FOOD[SPECIAL_FOOD_H][SPECIAL_FOOD_W] = {
     { 0, 1, 0, 1, 0, 1, 0, 0 },
     { 1, 0, 1, 1, 1, 1, 1, 0 },
     { 1, 1, 1, 1, 1, 1, 1, 1 },
     { 0, 0, 1, 0, 0, 1, 0, 0 }
   };
-};
+}
 
 #endif
 
