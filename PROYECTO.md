@@ -709,6 +709,12 @@ bloqueante: `play()` arranca el efecto y `update()` lo avanza paso a paso cuando
 cada nota termina. Con el sonido desactivado `play()` no hace nada (pensado para la
 opción "Sound" del menú, `setEnabled(false)`).
 
+Las 12 secuencias `SEQ_*` se indexan con una **única tabla `EFFECTS[]` de
+`{const Note* notes, uint8_t len}`** (orden igual al enum `Sfx`, `SFX_NONE` incluido,
+con secuencia vacía): reemplaza a las 12 constantes `LEN_*` (el largo de cada
+secuencia se deriva con `sizeof` dentro de la tabla) y al `switch` de `play()`,
+que ahora solo lee `EFFECTS[effect]`.
+
 ### Constructor
 
 ```cpp
@@ -722,7 +728,7 @@ enum Sfx : uint8_t {
   SFX_NONE = 0, SFX_CLICK, SFX_CONFIRM, SFX_BACK,
   SFX_EAT, SFX_START, SFX_LEVEL_UP, SFX_GAME_OVER,
   SFX_TICK, SFX_TURN, SFX_PAUSE, SFX_RESUME,
-  SFX_NEW_BEST
+  SFX_NEW_BEST, SFX_COUNT   // SFX_COUNT = tamaño de EFFECTS (tabla indexada por Sfx)
 };
 ```
 

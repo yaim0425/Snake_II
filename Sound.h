@@ -37,7 +37,8 @@ public:
     SFX_TURN,       // cambio de dirección de la serpiente
     SFX_PAUSE,      // pausar la partida
     SFX_RESUME,     // reanudar la partida
-    SFX_NEW_BEST    // festejo de nuevo récord (suena en el letrero "THE BEST")
+    SFX_NEW_BEST,   // festejo de nuevo récord (suena en el letrero "THE BEST")
+    SFX_COUNT       // cantidad de efectos (tamaño de EFFECTS, tabla indexada por Sfx)
   };
 
   // ========================================================
@@ -91,33 +92,22 @@ private:
   };
 
   // ========================================================
-  // Secuencias (tablas estáticas en Sound.cpp)
+  // Un efecto: secuencia de notas + cantidad de notas
   // ========================================================
 
-  static const Note SEQ_CLICK[];
-  static const Note SEQ_CONFIRM[];
-  static const Note SEQ_BACK[];
-  static const Note SEQ_EAT[];
-  static const Note SEQ_START[];
-  static const Note SEQ_LEVEL_UP[];
-  static const Note SEQ_GAME_OVER[];
-  static const Note SEQ_TICK[];
-  static const Note SEQ_TURN[];
-  static const Note SEQ_PAUSE[];
-  static const Note SEQ_RESUME[];
-  static const Note SEQ_NEW_BEST[];
-  static const uint8_t LEN_CLICK;
-  static const uint8_t LEN_CONFIRM;
-  static const uint8_t LEN_BACK;
-  static const uint8_t LEN_EAT;
-  static const uint8_t LEN_START;
-  static const uint8_t LEN_LEVEL_UP;
-  static const uint8_t LEN_GAME_OVER;
-  static const uint8_t LEN_TICK;
-  static const uint8_t LEN_TURN;
-  static const uint8_t LEN_PAUSE;
-  static const uint8_t LEN_RESUME;
-  static const uint8_t LEN_NEW_BEST;
+  struct Seq {
+    const Note* notes;
+    uint8_t len;
+  };
+
+  // ========================================================
+  // Tabla de efectos indexada por Sfx (definida en Sound.cpp):
+  // EFFECTS[SFX_NONE]..EFFECTS[SFX_NEW_BEST], en el mismo orden
+  // del enum. Reemplaza a las 12 constantes LEN_*: el largo de
+  // cada secuencia se deriva con sizeof dentro de la tabla.
+  // ========================================================
+
+  static const Seq EFFECTS[];
 
   // ========================================================
   // Estado

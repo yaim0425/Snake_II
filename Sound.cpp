@@ -88,21 +88,27 @@ const Sound::Note Sound::SEQ_NEW_BEST[] = {
 };
 
 // ========================================================
-// Largos de las secuencias (derivados de los arreglos)
+// Tabla de efectos: índice = Sfx (SFX_NONE..SFX_NEW_BEST,
+// mismo orden que el enum). Cada entrada apunta a su secuencia
+// y deriva el largo con sizeof en sitio (ya no hace falta
+// LEN_*). SFX_NONE no tiene secuencia (no suena nada).
 // ========================================================
 
-const uint8_t Sound::LEN_CLICK = sizeof(SEQ_CLICK) / sizeof(Note);
-const uint8_t Sound::LEN_CONFIRM = sizeof(SEQ_CONFIRM) / sizeof(Note);
-const uint8_t Sound::LEN_BACK = sizeof(SEQ_BACK) / sizeof(Note);
-const uint8_t Sound::LEN_EAT = sizeof(SEQ_EAT) / sizeof(Note);
-const uint8_t Sound::LEN_START = sizeof(SEQ_START) / sizeof(Note);
-const uint8_t Sound::LEN_LEVEL_UP = sizeof(SEQ_LEVEL_UP) / sizeof(Note);
-const uint8_t Sound::LEN_GAME_OVER = sizeof(SEQ_GAME_OVER) / sizeof(Note);
-const uint8_t Sound::LEN_TICK = sizeof(SEQ_TICK) / sizeof(Note);
-const uint8_t Sound::LEN_TURN = sizeof(SEQ_TURN) / sizeof(Note);
-const uint8_t Sound::LEN_PAUSE = sizeof(SEQ_PAUSE) / sizeof(Note);
-const uint8_t Sound::LEN_RESUME = sizeof(SEQ_RESUME) / sizeof(Note);
-const uint8_t Sound::LEN_NEW_BEST = sizeof(SEQ_NEW_BEST) / sizeof(Note);
+const Sound::Seq Sound::EFFECTS[] = {
+  { nullptr,             0 },                           // SFX_NONE
+  { SEQ_CLICK,     sizeof(SEQ_CLICK)     / sizeof(Note) }, // SFX_CLICK
+  { SEQ_CONFIRM,   sizeof(SEQ_CONFIRM)   / sizeof(Note) }, // SFX_CONFIRM
+  { SEQ_BACK,      sizeof(SEQ_BACK)      / sizeof(Note) }, // SFX_BACK
+  { SEQ_EAT,       sizeof(SEQ_EAT)       / sizeof(Note) }, // SFX_EAT
+  { SEQ_START,     sizeof(SEQ_START)     / sizeof(Note) }, // SFX_START
+  { SEQ_LEVEL_UP,  sizeof(SEQ_LEVEL_UP)  / sizeof(Note) }, // SFX_LEVEL_UP
+  { SEQ_GAME_OVER, sizeof(SEQ_GAME_OVER) / sizeof(Note) }, // SFX_GAME_OVER
+  { SEQ_TICK,      sizeof(SEQ_TICK)      / sizeof(Note) }, // SFX_TICK
+  { SEQ_TURN,      sizeof(SEQ_TURN)      / sizeof(Note) }, // SFX_TURN
+  { SEQ_PAUSE,     sizeof(SEQ_PAUSE)     / sizeof(Note) }, // SFX_PAUSE
+  { SEQ_RESUME,    sizeof(SEQ_RESUME)    / sizeof(Note) }, // SFX_RESUME
+  { SEQ_NEW_BEST,  sizeof(SEQ_NEW_BEST)  / sizeof(Note) }  // SFX_NEW_BEST
+};
 
 // ========================================================
 // Constructor
@@ -142,25 +148,12 @@ bool Sound::enabled() const {
 
 void Sound::play(Sfx effect) {
   if (!_enabled) return;
+  if (effect >= SFX_COUNT) effect = SFX_NONE;   // solo por defensa: los caller pasan valores del enum
 
-  switch (effect) {
-    case SFX_CLICK:      _seq = SEQ_CLICK;      _len = LEN_CLICK;      break;
-    case SFX_CONFIRM:    _seq = SEQ_CONFIRM;    _len = LEN_CONFIRM;    break;
-    case SFX_BACK:       _seq = SEQ_BACK;       _len = LEN_BACK;       break;
-    case SFX_EAT:        _seq = SEQ_EAT;        _len = LEN_EAT;        break;
-    case SFX_START:      _seq = SEQ_START;      _len = LEN_START;      break;
-    case SFX_LEVEL_UP:   _seq = SEQ_LEVEL_UP;   _len = LEN_LEVEL_UP;   break;
-    case SFX_GAME_OVER:  _seq = SEQ_GAME_OVER;  _len = LEN_GAME_OVER;  break;
-    case SFX_TICK:       _seq = SEQ_TICK;       _len = LEN_TICK;       break;
-    case SFX_TURN:       _seq = SEQ_TURN;       _len = LEN_TURN;       break;
-    case SFX_PAUSE:      _seq = SEQ_PAUSE;      _len = LEN_PAUSE;      break;
-    case SFX_RESUME:     _seq = SEQ_RESUME;     _len = LEN_RESUME;     break;
-    case SFX_NEW_BEST:   _seq = SEQ_NEW_BEST;   _len = LEN_NEW_BEST;   break;
-    default:             _seq = nullptr;        _len = 0;              break;
-  }
+  _seq = EFFECTS[effect].notes;
+  _len = EFFECTS[effect].len;
 
   _step = 0;
-
   if (_len > 0) _buzzer.tone(_seq[0].freq, _seq[0].durMs);
   else          _seq = nullptr;
 }
