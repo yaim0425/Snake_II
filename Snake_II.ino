@@ -32,6 +32,7 @@
 
 Display display;
 Buttons buttons(Config::Pin::BUTTONS);
+
 Buzzer  buzzer;
 Sound   sound(buzzer);
 
