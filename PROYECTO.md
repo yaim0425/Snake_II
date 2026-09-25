@@ -281,7 +281,7 @@ y con cualquier tamaño (`TEXT_6x8`, `TEXT_12x16`, `TEXT_18x24`).
 
 | Método | Descripción |
 |--------|-------------|
-| `void begin()` | `Wire.begin(sda, scl)`, crea el OLED y lo limpia. |
+| `void begin()` | `Wire.begin(sda, scl)`, crea el OLED y lo limpia. **Idempotente:** si la pantalla ya quedó inicializada (`_screen != nullptr`) no hace nada, de modo que llamarla dos veces no reasigna el OLED ni filtra memoria (si el primer intento falló, `_screen` quedó en `nullptr` y un segundo llamado reintenta). |
 | `void clear()` | Limpia el buffer de la pantalla. |
 | `void show()` | Envía el buffer al OLED. |
 | `void drawPixel(x, y, black=false)` | Dibuja 1 píxel (blanco o negro). |

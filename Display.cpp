@@ -24,6 +24,8 @@ Display::Display(uint8_t sda, uint8_t scl, uint8_t address,
 // ========================================================
 
 void Display::begin() {
+  if (_screen != nullptr) return;   // idempotente: ya inicializado (evita filtrar memoria)
+
   Wire.begin(_sda, _scl);
   _screen = new Adafruit_SSD1306(_width, _height, &Wire, _address, -1);
   if (!_screen->begin(SSD1306_SWITCHCAPVCC, _address)) {
