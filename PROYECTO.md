@@ -166,7 +166,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | Archivo | Contenido |
 |---------|-----------|
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
-| `Config.h` | Constantes compartidas del proyecto (namespace `Config`, sección 19): pines (`Config::Pin`: botones, buzzer, SDA/SCL), geometría y regiones de la pantalla (`Config::Screen`: 128×64, celda 8, dirección I2C, Header/Body) y límites de la dificultad (`Config::Difficulty`: MIN/MAX/DEFAULT). Solo lo verdaderamente compartido; el resto es `static constexpr` en su clase. Sin `#define` para valores (constantes con tipo y ámbito). |
+| `Config.h` | Constantes compartidas del proyecto (namespace `Config`, sección 19): pines (`Config::Pin`: botones, buzzer, SDA/SCL), geometría y regiones de la pantalla (`Config::Screen`: 128×64, celda 8, dirección I2C, Header/Body) y límites de la dificultad (`Config::Difficulty`: MIN/MAX/DEFAULT_LEVEL). Solo lo verdaderamente compartido; el resto es `static constexpr` en su clase. Sin `#define` para valores (constantes con tipo y ámbito). |
 | `Globals.h` | Declara `extern` los **servicios globales**: `Display display;`, `Buttons buttons;`, `Buzzer buzzer;` y `Sound sound;` (definidos en `Snake_II.ino`, sección 20). No define las ventanas: esas viven dentro de `Engine`. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
@@ -321,7 +321,7 @@ size=3 -> texto 18x24    -> cuadro  (18+6) x (24+2) = 24x26
   y sin salto de línea final), igual que `Snake_II.ino`.
 - **Idioma del código: inglés.** Los identificadores son en inglés (clases, métodos,
   variables, constantes y enums; p. ej. `Menu::Option` = `OPT_NEW`/`OPT_CONTINUE`/
-  `OPT_DIFFICULTY`/`OPT_SOUND`/`OPT_CREDITS`, `Config::Difficulty::MIN/MAX/DEFAULT` y
+  `OPT_DIFFICULTY`/`OPT_SOUND`/`OPT_CREDITS`, `Config::Difficulty::MIN/MAX/DEFAULT_LEVEL` y
   los estados
   del `Engine` `NEW`/`CONTINUE`/`CREDITS`). Los comentarios y la documentación (`PROYECTO.md`)
   se mantienen en español (convención del proyecto).
@@ -493,7 +493,7 @@ modo de edición inline, igual que "Sound" (no se abre ninguna ventana).
 - `ACTION_RIGHT` (btn2): **aplica** el valor (`_difficulty`, visible con
   `difficulty()`) y vuelve al menú (`SFX_CONFIRM`).
 - `ACTION_UP` (btn1): **cancela** sin cambiar el valor guardado (`SFX_BACK`).
-- Valor por defecto `Config::Difficulty::DEFAULT = 5`, conservado en el miembro
+- Valor por defecto `Config::Difficulty::DEFAULT_LEVEL = 5`, conservado en el miembro
   persistente `_difficulty`; `beginDifficultyEdit()` copia a `_editDifficulty`
   (el valor en edición). `OPT_DIFFICULTY` no se entrega a `Engine::confirm()`
   (devuelve `-1`), por lo que el `Engine` permanece en `MENU`.
@@ -1049,7 +1049,7 @@ construyen solos en su lista de inicialización.
 
 | Constante | Valor | Significado |
 |-----------|-------|-------------|
-| `Config::Difficulty::MIN` / `MAX` / `DEFAULT` | 1 / 10 / 5 | Nivel de dificultad acotado (mismo rango y fuente única que el menú; ya no se duplica en `Game`). La fila superior del tablero es el Body: `Config::Screen::BODY_TOP`. |
+| `Config::Difficulty::MIN` / `MAX` / `DEFAULT_LEVEL` | 1 / 10 / 5 | Nivel de dificultad acotado (mismo rango y fuente única que el menú; ya no se duplica en `Game`). La fila superior del tablero es el Body: `Config::Screen::BODY_TOP`. |
 | `COUNTDOWN_MS` | 3000 | Duración del conteo regresivo inicial (3 s, un dígito por segundo: 3-2-1). |
 | `COUNT_HIDE_MS` | 250 | Fase de parpadeo al final de cada dígito: el número (y su cuadro) se ocultan antes de que aparezca el siguiente. |
 
@@ -1347,7 +1347,7 @@ namespace Config {
     constexpr uint8_t BODY_TOP = 16, BODY_H = 48;     // Body 16..63
   }
   namespace Difficulty {
-    constexpr uint8_t MIN = 1, MAX = 10, DEFAULT = 5;
+    constexpr uint8_t MIN = 1, MAX = 10, DEFAULT_LEVEL = 5;
   }
 }
 ```
@@ -1358,7 +1358,7 @@ namespace Config {
 |-----------|------------|----------|
 | `Config::Pin` | `BUTTONS`, `BUZZER`, `OLED_SDA`, `OLED_SCL` | `Snake_II.ino` (pasa `Config::Pin::BUTTONS` a `Buttons`), `Buzzer` (pin por defecto), `Display` (pines I2C por defecto) |
 | `Config::Screen` | `WIDTH`/`HEIGHT`/`CELL`/`ADDRESS` y regiones `HEADER_*`/`BODY_*` | `Display` (defaults del constructor y `regionBounds`), `Boot` (bandas TITULO=Header/CUERPO=Body), `Game` (tablero en el Body), `Credits` (rol del Body) |
-| `Config::Difficulty` | `MIN`/`MAX`/`DEFAULT` | `Menu` (selector de dificultad inline) y `Game` (`setDifficulty`/velocidad): antes duplicadas en ambas clases |
+| `Config::Difficulty` | `MIN`/`MAX`/`DEFAULT_LEVEL` | `Menu` (selector de dificultad inline) y `Game` (`setDifficulty`/velocidad): antes duplicadas en ambas clases. El nombre evita la macro `DEFAULT` del core ESP32 (`Arduino.h`). |
 
 Las regiones `HEADER_TOP/H` y `BODY_TOP/H` reemplazan las constantes repetidas
 `BODY_TOP`/`BODY_H`/`TITLE_TOP`/`TITLE_H` de `Menu`, `Game`, `Boot` y `Credits`.

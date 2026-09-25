@@ -76,8 +76,8 @@ Menu::Menu(uint16_t bestScore, const char* version)
     _editingSound(false),
     _soundEnabled(true),
     _editingDifficulty(false),
-    _difficulty(Config::Difficulty::DEFAULT),
-    _editDifficulty(Config::Difficulty::DEFAULT),
+    _difficulty(Config::Difficulty::DEFAULT_LEVEL),
+    _editDifficulty(Config::Difficulty::DEFAULT_LEVEL),
     _repeatStart(0),
     _repeatLast(0),
     _scroller(1, nullptr) {}

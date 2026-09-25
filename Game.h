@@ -55,7 +55,7 @@ public:
   // ========================================================
 
   // La dificultad (nivel 1..10) usa los límites compartidos de
-  // Config::Difficulty (MIN/MAX/DEFAULT), igual que el menú.
+  // Config::Difficulty (MIN/MAX/DEFAULT_LEVEL), igual que el menú.
 
   // ========================================================
   // Constructor (sin parámetros de servicios: usa los globales

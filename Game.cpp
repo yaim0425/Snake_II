@@ -18,7 +18,7 @@ Game::Game()
     _overlayHidden(false),
     _lastCount(0xFF),
     _hasGame(false),
-    _difficulty(Config::Difficulty::DEFAULT),
+    _difficulty(Config::Difficulty::DEFAULT_LEVEL),
     _moveDelay(0),
     _moveLast(0),
     _startMs(0),

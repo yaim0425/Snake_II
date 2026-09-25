@@ -62,9 +62,9 @@ namespace Config {
 
   namespace Difficulty {
 
-    constexpr uint8_t MIN     = 1;
-    constexpr uint8_t MAX     = 10;
-    constexpr uint8_t DEFAULT = 5;
+    constexpr uint8_t MIN            = 1;
+    constexpr uint8_t MAX            = 10;
+    constexpr uint8_t DEFAULT_LEVEL  = 5;
   }
 }
 
