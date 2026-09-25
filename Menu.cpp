@@ -471,8 +471,8 @@ void Menu::drawDiamonds() {
 
     if (i == _selected) {
       // Parpadeo: visible 75% del período, oculto 25%. Anclado al
-      // _hold (última selección): con el reloj de 64 bits no hay salto
-      // de fase como con millis() % período absoluto.
+      // _hold (última selección): la fase depende solo del tiempo
+      // desde la selección, no del instante absoluto del reloj.
       if (_hold.expired(BLINK_HOLD) &&
           !_hold.blinkOn(BLINK_PERIOD, BLINK_OFF_PCT))
         continue;  // fase oculta (25%): no se dibuja

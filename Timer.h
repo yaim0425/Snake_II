@@ -7,14 +7,14 @@
 // ========================================================
 // Timer — reloj de 64 bits y cronómetros
 //
-// millis() (32 bits) da la vuelta cada ~49,7 días y tiene
-// trampas sutiles: comparar contra un instante absoluto
-// (`millis() >= plazo`) o usar `elapsed % period` sobre el
-// instante absoluto producen un salto de fase cada 49,7 días.
-// Este reloj usa esp_timer_get_time() del ESP32 (microsegundos
-// desde el arranque, 64 bits): no envuelve en ~292.000 años y
-// las restas (`ahora - inicio`) y los módulos son seguros sin
-// pensar en el giro.
+// Los relojes de milisegundos de 32 bits del core envuelven cada
+// ~49,7 días (el uptime del dispositivo) y tienen trampas sutiles:
+// comparar contra un instante absoluto (`ahora >= plazo`) o usar
+// `elapsed % period` sobre el instante absoluto producen un salto
+// de fase una vez por giro. Este reloj usa esp_timer_get_time()
+// del ESP32 (microsegundos desde el arranque, 64 bits): no envuelve
+// en ~292.000 años y las restas (`ahora - inicio`) y los módulos
+// son seguros sin pensar en el giro.
 //
 // Reglas de uso:
 //   - nowMs() : instante actual; medir intervalos siempre con
