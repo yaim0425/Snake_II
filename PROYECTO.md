@@ -1104,7 +1104,10 @@ usa vía `Snake::COLS`/`Snake::ROWS` (p. ej. para construir `Food`).
 - **Comer/crecer, colisión, giro, sprites:** los resuelve `Snake` (sección 18);
   `Game` solo consume el resultado y repinta.
 - **Alimento:** rombo simétrico centrado en la celda (dos `fillTriangle`), como
-  el rombo del menú; lo dibuja `Food`.
+  el rombo del menú; lo dibuja `Food`. La **semilla del generador aleatorio** se
+  fija en `Game::reset()` (lo consume `Food::spawn`) con `randomSeed(esp_random()
+  ^ (uint32_t)nowMs())`: `esp_random()` es el RNG de hardware del ESP32 (entropía
+  real, no predecible como `micros()`) y se combina con el reloj de 64 bits.
 - **Colisión con el cuerpo:** al mover, la celda destino es ilegal si coincide
   con el cuerpo **salvo la celda de la cola cuando NO come** (la cola se libera
   ese paso, como en el Nokia original; la cola es bloqueante solo cuando come);

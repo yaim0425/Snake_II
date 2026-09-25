@@ -85,7 +85,10 @@ void Game::setDifficulty(uint8_t level) {
 // ========================================================
 
 void Game::reset() {
-  randomSeed(micros());
+  // Semilla del generador aleatorio (lo consume Food::spawn): esp_random()
+  // es el RNG de hardware del ESP32 (entropía real, no predecible ni de 32
+  // bits fijos como micros()); se combina con el reloj (nowMs) por defensa.
+  randomSeed(esp_random() ^ (uint32_t)nowMs());
 
   _hasGame = true;  // arranca una partida en curso (reanudable desde "Continue")
   _score = 0;  // el récord (_bestScore) se conserva entre partidas
