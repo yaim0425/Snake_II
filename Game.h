@@ -186,9 +186,9 @@ private:
   bool _hasGame;          // hay una partida en curso (para "Continue")
   uint8_t _difficulty;    // nivel del menú (1..10, default 5)
   uint16_t _moveDelay;    // ms por paso, derivado de la dificultad
-  uint32_t _moveLast;     // instante del último paso
-  uint32_t _startMs;      // instante de entrada a START
-  uint32_t _gameOverMs;   // instante del fin de partida (arranca el festejo de récord)
+  uint64_t _moveLast;     // instante (nowMs) del último paso
+  uint64_t _startMs;      // instante (nowMs) de entrada a START
+  uint64_t _gameOverMs;   // instante (nowMs) del fin de partida (arranca el festejo de récord)
 
   // Festejo de nuevo récord (GAME OVER con _newBest): ciclo de letreros
   // "GAME OVER"/"BUT"/"YOU ARE"/"THE BEST" hasta que se presiona un botón

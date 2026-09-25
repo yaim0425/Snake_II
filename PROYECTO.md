@@ -135,6 +135,17 @@ muestra en ciclo los letreros "GAME OVER" → "BUT" → "YOU ARE" → "THE BEST"
 presiona un botón; la fanfarria de victoria (`SFX_NEW_BEST`) suena solo la
 **primera** vez que aparece el letrero "THE BEST" (YOU ARE ya no la dispara).
 
+También se incorporó `Timer.h` (sección 21): un **reloj de 64 bits** basado en
+`esp_timer_get_time()` del core ESP32 (microsegundos desde el arranque; no envuelve
+en ~292.000 años) con los cronómetros `Stopwatch` (plazos) y `Ticker` (pasos
+periódicos). Todos los relojes del proyecto migraron de `millis()` (32 bits, da la
+vuelta cada ~49,7 días) a `nowMs()`. Los parpadeos del `Menu` (rombo, flechas de los
+selectores) y de la `Legend` que usaban `millis() % período` absoluto quedaron
+**anclados a un `Stopwatch`** iniciado al entrar en la ventana/modo (sin salto de
+fase cada 49,7 días); `Boot` y `Scroller` acumulan su avance con `Ticker`
+(`consume()` devuelve los pasos de una vez, ya no hay `while`); `Game`, `Buzzer` y
+`Buttons` miden con restas `ahora - inicio` sobre el reloj de 64 bits.
+
 ---
 
 ## 2. Hardware y pines
@@ -182,6 +193,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). Completa. |
 | `Sound.h` / `Sound.cpp` | Clase `Sound` (secuencias de los efectos del juego sobre `Buzzer`, con `setEnabled` para silenciar). Completa. |
 | `Sprite.h` | Namespace `Sprite` (tabla de sprites de la serpiente, estilo Nokia: cola, cuerpo, curvas, cabeza cerrada/abierta y panza; sprites de 4×4 px + sprite de la comida especial de 8×4 px). Solo datos (header-only, sin `.cpp`). Adaptada al estilo del proyecto. |
+| `Timer.h` | Reloj de 64 bits y cronómetros compartidos (`nowMs()`, `Stopwatch`, `Ticker`), basados en `esp_timer_get_time()` (sección 21). Solo reloj (header-only, sin `.cpp`). |
 | `PROYECTO.md` | Este documento. |
 
 Nota: Arduino solo compila el `.ino` del sketch. El respaldo quedó como `.txt`
@@ -1406,3 +1418,67 @@ extern Sound   sound;
 3. **`Globals.h` se incluye solo desde los `.cpp`** (las cabeceras no lo
    incluyen): evita acoplar los `.h` al global y mantiene el orden de includes
    predecible. Un `.cpp` que usa un servicio global debe incluir `Globals.h`.
+
+---
+
+## 21. `Timer.h` — reloj de 64 bits y cronómetros
+
+Ubicación: `Timer.h`. Header-only (sin `.cpp`). Ante los límites de `millis()`
+(32 bits: da la vuelta cada ~49,7 días, y `elapsed % period` sobre un instante
+absoluto salta de fase una vez por giro), se centraliza el tiempo en el **reloj de
+64 bits del ESP32**: `esp_timer_get_time()` (microsegundos desde el arranque, no
+envuelve en ~292.000 años). Con 64 bits las restas (`ahora - inicio`) y los
+módulos son seguros sin pensar en el desbordamiento.
+
+### API
+
+```cpp
+inline uint64_t nowMs();   // instante actual en milisegundos (64 bits)
+
+class Stopwatch {
+  void start();                        // reinicia (llamar en el begin() de la ventana)
+  uint64_t elapsed() const;            // ms desde start()
+  bool expired(uint32_t ms) const;     // ¿ya pasaron `ms`?
+  bool blinkOn(period, offPct) const;  // ¿fase visible? (oculto el primer offPct%)
+};
+
+class Ticker {
+  explicit Ticker(uint32_t period);    // pasos de `period` ms
+  void start();                        // reinicia el acumulador
+  uint32_t consume();                  // pasos completos desde la última consulta
+};                                     // (conserva el residuo)
+```
+
+### Reglas de uso
+
+1. **Medir con restas, nunca contra un instante absoluto:** `nowMs() - inicio`,
+   que con enteros sin signo de 64 bits da bien aunque el reloj se mueva.
+2. **`Stopwatch` para plazos** (una fecha en la que algo vence): `TOTAL_MS` en
+   `Boot`, `COUNTDOWN_MS`/`_moveDelay`/`NEW_BEST_SIGN_MS` en `Game`,
+   `BLINK_HOLD` en `Menu`, `DWELL_MS`/`HOLD_MS` en `Legend` y `_durationMs` en
+   `Buzzer`. `start()` se llama en el `begin()` de la ventana o al fijar la zona
+   que parpadea: así el tiempo inactivo no entra.
+3. **`Ticker` para pasos periódicos:** `ANIM_TICK` en `Boot` y `Scroller`
+   (`consume()` devuelve los pasos de una vez; el `while` del acumulador
+   desapareció). 
+4. **`blinkOn(period, offPct)`** reemplaza al `millis() % período` absoluto de
+   los parpadeos (`Menu`: rombo y flechas de los selectores de "Sound"/
+   "Dificultad"; `Legend`: parpadeo del rombo activo). El `Stopwatch` se ancla al
+   entrar en la ventana/modo (`begin()`, `beginSoundEdit()`,
+   `beginDifficultyEdit()`, al navegar/fijar la selección), así la fase del
+   parpadeo no salta nunca.
+
+### Quién lo usa
+
+| Clase | Reloj/cronómetro | Cambio |
+|-------|------------------|--------|
+| `Boot` | `Ticker _ticker` (`ANIM_TICK`) + `Stopwatch _total` (`TOTAL_MS`) | El avance de 1 px y el plazo total pasan de `millis()` a 64 bits; el acumulador `while` se reduce a `_shift = (_shift + _ticker.consume()) % BAR_SPACING`. |
+| `Menu` | `Stopwatch _hold` (rombo), `Stopwatch _editBlink` (flechas de los selectores), `Stopwatch _repeat`/`_repeatTick` (repetición por mantensión) | Los parpadeos con `millis() % período` absoluto pasan a `blinkOn` anclado; `holdRepeat` usa `expired()` en vez de restas sobre `millis()`. |
+| `Legend` | `Stopwatch _timer` (`DWELL_MS`/`HOLD_MS`/`BLINK_PERIOD`) | El ciclo y el parpadeo del rombo activo usan `blinkOn` anclado al cambio de rombo. |
+| `Scroller` | `Ticker _ticker` (`ANIM_TICK`) | El acumulador `_colAcc`/`_animLast` pasa a `consume()` (misma cadencia, sin `while`). |
+| `Game` | `nowMs()` en `_moveLast`/`_startMs`/`_gameOverMs` (uint64_t) | Plazos y módulos del conteo/festejo sobre el reloj de 64 bits (mismo comportamiento; sin techo de 49,7 días). |
+| `Buzzer` | `_startMs` (uint64_t) + `nowMs()` | El fin de la duración se compara con resta de 64 bits. |
+| `Buttons` | `_buttonLast` (uint64_t) + `nowMs()` | El debounce se mide sobre el reloj de 64 bits. |
+
+`Sound` no tiene reloj propio: delega las duraciones en `Buzzer`. `Snake` sigue
+siendo lógica pura (solo `Arduino.h`: `delay`/`random`) y no usa el reloj.

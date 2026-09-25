@@ -1,4 +1,5 @@
 #include "Buzzer.h"
+#include "Timer.h"
 
 // ========================================================
 // Constructor
@@ -30,7 +31,8 @@ void Buzzer::update() {
   if (!_busy) return;
   if (_durationMs == 0) return;
 
-  if ((uint32_t)(millis() - _startMs) < _durationMs) return;
+  // Resta con el reloj de 64 bits: segura aunque pasen años de uptime
+  if (nowMs() - _startMs < _durationMs) return;
 
   stop();
 }
@@ -45,7 +47,7 @@ void Buzzer::tone(uint16_t frequency, uint32_t durationMs) {
     else                ledcWriteTone(_pin, frequency);
   }
 
-  _startMs    = millis();
+  _startMs    = nowMs();
   _durationMs = durationMs;
   _busy       = true;
 }

@@ -1,4 +1,5 @@
 #include "Buttons.h"
+#include "Timer.h"
 
 // ========================================================
 // Constructor
@@ -33,7 +34,7 @@ void Buttons::begin() {
       _pins[i],
       INPUT_PULLDOWN);
 
-    _buttonLast[i] = millis();
+    _buttonLast[i] = nowMs();
   }
 
   // Leer estado inicial (bits agrupados en un byte)
@@ -54,7 +55,7 @@ void Buttons::begin() {
 
 void Buttons::read() {
 
-  uint32_t now = millis();
+  uint64_t now = nowMs();
 
   // Limpiar eventos
   _pressed = 0;

@@ -2,6 +2,7 @@
 #define MENU_H
 
 #include "Config.h"
+#include "Timer.h"
 
 #include "Scroller.h"
 
@@ -215,7 +216,7 @@ private:
   bool _continueAvailable;   // muestra/oculta la opción "Continue" (default: oculta)
 
   int8_t _selected;   // opción actual (objetivo central)
-  uint32_t _holdStart;  // momento de la última selección (parpadeo del rombo)
+  Stopwatch _hold;    // desde la última selección (parpadeo del rombo)
   bool _redraw;         // primer frame tras begin(): clear() completo + estáticos
 
   // Edición inline de sonido
@@ -226,8 +227,9 @@ private:
   bool _editingDifficulty;
   uint8_t _difficulty;      // valor persistente (default 5; se aplica al confirmar)
   uint8_t _editDifficulty;  // valor en edición (no aplicado hasta confirmar)
-  uint32_t _repeatStart;    // inicio de la mantención (repetición por hold)
-  uint32_t _repeatLast;     // último paso de la repetición
+  Stopwatch _editBlink;     // ancla el parpadeo de los selectores (sonido/dificultad)
+  Stopwatch _repeat;        // inicio de la mantención (repetición por hold)
+  Stopwatch _repeatTick;    // último paso de la repetición
 
   Scroller _scroller;   // scroller de 1 bit del cuadro de selección (1 banda, texto 12x16)
 };

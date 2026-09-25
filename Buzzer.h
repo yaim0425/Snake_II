@@ -67,7 +67,7 @@ private:
   uint8_t  _pin;
   bool     _attached;
   bool     _busy;
-  uint32_t _startMs;
+  uint64_t _startMs;
   uint32_t _durationMs;
 };
 

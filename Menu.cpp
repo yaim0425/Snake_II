@@ -71,15 +71,16 @@ Menu::Menu(uint16_t bestScore, const char* version)
     _optionTexts(NO_CONTINUE_OPTIONS),
     _continueAvailable(false),
     _selected(OPT_NEW),
-    _holdStart(0),
+    _hold(),
     _redraw(true),
     _editingSound(false),
     _soundEnabled(true),
     _editingDifficulty(false),
     _difficulty(Config::Difficulty::DEFAULT_LEVEL),
     _editDifficulty(Config::Difficulty::DEFAULT_LEVEL),
-    _repeatStart(0),
-    _repeatLast(0),
+    _editBlink(),
+    _repeat(),
+    _repeatTick(),
     _scroller(1, nullptr) {}
 
 // ========================================================
@@ -89,7 +90,7 @@ Menu::Menu(uint16_t bestScore, const char* version)
 void Menu::begin() {
   _scroller.begin();
   _scroller.compose(optionText(_selected), TEXT_12x16);
-  _holdStart = millis();
+  _hold.start();
   _redraw = true;
   _editingSound = false;
   _editingDifficulty = false;
@@ -111,7 +112,7 @@ void Menu::setOptions(const char* const* texts, uint8_t count) {
   if (_selected >= (int8_t)count) _selected = count - 1;
 
   _scroller.begin();
-  _holdStart = millis();
+  _hold.start();
   _scroller.compose(optionText(_selected), TEXT_12x16);
   _redraw = true;
 }
@@ -158,7 +159,7 @@ void Menu::setSelected(Menu::Option option) {
 
   _selected = index;
   _scroller.begin();
-  _holdStart = millis();
+  _hold.start();
   _scroller.compose(optionText(_selected), TEXT_12x16);
   _redraw = true;
   _editingSound = false;
@@ -258,7 +259,7 @@ void Menu::navigate() {
     sound.play(Sound::SFX_CLICK);
     _scroller.compose(optionText(_selected), TEXT_12x16);
     _scroller.startSlide((_selected > before) ? 1 : -1);
-    _holdStart = millis();
+    _hold.start();
     Serial.printf("Menu: opcion %d -> %d\n", before, _selected);
   }
 }
@@ -270,6 +271,7 @@ void Menu::navigate() {
 void Menu::beginSoundEdit() {
   _editingSound = true;
   _soundEnabled = sound.enabled();
+  _editBlink.start();
 }
 
 void Menu::endSoundEdit() {
@@ -288,8 +290,7 @@ bool Menu::isEditingSound() const {
 void Menu::beginDifficultyEdit() {
   _editingDifficulty = true;
   _editDifficulty = _difficulty;
-  _repeatStart = 0;
-  _repeatLast = 0;
+  _editBlink.start();
 }
 
 void Menu::endDifficultyEdit() {
@@ -312,24 +313,23 @@ uint8_t Menu::difficulty() const {
 // el modo de edición de dificultad: el primero es inmediato
 // (evento pressed) y, manteniéndolo presionado, los siguientes
 // cada HOLD_REPEAT_TICK ms a partir de HOLD_REPEAT_DELAY de
-// mantención. Un solo timer compartido: si se suelta y se
-// vuelve a presionar, pressed() reinicia el temporizador.
+// mantención. Dos Stopwatch compartidos (`_repeat` = retardo,
+// `_repeatTick` = cadencia): si se suelta y se vuelve a
+// presionar, pressed() reinicia ambos.
 // ========================================================
 
 bool Menu::holdRepeat(uint8_t button) {
   if (buttons.pressed(button)) {
-    _repeatStart = millis();
-    _repeatLast = millis();
+    _repeat.start();
+    _repeatTick.start();
     return true;
   }
 
-  if (buttons.state(button)) {
-    uint32_t now = millis();
-    if ((now - _repeatStart) >= HOLD_REPEAT_DELAY &&
-        (now - _repeatLast) >= HOLD_REPEAT_TICK) {
-      _repeatLast = now;
-      return true;
-    }
+  if (buttons.state(button) &&
+      _repeat.expired(HOLD_REPEAT_DELAY) &&
+      _repeatTick.expired(HOLD_REPEAT_TICK)) {
+    _repeatTick.start();
+    return true;
   }
 
   return false;
@@ -366,9 +366,9 @@ void Menu::drawSoundSelector() {
   const int16_t yBot = DIA_TOP + DIA_SIZE;     // 53
 
   // Parpadeo de la flecha: visible el 75% del período, oculta el primer 25%
+  // (anclado al beginSoundEdit: sin salto de fase con el reloj de 64 bits)
   bool arrowVisible =
-      (millis() % ARROW_BLINK_PERIOD) >=
-      (uint32_t)ARROW_BLINK_PERIOD * ARROW_BLINK_OFF_PCT / 100;
+      _editBlink.blinkOn(ARROW_BLINK_PERIOD, ARROW_BLINK_OFF_PCT);
 
   if (arrowVisible) {
     if (_soundEnabled) {
@@ -436,8 +436,7 @@ void Menu::drawDifficultySelector() {
 
   bool arrowsVisible =
       leftHeld || rightHeld ||
-      (millis() % ARROW_BLINK_PERIOD) >=
-          (uint32_t)ARROW_BLINK_PERIOD * ARROW_BLINK_OFF_PCT / 100;
+      _editBlink.blinkOn(ARROW_BLINK_PERIOD, ARROW_BLINK_OFF_PCT);
 
   if (arrowsVisible) {
     // Flecha izquierda (-1): fija al mantener MOVE_LEFT; oculta mientras se
@@ -471,9 +470,11 @@ void Menu::drawDiamonds() {
     int16_t x = cx - DIA_SIZE / 2;
 
     if (i == _selected) {
-      // Parpadeo: visible 75% del período, oculto 25%
-      if (millis() - _holdStart >= BLINK_HOLD &&
-          (millis() % BLINK_PERIOD) < (uint32_t)BLINK_PERIOD * BLINK_OFF_PCT / 100)
+      // Parpadeo: visible 75% del período, oculto 25%. Anclado al
+      // _hold (última selección): con el reloj de 64 bits no hay salto
+      // de fase como con millis() % período absoluto.
+      if (_hold.expired(BLINK_HOLD) &&
+          !_hold.blinkOn(BLINK_PERIOD, BLINK_OFF_PCT))
         continue;  // fase oculta (25%): no se dibuja
 
       // Rombo simétrico de 9 filas (45..53), como el alimento del juego:

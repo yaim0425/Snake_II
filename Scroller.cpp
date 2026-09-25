@@ -13,8 +13,7 @@ Scroller::Scroller(uint8_t bands, const uint8_t* bandHeights)
     _composer(display.getWidth(), STRIP_H),
     _dir(1),
     _slideX(0),
-    _colAcc(0),
-    _animLast(0) {
+    _ticker(ANIM_TICK) {
 
   for (uint8_t i = 0; i < _bands; i++) {
     _bandHeights[i] = (bandHeights != nullptr) ? bandHeights[i] : STRIP_H;
@@ -39,7 +38,7 @@ Scroller::~Scroller() {
 
 void Scroller::begin() {
   _slideX = 0;
-  _colAcc = 0;
+  _ticker.start();
 }
 
 // ========================================================
@@ -79,25 +78,19 @@ void Scroller::startSlide(int8_t dir) {
   _dir = dir;
   _slideX = (_dir > 0) ? (int16_t)display.getWidth()
                        : -(int16_t)display.getWidth();
-  _colAcc = 0;
-  _animLast = millis();
+  _ticker.start();
 }
 
 // ========================================================
 // Animación: la tira avanza 1 px por cada ANIM_TICK ms
-// (acumulado por tiempo, constante aunque el loop sea lento)
+// (Ticker acumula por tiempo, constante aunque el loop sea lento)
 // ========================================================
 
 void Scroller::animate() {
   if (_slideX == 0) return;
 
-  uint32_t now = millis();
-  uint32_t delta = now - _animLast;
-  _animLast = now;
-
-  _colAcc += delta;
-  while (_colAcc >= ANIM_TICK) {
-    _colAcc -= ANIM_TICK;
+  uint32_t steps = _ticker.consume();
+  for (uint32_t i = 0; i < steps; i++) {
     if (_dir > 0) {              // entra por la derecha: se mueve hacia la izquierda
       if (_slideX > 0) _slideX--;
     } else {                     // entra por la izquierda: se mueve hacia la derecha

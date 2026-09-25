@@ -135,7 +135,7 @@ private:
   // Debounce
   // ========================================================
 
-  uint32_t _buttonLast[MAX_BUTTONS];
+  uint64_t _buttonLast[MAX_BUTTONS];
   uint32_t _buttonDelay;
 };
 

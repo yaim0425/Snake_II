@@ -4,6 +4,8 @@
 #include <Arduino.h>
 #include <Adafruit_GFX.h>
 
+#include "Timer.h"
+
 // ========================================================
 // Scroller — animación "scroller de 1 bit" (compartida por
 // Menu y Credits; antes estaba duplicada en ambas clases)
@@ -108,8 +110,7 @@ private:
 
   int8_t _dir;        // +1 entra por la derecha (mueve hacia la izquierda), -1 al revés
   int16_t _slideX;    // borde izquierdo de la tira en pantalla (objetivo 0 = centrada)
-  uint32_t _colAcc;   // acumulador de tiempo para avanzar píxeles
-  uint32_t _animLast;
+  Ticker _ticker;     // avance de 1 px por ANIM_TICK ms (acumulador por tiempo)
 
   // ========================================================
   // Internos

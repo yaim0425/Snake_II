@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "Globals.h"
+#include "Timer.h"
 
 #include "Sprite.h"
 
@@ -22,6 +23,7 @@ Game::Game()
     _moveDelay(0),
     _moveLast(0),
     _startMs(0),
+    _gameOverMs(0),
     _newBest(false),
     _celeSfx(0),
     _snake(),
@@ -93,7 +95,7 @@ void Game::reset() {
   _snake.reset();
 
   _moveDelay = speedFor(_difficulty);
-  _startMs = millis();
+  _startMs = nowMs();
   _moveLast = 0;
 
   // Alimento en una celda libre (al arrancar siempre hay celdas)
@@ -108,7 +110,7 @@ void Game::reset() {
 
 void Game::startPlay() {
   _state = State::PLAY;
-  _moveLast = millis();
+  _moveLast = nowMs();
   _dirtyBoard = true;  // borra el overlay "3-2-1"/"PAUSA" del tablero
 }
 
@@ -130,7 +132,7 @@ void Game::update() {
       if (buttons.actionRightPressed()) {
         sound.play(Sound::SFX_START);
         startPlay();
-      } else if (millis() - _startMs >= COUNTDOWN_MS) {
+      } else if (nowMs() - _startMs >= COUNTDOWN_MS) {
         sound.play(Sound::SFX_START);
         startPlay();
       }
@@ -147,8 +149,8 @@ void Game::update() {
         _state = State::PAUSE;
         break;
       }
-      if (millis() - _moveLast >= _moveDelay) {
-        _moveLast = millis();
+      if (nowMs() - _moveLast >= _moveDelay) {
+        _moveLast = nowMs();
         step();
       }
       break;
@@ -252,7 +254,7 @@ void Game::die() {
   // que aparece el letrero "THE BEST").
   _newBest = _score > _bestScore;
   if (_newBest) _bestScore = _score;
-  _gameOverMs = millis();
+  _gameOverMs = nowMs();
   _celeSfx = 0;
   _redrawHeader = true;
   sound.play(Sound::SFX_GAME_OVER);
@@ -404,7 +406,7 @@ void Game::print() {
       // de que aparezca el siguiente: el cambio es como un parpadeo
       // (COUNT_HIDE_MS ocultos por dígito; al ocultarlo se restaura el
       // tablero que hay debajo del cuadro).
-      uint32_t elapsed = millis() - _startMs;
+      uint32_t elapsed = (uint32_t)(nowMs() - _startMs);
       uint32_t seg = COUNTDOWN_MS / 3;
       uint32_t pos = elapsed % seg;   // posición dentro del dígito actual
       uint32_t done = elapsed / seg;  // cuántos dígitos se completaron
@@ -441,7 +443,7 @@ void Game::print() {
         // un botón. La fanfarria (SFX_NEW_BEST) suena solo la primera vez
         // que aparece el letrero "THE BEST" (_celeSfx; el "GAME OVER" ya sonó
         // en die() con SFX_GAME_OVER).
-        uint8_t phase = (uint8_t)((millis() - _gameOverMs) / NEW_BEST_SIGN_MS % 4);
+        uint8_t phase = (uint8_t)((nowMs() - _gameOverMs) / NEW_BEST_SIGN_MS % 4);
         switch (phase) {
           case 0:
             drawOverlay("GAME OVER", true);

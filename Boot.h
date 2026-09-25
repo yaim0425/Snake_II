@@ -2,6 +2,7 @@
 #define BOOT_H
 
 #include "Config.h"
+#include "Timer.h"
 
 // ========================================================
 // Boot — animación de arranque (franjas verticales)
@@ -85,9 +86,8 @@ private:
 
   uint8_t _shift;       // desplazamiento actual (0..BAR_SPACING-1)
   uint8_t _prevShift;   // desplazamiento que se dibujó en pantalla
-  uint32_t _tickAccum;  // acumulador de tiempo para el avance
-  uint32_t _lastMs;     // último millis() leído
-  uint32_t _startMs;    // millis() al entrar en la ventana
+  Ticker _ticker;       // avance de 1 px cada ANIM_TICK ms (acumulador por tiempo)
+  Stopwatch _total;     // duración total desde el begin() (TOTAL_MS)
   bool _done;
   bool _redraw;         // primer frame: clear() completo + dibujar todo
 

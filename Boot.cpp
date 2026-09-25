@@ -10,9 +10,8 @@
 Boot::Boot()
   : _shift(0),
     _prevShift(0),
-    _tickAccum(0),
-    _lastMs(0),
-    _startMs(0),
+    _ticker(ANIM_TICK),
+    _total(),
     _done(false),
     _redraw(true) {}
 
@@ -22,9 +21,8 @@ Boot::Boot()
 
 void Boot::begin() {
   _shift = 0;
-  _tickAccum = 0;
-  _lastMs = millis();
-  _startMs = millis();
+  _ticker.start();
+  _total.start();
   _done = false;
   _redraw = true;
 }
@@ -43,21 +41,15 @@ void Boot::update() {
   }
 
   // Duración total
-  if (millis() - _startMs >= TOTAL_MS) {
+  if (_total.expired(TOTAL_MS)) {
     _done = true;
     return;
   }
 
-  // Avance de 1 px cada ANIM_TICK ms (acumulador por tiempo)
-  uint32_t now = millis();
-  _tickAccum += now - _lastMs;
-  _lastMs = now;
-
-  while (_tickAccum >= ANIM_TICK) {
-    _tickAccum -= ANIM_TICK;
-    _shift++;
-    if (_shift >= BAR_SPACING) _shift = 0;
-  }
+  // Avance de 1 px cada ANIM_TICK ms (Ticker acumula por tiempo;
+  // consume() devuelve los pasos completos de una vez)
+  uint32_t steps = _ticker.consume();
+  if (steps) _shift = (uint8_t)((_shift + steps) % BAR_SPACING);
 }
 
 // ========================================================

@@ -21,7 +21,7 @@ const char* const Legend::BTN_FUNC[4] = {
 Legend::Legend()
   : _exit(false),
     _selected(0),
-    _setTime(0),
+    _timer(),
     _redraw(true),
     _lastActive(0),
     _lastText(-1) {}
@@ -33,7 +33,7 @@ Legend::Legend()
 void Legend::begin() {
   _exit = false;
   _selected = 0;
-  _setTime = millis();
+  _timer.start();
   _redraw = true;
   _lastActive = 0;
   _lastText = -1;
@@ -73,9 +73,9 @@ void Legend::update() {
   }
 
   // El rombo activo cambia cada DWELL_MS (avance lento)
-  if (millis() - _setTime >= DWELL_MS) {
+  if (_timer.expired(DWELL_MS)) {
     _selected = (_selected + 1) % 4;
-    _setTime = millis();
+    _timer.start();
   }
 }
 
@@ -225,15 +225,12 @@ void Legend::drawDiamond(int16_t cx, int16_t cy, bool show) {
 // ========================================================
 
 bool Legend::blinkVisible() const {
-  uint32_t now = millis();
-
   // Fijo (visible) mientras se mantiene el rombo: primero HOLD_MS
-  if (now - _setTime < HOLD_MS) return true;
+  if (!_timer.expired(HOLD_MS)) return true;
 
   // Luego parpadea MUY rápido: oculto durante el OFF_PCT inicial de cada
-  // BLINK_PERIOD
-  return !((now % BLINK_PERIOD) <
-           (uint32_t)BLINK_PERIOD * BLINK_OFF_PCT / 100);
+  // BLINK_PERIOD (anclado al _timer: sin salto de fase con el reloj 64 bits)
+  return _timer.blinkOn(BLINK_PERIOD, BLINK_OFF_PCT);
 }
 
 // ========================================================

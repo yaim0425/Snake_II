@@ -2,6 +2,7 @@
 #define LEGEND_H
 
 #include <Arduino.h>
+#include "Timer.h"
 
 // ========================================================
 // Legend — panel de botones (leyenda)
@@ -105,7 +106,7 @@ private:
 
   bool _exit;
   uint8_t _selected;  // rombo activo (0..3): recorre Btn1 → Btn4
-  uint32_t _setTime;  // momento en que se fijó el rombo activo
+  Stopwatch _timer;   // desde que se fijó el rombo activo (ciclo y parpadeo)
   bool _redraw;       // primer frame tras begin(): clear() completo + estáticos
   int8_t _lastActive; // último rombo cuya zona se gestionó (para restaurar el que deja de ser activo)
   int8_t _lastText;   // texto del pie que se dibujó (para borrar/redibujar solo al cambiar)
