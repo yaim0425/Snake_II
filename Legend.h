@@ -1,9 +1,7 @@
 #ifndef LEGEND_H
 #define LEGEND_H
 
-#include "Display.h"
-#include "Buttons.h"
-#include "Sound.h"
+#include <Arduino.h>
 
 // ========================================================
 // Legend — panel de botones (leyenda)
@@ -31,10 +29,11 @@
 class Legend {
 public:
   // ========================================================
-  // Constructor
+  // Constructor (sin parámetros: usa los servicios globales
+  // Display, Buttons y Sound, declarados en Globals.h)
   // ========================================================
 
-  Legend(Display& display, Buttons& buttons, Sound& sound);
+  Legend();
 
   // ========================================================
   // Inicialización (al entrar en la ventana)
@@ -101,12 +100,8 @@ private:
   static constexpr int16_t PIE_TOP      = 57;  // texto centrado (función del rombo activo)
 
   // ========================================================
-  // Dependencias y estado
+  // Estado
   // ========================================================
-
-  Display& _display;
-  Buttons& _buttons;
-  Sound& _sound;
 
   bool _exit;
   uint8_t _selected;  // rombo activo (0..3): recorre Btn1 → Btn4

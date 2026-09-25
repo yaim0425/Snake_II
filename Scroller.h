@@ -1,7 +1,7 @@
 #ifndef SCROLLER_H
 #define SCROLLER_H
 
-#include "Display.h"
+#include <Arduino.h>
 #include <Adafruit_GFX.h>
 
 // ========================================================
@@ -33,9 +33,10 @@ public:
   //                (1 = menú; 2 = créditos).
   // `bandHeights`= alto en px de cada banda (si nullptr, todas
   //                usan STRIP_H = 16).
+  // Usa la Display global (Globals.h) para el ancho de la tira.
   // Los canvas se reservan en el constructor (como antes).
 
-  Scroller(Display& display, uint8_t bands = 1,
+  Scroller(uint8_t bands = 1,
            const uint8_t* bandHeights = nullptr);
 
   Scroller(const Scroller&) = delete;            // no copiar (reserva con new)
@@ -85,12 +86,6 @@ private:
   // Valores del canvas: 1 = glifo (texto), 255 = fondo/chip
   static constexpr uint8_t CHIP_TEXT = 1;
   static constexpr uint8_t CHIP_BG   = 255;
-
-  // ========================================================
-  // Dependencia
-  // ========================================================
-
-  Display& _display;
 
   // ========================================================
   // Bandas (una por canvas persistente)

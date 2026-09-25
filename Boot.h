@@ -3,9 +3,6 @@
 
 #include "Config.h"
 
-#include "Display.h"
-#include "Buttons.h"
-
 // ========================================================
 // Boot — animación de arranque (franjas verticales)
 //
@@ -27,10 +24,11 @@
 class Boot {
 public:
   // ========================================================
-  // Constructor
+  // Constructor (sin parámetros: usa los servicios globales
+  // Display y Buttons, declarados en Globals.h)
   // ========================================================
 
-  Boot(Display& display, Buttons& buttons);
+  Boot();
 
   // ========================================================
   // Inicialización (al entrar en la ventana)
@@ -84,9 +82,6 @@ private:
   // ========================================================
   // Estado interno
   // ========================================================
-
-  Display& _display;
-  Buttons& _buttons;
 
   uint8_t _shift;       // desplazamiento actual (0..BAR_SPACING-1)
   uint8_t _prevShift;   // desplazamiento que se dibujó en pantalla

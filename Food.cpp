@@ -1,5 +1,6 @@
 #include "Food.h"
 #include "Game.h"
+#include "Globals.h"
 
 #include "Sprite.h"
 
@@ -9,9 +10,8 @@
 // Constructor
 // ========================================================
 
-Food::Food(Display& display, uint8_t cols, uint8_t rows, uint8_t top)
-  : _display(display),
-    _cols(cols),
+Food::Food(uint8_t cols, uint8_t rows, uint8_t top)
+  : _cols(cols),
     _rows(rows),
     _top(top),
     _type(Type::NORMAL),
@@ -127,7 +127,7 @@ void Food::draw() const {
 // ========================================================
 
 void Food::drawNormal() const {
-  Adafruit_SSD1306& s = _display.screen();
+  Adafruit_SSD1306& s = display.screen();
   int16_t cx = (int16_t)_x * CELL + CELL / 2;
   int16_t cy = _top + (int16_t)_y * CELL + CELL / 2;
 
@@ -142,7 +142,7 @@ void Food::drawNormal() const {
 // ========================================================
 
 void Food::drawSpecial() const {
-  Adafruit_SSD1306& s = _display.screen();
+  Adafruit_SSD1306& s = display.screen();
   int16_t baseX = (int16_t)_x * CELL;
   int16_t baseY = _top + (int16_t)_y * CELL
                   + (CELL - Sprite::SPECIAL_FOOD_H) / 2;

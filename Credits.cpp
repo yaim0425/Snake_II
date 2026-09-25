@@ -1,5 +1,6 @@
 #include "esp32-hal.h"
 #include "Credits.h"
+#include "Globals.h"
 
 #include "Config.h"
 
@@ -34,14 +35,11 @@ static constexpr int16_t PIE_TOP = 54;    // fila superior del pie del Body
 // Constructor
 // ========================================================
 
-Credits::Credits(Display& display, Buttons& buttons, Sound& sound)
-  : _display(display),
-    _buttons(buttons),
-    _sound(sound),
-    _entry(1),
+Credits::Credits()
+  : _entry(1),
     _exit(false),
     _redraw(true),
-    _scroller(display, 2, BAND_HEIGHTS) {}
+    _scroller(2, BAND_HEIGHTS) {}
 
 // ========================================================
 // Inicialización (al entrar en la ventana)
@@ -72,23 +70,23 @@ void Credits::navigate() {
   uint8_t before = _entry;
   bool moved = false;
 
-  if (_buttons.pressed(Buttons::MOVE_LEFT) && _entry > 0) {
+  if (buttons.pressed(Buttons::MOVE_LEFT) && _entry > 0) {
     _entry--;
     moved = true;
   }
 
-  if (_buttons.pressed(Buttons::MOVE_RIGHT) && _entry < NUM_ENTRIES - 1) {
+  if (buttons.pressed(Buttons::MOVE_RIGHT) && _entry < NUM_ENTRIES - 1) {
     _entry++;
     moved = true;
   }
 
   if (moved) {
-    _sound.play(Sound::SFX_CLICK);
+    sound.play(Sound::SFX_CLICK);
     _scroller.startSlide((_entry > before) ? 1 : -1);
     Serial.printf("Credits: opcion %u -> %u\n", before, _entry);
   }
 
-  if (_buttons.actionUpPressed()) _exit = true;
+  if (buttons.actionUpPressed()) _exit = true;
 }
 
 // ========================================================
@@ -118,22 +116,22 @@ void Credits::drawBand(uint8_t slot, int16_t y, uint16_t fgColor,
 // ========================================================
 
 void Credits::print() {
-  int16_t w = _display.getWidth();
+  int16_t w = display.getWidth();
   int16_t bodyTop = (int16_t)Config::Screen::BODY_TOP;
-  int16_t roleH = _display.getTextHeight(TEXT_12x16);
+  int16_t roleH = display.getTextHeight(TEXT_12x16);
   int16_t roleY = bodyTop + (PIE_TOP - bodyTop - roleH) / 2;
 
   // Estáticos (solo al entrar, tras el clear() completo): título y el
   // cuadro blanco del rol. Se dibujan UNA sola vez; ya no se redibujan
   // en cada frame.
   if (_redraw) {
-    _display.clear();
+    display.clear();
 
     // Título de la ventana
-    _display.drawTextAligned("Credits", CENTER, TEXT_12x16, REGION_HEADER);
+    display.drawTextAligned("Credits", CENTER, TEXT_12x16, REGION_HEADER);
 
     // Rol: cuadro blanco de borde a borde (fijo), texto negro
-    _display.screen().fillRect(0, roleY - 1, w, roleH + 2, SSD1306_WHITE);
+    display.screen().fillRect(0, roleY - 1, w, roleH + 2, SSD1306_WHITE);
 
     _redraw = false;
   }

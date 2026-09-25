@@ -1,9 +1,8 @@
 #ifndef CREDITS_H
 #define CREDITS_H
 
-#include "Display.h"
-#include "Buttons.h"
-#include "Sound.h"
+#include <Arduino.h>
+
 #include "Scroller.h"
 
 class Credits {
@@ -16,10 +15,11 @@ public:
   static constexpr uint8_t NUM_ENTRIES = 3;
 
   // ========================================================
-  // Constructor
+  // Constructor (sin parámetros de servicios: usa los globales
+  // Display, Buttons y Sound — Globals.h)
   // ========================================================
 
-  Credits(Display& display, Buttons& buttons, Sound& sound);
+  Credits();
 
   // ========================================================
   // Inicialización (al entrar en la ventana)
@@ -46,14 +46,6 @@ public:
   bool done() const;
 
 private:
-
-  // ========================================================
-  // Dependencias
-  // ========================================================
-
-  Display& _display;
-  Buttons& _buttons;
-  Sound& _sound;
 
   // ========================================================
   // Estado

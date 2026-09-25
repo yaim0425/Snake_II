@@ -1,26 +1,27 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
-#include "Display.h"
-#include "Buttons.h"
 #include "Boot.h"
 #include "Menu.h"
 #include "Credits.h"
 #include "Game.h"
 #include "Legend.h"
-#include "Sound.h"
 
 // ========================================================
 // Engine — despachador de ventanas
 //
-// NO anida las partes del juego: cada ventana (Menu, Credits,
-// Game y Legend) es una clase independiente, construida en
-// Snake_II.ino y recibida aquí por referencia, igual que
-// Display y Buttons.
+// POSEE las ventanas: Boot, Menu, Credits, Game y Legend son
+// miembros propios (no globales, no anidadas entre sí). Cada
+// una es una clase independiente con el patrón
+// begin()/update()/print()/done() y usa los servicios globales
+// (Display, Buttons, Sound — ver Globals.h) directamente.
 //
 // Solo Engine conoce el estado (State): decide qué ventana se
 // ve (update()/print() despachan a la ventana activa) y, al
 // cambiar de estado, llama al begin() de la ventana entrante.
+// Como las ventanas son miembros y nadie más las referencia,
+// la regla "una ventana nunca conoce a las demás" queda
+// garantizada por el compilador.
 //
 // Las ventanas son instancias únicas que persisten entre
 // transiciones: sus valores se conservan (a menos que su
@@ -31,15 +32,13 @@ class Engine {
 public:
 
   // ========================================================
-  // Constructor (recibe las ventanas ya construidas y sin anidar)
+  // Constructor (no recibe nada: los servicios son globales)
   // ========================================================
 
-  Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
-         Credits& credits, Game& game, Legend& legend,
-         Sound& sound);
+  Engine();
 
   // ========================================================
-  // Inicialización (estado inicial: menú). Se llama desde setup().
+  // Inicialización (estado inicial: Boot). Se llama desde setup().
   // ========================================================
 
   void begin();
@@ -51,7 +50,7 @@ public:
   void update();
 
   // ========================================================
-  // Dibujar (limpia y dibuja solo la ventana activa)
+  // Dibujar (dibuja solo la ventana activa)
   // ========================================================
 
   void print();
@@ -86,19 +85,14 @@ private:
   void changeState(State newState);
 
   // ========================================================
-  // Dependencias (ventanas hermanas, comparten Display y Buttons)
+  // Ventanas (miembros propios: las posee Engine, ninguna es global)
   // ========================================================
 
-  Display& _display;
-  Buttons& _buttons;
-
-  Boot& _boot;
-  Menu& _menu;
-  Credits& _credits;
-  Game& _game;
-  Legend& _legend;
-
-  Sound& _sound;
+  Boot _boot;
+  Menu _menu;
+  Credits _credits;
+  Game _game;
+  Legend _legend;
 };
 
 #endif

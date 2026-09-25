@@ -3,9 +3,6 @@
 
 #include "Config.h"
 
-#include "Display.h"
-#include "Buttons.h"
-#include "Sound.h"
 #include "Scroller.h"
 
 class Menu {
@@ -26,10 +23,11 @@ public:
   };
 
   // ========================================================
-  // Constructor
+  // Constructor (sin parámetros de servicios: usa los globales
+  // Display, Buttons y Sound — Globals.h)
   // ========================================================
 
-  Menu(Display& display, Buttons& buttons, Sound& sound, uint16_t bestScore = 0,
+  Menu(uint16_t bestScore = 0,
        const char* version = "v0.1");
 
   // ========================================================
@@ -201,14 +199,6 @@ private:
   // paso es inmediato (pressed); al mantener, solo tras HOLD_REPEAT_DELAY ms
   // y luego un paso cada HOLD_REPEAT_TICK ms.
   bool holdRepeat(uint8_t button);
-
-  // ========================================================
-  // Dependencias
-  // ========================================================
-
-  Display& _display;
-  Buttons& _buttons;
-  Sound& _sound;
 
   // ========================================================
   // Estado

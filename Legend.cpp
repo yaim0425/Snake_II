@@ -1,4 +1,5 @@
 #include "Legend.h"
+#include "Globals.h"
 
 #include <Adafruit_GFX.h>
 #include <stdio.h>
@@ -17,11 +18,8 @@ const char* const Legend::BTN_FUNC[4] = {
 // Constructor
 // ========================================================
 
-Legend::Legend(Display& display, Buttons& buttons, Sound& sound)
-  : _display(display),
-    _buttons(buttons),
-    _sound(sound),
-    _exit(false),
+Legend::Legend()
+  : _exit(false),
     _selected(0),
     _setTime(0),
     _redraw(true),
@@ -54,18 +52,18 @@ void Legend::update() {
   // ACTION_DOWN/ACTION_LEFT (None) = SFX_CLICK
   bool exit = false;
 
-  if (_buttons.moveUpPressed() || _buttons.moveRightPressed() ||
-      _buttons.moveDownPressed() || _buttons.moveLeftPressed()) {
-    _sound.play(Sound::SFX_CLICK);
+  if (buttons.moveUpPressed() || buttons.moveRightPressed() ||
+      buttons.moveDownPressed() || buttons.moveLeftPressed()) {
+    sound.play(Sound::SFX_CLICK);
     exit = true;
-  } else if (_buttons.actionUpPressed()) {
-    _sound.play(Sound::SFX_BACK);
+  } else if (buttons.actionUpPressed()) {
+    sound.play(Sound::SFX_BACK);
     exit = true;
-  } else if (_buttons.actionRightPressed()) {
-    _sound.play(Sound::SFX_CONFIRM);
+  } else if (buttons.actionRightPressed()) {
+    sound.play(Sound::SFX_CONFIRM);
     exit = true;
-  } else if (_buttons.actionDownPressed() || _buttons.actionLeftPressed()) {
-    _sound.play(Sound::SFX_CLICK);
+  } else if (buttons.actionDownPressed() || buttons.actionLeftPressed()) {
+    sound.play(Sound::SFX_CLICK);
     exit = true;
   }
 
@@ -93,19 +91,19 @@ void Legend::update() {
 // ========================================================
 
 void Legend::print() {
-  Adafruit_SSD1306& s = _display.screen();
-  const int16_t w = _display.getWidth();
+  Adafruit_SSD1306& s = display.screen();
+  const int16_t w = display.getWidth();
 
   // Estáticos (una sola vez al entrar)
   if (_redraw) {
-    _display.clear();
+    display.clear();
 
     // Rótulo y pad MOVE (izquierda)
-    _display.drawText("Move", 18, SIGN_Y, TEXT_6x8);
+    display.drawText("Move", 18, SIGN_Y, TEXT_6x8);
     drawPad(PAD_MOVE_X);
 
     // Rótulo y rombos de ACTION (derecha): las posiciones de un pad
-    _display.drawText("Action", 78, SIGN_Y, TEXT_6x8);
+    display.drawText("Action", 78, SIGN_Y, TEXT_6x8);
     for (uint8_t i = 0; i < 4; i++) {
       int16_t cx;
       int16_t cy;
@@ -125,8 +123,8 @@ void Legend::print() {
     char buf[24];
     snprintf(buf, sizeof(buf), "%s: %s", BTN_NAME[_selected],
              BTN_FUNC[_selected]);
-    int16_t x = (int16_t)((w - _display.getTextWidth(buf, TEXT_6x8)) / 2);
-    _display.drawText(buf, x, PIE_TOP, TEXT_6x8);
+    int16_t x = (int16_t)((w - display.getTextWidth(buf, TEXT_6x8)) / 2);
+    display.drawText(buf, x, PIE_TOP, TEXT_6x8);
 
     _lastText = (int16_t)_selected;
   }
@@ -181,7 +179,7 @@ void Legend::drawPad(int16_t cx) {
 // ========================================================
 
 void Legend::drawArrow(uint8_t dir, int16_t cx, int16_t cy) {
-  Adafruit_SSD1306& s = _display.screen();
+  Adafruit_SSD1306& s = display.screen();
 
   const int16_t T = 4;   // altura de la punta
   const int16_t B = 5;   // media base
@@ -213,7 +211,7 @@ void Legend::drawArrow(uint8_t dir, int16_t cx, int16_t cy) {
 void Legend::drawDiamond(int16_t cx, int16_t cy, bool show) {
   if (!show) return;
 
-  Adafruit_SSD1306& s = _display.screen();
+  Adafruit_SSD1306& s = display.screen();
   const int16_t h = DIA_SIZE / 2;   // media altura / ancho medio
 
   // Rombo simétrico completo: punta superior (cy-h), hombros (cy), punta

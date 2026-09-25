@@ -1,5 +1,6 @@
 #include "esp32-hal.h"
 #include "Menu.h"
+#include "Globals.h"
 
 #include <stdio.h>
 
@@ -61,12 +62,8 @@ int8_t Menu::indexOfOption(Option option) const {
 // Constructor
 // ========================================================
 
-Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint16_t bestScore,
-           const char* version)
-  : _display(display),
-    _buttons(buttons),
-    _sound(sound),
-    _bestScore(bestScore),
+Menu::Menu(uint16_t bestScore, const char* version)
+  : _bestScore(bestScore),
     _version(version),
     _title("Snake II"),
     _showFooter(true),
@@ -83,7 +80,7 @@ Menu::Menu(Display& display, Buttons& buttons, Sound& sound, uint16_t bestScore,
     _editDifficulty(Config::Difficulty::DEFAULT),
     _repeatStart(0),
     _repeatLast(0),
-    _scroller(display, 1, nullptr) {}
+    _scroller(1, nullptr) {}
 
 // ========================================================
 // Inicialización
@@ -177,24 +174,24 @@ void Menu::update() {
     // En modo edición de sonido: la tecla indicada por la flecha (la del
     // destino) cambia el valor mostrado (ON/OFF) sin aplicarlo; solo se
     // aplica al confirmar (btn2).
-    if (_buttons.pressed(Buttons::MOVE_LEFT) && _soundEnabled) {
+    if (buttons.pressed(Buttons::MOVE_LEFT) && _soundEnabled) {
       // ON: la flecha "<" (MOVE_LEFT) apaga
       _soundEnabled = false;
-      _sound.play(Sound::SFX_CLICK);
+      sound.play(Sound::SFX_CLICK);
     }
-    if (_buttons.pressed(Buttons::MOVE_RIGHT) && !_soundEnabled) {
+    if (buttons.pressed(Buttons::MOVE_RIGHT) && !_soundEnabled) {
       // OFF: la flecha ">" (MOVE_RIGHT) enciende
       _soundEnabled = true;
-      _sound.play(Sound::SFX_CLICK);
+      sound.play(Sound::SFX_CLICK);
     }
-    if (_buttons.actionRightPressed()) {
+    if (buttons.actionRightPressed()) {
       // btn2 (Select): aplica el valor actual y vuelve al menú
-      _sound.setEnabled(_soundEnabled);
-      if (_soundEnabled) _sound.play(Sound::SFX_CONFIRM);
+      sound.setEnabled(_soundEnabled);
+      if (_soundEnabled) sound.play(Sound::SFX_CONFIRM);
       endSoundEdit();
-    } else if (_buttons.actionUpPressed()) {
+    } else if (buttons.actionUpPressed()) {
       // btn1 (Back): cancela sin cambiar el estado y vuelve al menú
-      _sound.play(Sound::SFX_BACK);
+      sound.play(Sound::SFX_BACK);
       endSoundEdit();
     }
   } else if (_editingDifficulty) {
@@ -204,33 +201,33 @@ void Menu::update() {
     // El valor mostrado cambia sin aplicarse; solo se aplica al confirmar.
     if (holdRepeat(Buttons::MOVE_RIGHT) && _editDifficulty < Config::Difficulty::MAX) {
       _editDifficulty++;
-      _sound.play(Sound::SFX_CLICK);
+      sound.play(Sound::SFX_CLICK);
     }
     if (holdRepeat(Buttons::MOVE_LEFT) && _editDifficulty > Config::Difficulty::MIN) {
       _editDifficulty--;
-      _sound.play(Sound::SFX_CLICK);
+      sound.play(Sound::SFX_CLICK);
     }
-    if (_buttons.actionRightPressed()) {
+    if (buttons.actionRightPressed()) {
       // btn2 (Select): aplica el valor y vuelve al menú
       _difficulty = _editDifficulty;
-      _sound.play(Sound::SFX_CONFIRM);
+      sound.play(Sound::SFX_CONFIRM);
       endDifficultyEdit();
-    } else if (_buttons.actionUpPressed()) {
+    } else if (buttons.actionUpPressed()) {
       // btn1 (Back): cancela sin cambiar el estado y vuelve al menú
-      _sound.play(Sound::SFX_BACK);
+      sound.play(Sound::SFX_BACK);
       endDifficultyEdit();
     }
   } else {
     navigate();
     // Al confirmar la opción "Dificultad" (btn2) se entra en modo edición
     // inline, igual que "Sound" (ver Engine).
-    if (_buttons.actionRightPressed() && optionAt(_selected) == OPT_DIFFICULTY) {
-      _sound.play(Sound::SFX_CLICK);
+    if (buttons.actionRightPressed() && optionAt(_selected) == OPT_DIFFICULTY) {
+      sound.play(Sound::SFX_CLICK);
       beginDifficultyEdit();
       return;
     }
-    if (_buttons.actionRightPressed() && optionAt(_selected) == OPT_SOUND) {
-      _sound.play(Sound::SFX_CLICK);
+    if (buttons.actionRightPressed() && optionAt(_selected) == OPT_SOUND) {
+      sound.play(Sound::SFX_CLICK);
       beginSoundEdit();
       return;
     }
@@ -247,18 +244,18 @@ void Menu::navigate() {
   bool moved = false;
 
   // Solo MOVE_LEFT y MOVE_RIGHT (primera y última no conectadas)
-  if (_buttons.pressed(Buttons::MOVE_LEFT) && _selected > 0) {
+  if (buttons.pressed(Buttons::MOVE_LEFT) && _selected > 0) {
     _selected--;
     moved = true;
   }
 
-  if (_buttons.pressed(Buttons::MOVE_RIGHT) && _selected < _optionCount - 1) {
+  if (buttons.pressed(Buttons::MOVE_RIGHT) && _selected < _optionCount - 1) {
     _selected++;
     moved = true;
   }
 
   if (moved) {
-    _sound.play(Sound::SFX_CLICK);
+    sound.play(Sound::SFX_CLICK);
     _scroller.compose(optionText(_selected), TEXT_12x16);
     _scroller.startSlide((_selected > before) ? 1 : -1);
     _holdStart = millis();
@@ -272,7 +269,7 @@ void Menu::navigate() {
 
 void Menu::beginSoundEdit() {
   _editingSound = true;
-  _soundEnabled = _sound.enabled();
+  _soundEnabled = sound.enabled();
 }
 
 void Menu::endSoundEdit() {
@@ -320,13 +317,13 @@ uint8_t Menu::difficulty() const {
 // ========================================================
 
 bool Menu::holdRepeat(uint8_t button) {
-  if (_buttons.pressed(button)) {
+  if (buttons.pressed(button)) {
     _repeatStart = millis();
     _repeatLast = millis();
     return true;
   }
 
-  if (_buttons.state(button)) {
+  if (buttons.state(button)) {
     uint32_t now = millis();
     if ((now - _repeatStart) >= HOLD_REPEAT_DELAY &&
         (now - _repeatLast) >= HOLD_REPEAT_TICK) {
@@ -356,13 +353,13 @@ bool Menu::holdRepeat(uint8_t button) {
 // ========================================================
 
 void Menu::drawSoundSelector() {
-  Adafruit_SSD1306& s = _display.screen();
+  Adafruit_SSD1306& s = display.screen();
 
   // Palabra centrada. En ambos estados mide lo mismo: "ON " lleva un
   // espacio final para emparejar el ancho con "OFF" (18 px).
   const char* label = (_soundEnabled) ? "ON " : "OFF";
-  int16_t labelW = _display.getTextWidth(label, TEXT_6x8);
-  int16_t labelX = (_display.getWidth() - labelW) / 2;
+  int16_t labelW = display.getTextWidth(label, TEXT_6x8);
+  int16_t labelX = (display.getWidth() - labelW) / 2;
 
   const int16_t yTop = DIA_TOP + 1;           // 46
   const int16_t yMid = DIA_TOP + DIA_SIZE / 2; // 49
@@ -387,7 +384,7 @@ void Menu::drawSoundSelector() {
     }
   }
 
-  _display.drawText(label, labelX, yTop, TEXT_6x8);
+  display.drawText(label, labelX, yTop, TEXT_6x8);
 }
 
 // ========================================================
@@ -411,15 +408,15 @@ void Menu::drawSoundSelector() {
 // ========================================================
 
 void Menu::drawDifficultySelector() {
-  Adafruit_SSD1306& s = _display.screen();
+  Adafruit_SSD1306& s = display.screen();
 
   // Número centrado con ancho constante ("13" / " 5" = 12 px)
   char buf[8];
   if (_editDifficulty < 10) sprintf(buf, " %u", _editDifficulty);
   else                      sprintf(buf, "%u", _editDifficulty);
 
-  int16_t labelW = _display.getTextWidth(buf, TEXT_6x8);
-  int16_t labelX = (_display.getWidth() - labelW) / 2;
+  int16_t labelW = display.getTextWidth(buf, TEXT_6x8);
+  int16_t labelX = (display.getWidth() - labelW) / 2;
 
   const int16_t yTop = DIA_TOP + 1;            // 46
   const int16_t yMid = DIA_TOP + DIA_SIZE / 2; // 49
@@ -432,9 +429,9 @@ void Menu::drawDifficultySelector() {
   // 25% de ARROW_BLINK_PERIOD ms) como siempre. Al llegar al límite (1 o
   // 25) el botón de ese lado ya no puede avanzar y se procesa igual que si
   // se hubiera soltado (vuelve el parpadeo normal, con el límite oculto).
-  bool leftHeld  = _buttons.state(Buttons::MOVE_LEFT) &&
+  bool leftHeld  = buttons.state(Buttons::MOVE_LEFT) &&
                    _editDifficulty > Config::Difficulty::MIN;
-  bool rightHeld = _buttons.state(Buttons::MOVE_RIGHT) &&
+  bool rightHeld = buttons.state(Buttons::MOVE_RIGHT) &&
                    _editDifficulty < Config::Difficulty::MAX;
 
   bool arrowsVisible =
@@ -459,7 +456,7 @@ void Menu::drawDifficultySelector() {
     }
   }
 
-  _display.drawText(buf, labelX, yTop, TEXT_6x8);
+  display.drawText(buf, labelX, yTop, TEXT_6x8);
 }
 
 // ========================================================
@@ -470,7 +467,7 @@ void Menu::drawDiamonds() {
   uint8_t n = _optionCount;
 
   for (uint8_t i = 0; i < n; i++) {
-    int16_t cx = (int16_t)((i + 1) * _display.getWidth()) / (n + 1);
+    int16_t cx = (int16_t)((i + 1) * display.getWidth()) / (n + 1);
     int16_t x = cx - DIA_SIZE / 2;
 
     if (i == _selected) {
@@ -481,7 +478,7 @@ void Menu::drawDiamonds() {
 
       // Rombo simétrico de 9 filas (45..53), como el alimento del juego:
       // punta superior 45, hombros 49, punta inferior 53 (visible)
-      Adafruit_SSD1306& s = _display.screen();
+      Adafruit_SSD1306& s = display.screen();
       s.fillTriangle(x + 4, DIA_TOP, x + 8, DIA_TOP + DIA_SIZE / 2,
                      x + 4, DIA_TOP + DIA_SIZE, SSD1306_WHITE);
       s.fillTriangle(x + 4, DIA_TOP, x, DIA_TOP + DIA_SIZE / 2,
@@ -491,7 +488,7 @@ void Menu::drawDiamonds() {
       // base en la 53 (sobre la línea de la 54), vértice en la 50
       int16_t baseY = DIA_TOP + DIA_SIZE;  // 53
       int16_t y = baseY - 3;               // 50
-      _display.screen().fillTriangle(x + 4, y, x, baseY, x + 8, baseY,
+      display.screen().fillTriangle(x + 4, y, x, baseY, x + 8, baseY,
                                      SSD1306_WHITE);
     }
   }
@@ -507,28 +504,28 @@ void Menu::print() {
   // de selección, header (título) y pie (línea + Best/versión). Se dibujan
   // UNA sola vez; ya no se borran ni se redibujan en cada frame.
   if (_redraw) {
-    _display.clear();
+    display.clear();
 
     // Cuadro de selección: fijo, de ancho completo
-    _display.screen().fillRect(0, BOX_TOP, _display.getWidth(), BOX_HEIGHT,
+    display.screen().fillRect(0, BOX_TOP, display.getWidth(), BOX_HEIGHT,
                                SSD1306_WHITE);
 
     // Header: título
-    _display.drawTextAligned(_title, CENTER, TEXT_12x16, REGION_HEADER);
+    display.drawTextAligned(_title, CENTER, TEXT_12x16, REGION_HEADER);
 
     // Pie del Body: línea separadora + texto (Best/versión), opcional
     // (cuando se oculta solo queda la línea que sostiene los rombos)
-    _display.screen().drawFastHLine(0, PIE_LINE_ROW, _display.getWidth(),
+    display.screen().drawFastHLine(0, PIE_LINE_ROW, display.getWidth(),
                                     SSD1306_WHITE);
     if (_showFooter) {
       char buf[16];
       sprintf(buf, "Best: %u", (unsigned)_bestScore);
 
-      TextPos tPos = _display.getTextPos(buf, LEFT_DOWN, TEXT_6x8, REGION_BODY);
-      _display.drawText(buf, tPos.x, PIE_TOP, TEXT_6x8);
+      TextPos tPos = display.getTextPos(buf, LEFT_DOWN, TEXT_6x8, REGION_BODY);
+      display.drawText(buf, tPos.x, PIE_TOP, TEXT_6x8);
 
-      TextPos vPos = _display.getTextPos(_version, RIGHT_DOWN, TEXT_6x8, REGION_BODY);
-      _display.drawText(_version, vPos.x, PIE_TOP, TEXT_6x8);
+      TextPos vPos = display.getTextPos(_version, RIGHT_DOWN, TEXT_6x8, REGION_BODY);
+      display.drawText(_version, vPos.x, PIE_TOP, TEXT_6x8);
     }
 
     _redraw = false;
@@ -543,18 +540,18 @@ void Menu::print() {
   if (_editingSound) {
     // Modo edición de sonido: la banda del selector (45..53) se borra y se
     // vuelve a dibujar en cada frame (la flecha parpadea; la palabra no).
-    _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),
+    display.screen().fillRect(0, DIA_TOP, display.getWidth(),
                                DIA_SIZE + 1, SSD1306_BLACK);
     drawSoundSelector();
   } else if (_editingDifficulty) {
     // Modo edición de dificultad: la banda del selector (45..53) se borra y
     // se vuelve a dibujar en cada frame (las flechas parpadean; el número no).
-    _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),
+    display.screen().fillRect(0, DIA_TOP, display.getWidth(),
                                DIA_SIZE + 1, SSD1306_BLACK);
     drawDifficultySelector();
   } else {
     // Solo se borra la banda de rombos (45..53), la única zona dinámica restante
-    _display.screen().fillRect(0, DIA_TOP, _display.getWidth(),
+    display.screen().fillRect(0, DIA_TOP, display.getWidth(),
                                DIA_SIZE + 1, SSD1306_BLACK);
     drawDiamonds();
   }
@@ -575,7 +572,7 @@ int8_t Menu::confirm() const {
   // Option): con "Continue" oculto la lista es 4 opciones y los índices
   // ya no coinciden con el enum, así el Engine compara con los mismos
   // valores (OPT_NEW/OPT_CONTINUE/OPT_CREDITS).
-  if (_buttons.actionRightPressed() &&
+  if (buttons.actionRightPressed() &&
       optionAt(_selected) != OPT_SOUND &&
       optionAt(_selected) != OPT_DIFFICULTY)
     return (int8_t)optionAt(_selected);

@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "Globals.h"
 
 #include "Sprite.h"
 
@@ -8,11 +9,8 @@
 // Constructor
 // ========================================================
 
-Game::Game(Display& display, Buttons& buttons, Sound& sound)
-  : _display(display),
-    _buttons(buttons),
-    _sound(sound),
-    _state(State::START),
+Game::Game()
+  : _state(State::START),
     _exit(false),
     _redraw(true),
     _redrawHeader(true),
@@ -27,7 +25,7 @@ Game::Game(Display& display, Buttons& buttons, Sound& sound)
     _newBest(false),
     _celeSfx(0),
     _snake(),
-    _food(display, Snake::COLS, Snake::ROWS, Config::Screen::BODY_TOP),
+    _food(Snake::COLS, Snake::ROWS, Config::Screen::BODY_TOP),
     _score(0),
     _bestScore(0) {}
 
@@ -129,11 +127,11 @@ void Game::update() {
       // agotarse el conteo (COUNTDOWN_MS). Al arrancar la partida
       // (después del "1") suena el jingle GO! (SFX_START).
       handleTurn();
-      if (_buttons.actionRightPressed()) {
-        _sound.play(Sound::SFX_START);
+      if (buttons.actionRightPressed()) {
+        sound.play(Sound::SFX_START);
         startPlay();
       } else if (millis() - _startMs >= COUNTDOWN_MS) {
-        _sound.play(Sound::SFX_START);
+        sound.play(Sound::SFX_START);
         startPlay();
       }
       break;
@@ -144,8 +142,8 @@ void Game::update() {
       // Btn2 (ACTION_RIGHT) = Select / Pause: al presionar durante la
       // partida se congela el tablero y se muestra el panel "PAUSA".
       // En PAUSE se retoma con el mismo botón (o ACTION_LEFT).
-      if (_buttons.actionRightPressed()) {
-        _sound.play(Sound::SFX_PAUSE);
+      if (buttons.actionRightPressed()) {
+        sound.play(Sound::SFX_PAUSE);
         _state = State::PAUSE;
         break;
       }
@@ -158,9 +156,9 @@ void Game::update() {
 
     case State::PAUSE: {
       // Reanudar con Btn2 (ACTION_RIGHT, "Select / Pause") o ACTION_LEFT
-      if (_buttons.pressed(Buttons::ACTION_RIGHT) ||
-          _buttons.pressed(Buttons::ACTION_LEFT)) {
-        _sound.play(Sound::SFX_RESUME);
+      if (buttons.pressed(Buttons::ACTION_RIGHT) ||
+          buttons.pressed(Buttons::ACTION_LEFT)) {
+        sound.play(Sound::SFX_RESUME);
         startPlay();
       }
       break;
@@ -168,8 +166,8 @@ void Game::update() {
 
     case State::GAME_OVER: {
       // Cualquier botón ACTION vuelve al menú
-      if (_buttons.actionUpPressed() || _buttons.actionRightPressed() ||
-          _buttons.actionDownPressed() || _buttons.actionLeftPressed()) {
+      if (buttons.actionUpPressed() || buttons.actionRightPressed() ||
+          buttons.actionDownPressed() || buttons.actionLeftPressed()) {
         _exit = true;
       }
       break;
@@ -181,7 +179,7 @@ void Game::update() {
   // Botón común "volver al menú" de todas las ventanas (ACTION_UP).
   // En GAME_OVER ya se manejó arriba. La partida NO se pierde:
   // "Continue" la reanuda en pausa.
-  if (_state != State::GAME_OVER && _buttons.actionUpPressed()) {
+  if (_state != State::GAME_OVER && buttons.actionUpPressed()) {
     _exit = true;
   }
 }
@@ -193,14 +191,14 @@ void Game::update() {
 // ========================================================
 
 void Game::handleTurn() {
-  if (_buttons.moveUpPressed()) {
-    if (_snake.turn(Snake::Dir::UP)) _sound.play(Sound::SFX_TURN);
-  } else if (_buttons.moveRightPressed()) {
-    if (_snake.turn(Snake::Dir::RIGHT)) _sound.play(Sound::SFX_TURN);
-  } else if (_buttons.moveDownPressed()) {
-    if (_snake.turn(Snake::Dir::DOWN)) _sound.play(Sound::SFX_TURN);
-  } else if (_buttons.moveLeftPressed()) {
-    if (_snake.turn(Snake::Dir::LEFT)) _sound.play(Sound::SFX_TURN);
+  if (buttons.moveUpPressed()) {
+    if (_snake.turn(Snake::Dir::UP)) sound.play(Sound::SFX_TURN);
+  } else if (buttons.moveRightPressed()) {
+    if (_snake.turn(Snake::Dir::RIGHT)) sound.play(Sound::SFX_TURN);
+  } else if (buttons.moveDownPressed()) {
+    if (_snake.turn(Snake::Dir::DOWN)) sound.play(Sound::SFX_TURN);
+  } else if (buttons.moveLeftPressed()) {
+    if (_snake.turn(Snake::Dir::LEFT)) sound.play(Sound::SFX_TURN);
   }
 }
 
@@ -227,7 +225,7 @@ void Game::step() {
     // del momento de comer (no el de arranque).
     _score += _difficulty;
     _redrawHeader = true;
-    _sound.play(Sound::SFX_EAT);
+    sound.play(Sound::SFX_EAT);
     // Si el tablero quedó lleno, spawn devuelve false y se muere abajo
     if (!_food.spawn(Food::Type::NORMAL, *this)) {
       die();
@@ -257,7 +255,7 @@ void Game::die() {
   _gameOverMs = millis();
   _celeSfx = 0;
   _redrawHeader = true;
-  _sound.play(Sound::SFX_GAME_OVER);
+  sound.play(Sound::SFX_GAME_OVER);
   _dirtyBoard = true;
 }
 
@@ -276,7 +274,7 @@ bool Game::occupied(uint8_t x, uint8_t y) const {
 // ========================================================
 
 void Game::drawSprite(Sprite::Part part, uint8_t x, uint8_t y) {
-  Adafruit_SSD1306& s = _display.screen();
+  Adafruit_SSD1306& s = display.screen();
   int16_t baseX = (int16_t)x * 8;
   int16_t baseY = Config::Screen::BODY_TOP + (int16_t)y * 8;
 
@@ -316,12 +314,12 @@ void Game::drawHeader() {
 
   // Puntuación actual, esquina superior izquierda (NO se mueve)
   snprintf(buf, sizeof(buf), "%u", (unsigned)_score);
-  _display.drawText(buf, 0, 0, TEXT_12x16);
+  display.drawText(buf, 0, 0, TEXT_12x16);
 
   // Segundos restantes de la comida especial, a la derecha
   snprintf(buf, sizeof(buf), "%u", (unsigned)_food.specialTime());
-  int16_t w = _display.getTextWidth(buf, TEXT_12x16);
-  _display.drawText(buf, _display.getWidth() - w, 0, TEXT_12x16);
+  int16_t w = display.getTextWidth(buf, TEXT_12x16);
+  display.drawText(buf, display.getWidth() - w, 0, TEXT_12x16);
 }
 
 // ========================================================
@@ -331,19 +329,19 @@ void Game::drawHeader() {
 // ========================================================
 
 void Game::drawOverlay(const char* title, bool fullWidth) {
-  Adafruit_SSD1306& s = _display.screen();
-  int16_t w = _display.getTextWidth(title, TEXT_12x16);
-  int16_t h = _display.getTextHeight(TEXT_12x16);
-  int16_t x = (_display.getWidth() - w) / 2;
+  Adafruit_SSD1306& s = display.screen();
+  int16_t w = display.getTextWidth(title, TEXT_12x16);
+  int16_t h = display.getTextHeight(TEXT_12x16);
+  int16_t x = (display.getWidth() - w) / 2;
   int16_t bandH = h + 2;   // banda: 2 px sobre el texto, 0 debajo
-  int16_t y = Config::Screen::BODY_TOP + (_display.getHeight() - Config::Screen::BODY_TOP - bandH) / 2 + 2;
+  int16_t y = Config::Screen::BODY_TOP + (display.getHeight() - Config::Screen::BODY_TOP - bandH) / 2 + 2;
 
   if (fullWidth) {
-    s.fillRoundRect(0, y - 2, _display.getWidth(), bandH, 0, SSD1306_WHITE);
+    s.fillRoundRect(0, y - 2, display.getWidth(), bandH, 0, SSD1306_WHITE);
   } else {
     s.fillRoundRect(x - 4, y - 2, w + 6, bandH, 0, SSD1306_WHITE);
   }
-  _display.drawTextInverted(title, x, y, TEXT_12x16);
+  display.drawTextInverted(title, x, y, TEXT_12x16);
 }
 
 // ========================================================
@@ -376,7 +374,7 @@ uint16_t Game::speedFor(uint8_t level) const {
 void Game::print() {
   // Primer frame tras begin(): clear() completo + redibujar todo
   if (_redraw) {
-    _display.clear();
+    display.clear();
     _redraw = false;
     _dirtyBoard = true;
     _redrawHeader = true;
@@ -384,15 +382,15 @@ void Game::print() {
 
   // Header: solo cuando el puntaje o el récord cambió
   if (_redrawHeader) {
-    _display.screen().fillRect(0, 0, _display.getWidth(), Config::Screen::BODY_TOP, SSD1306_BLACK);
+    display.screen().fillRect(0, 0, display.getWidth(), Config::Screen::BODY_TOP, SSD1306_BLACK);
     drawHeader();
     _redrawHeader = false;
   }
 
   // Tablero: solo cuando algo cambió
   if (_dirtyBoard) {
-    _display.screen().fillRect(0, Config::Screen::BODY_TOP, _display.getWidth(),
-                               _display.getHeight() - Config::Screen::BODY_TOP, SSD1306_BLACK);
+    display.screen().fillRect(0, Config::Screen::BODY_TOP, display.getWidth(),
+                               display.getHeight() - Config::Screen::BODY_TOP, SSD1306_BLACK);
     if (_food.has()) _food.draw();
     drawSnake();
     _dirtyBoard = false;
@@ -416,7 +414,7 @@ void Game::print() {
       // (incluido el "3" inicial: _lastCount arranca en 0xFF)
       if (n != _lastCount) {
         _lastCount = n;
-        _sound.play(Sound::SFX_TICK);
+        sound.play(Sound::SFX_TICK);
       }
 
       if (pos >= seg - COUNT_HIDE_MS) {
@@ -455,7 +453,7 @@ void Game::print() {
             drawOverlay("YOU ARE", true);
             break;
           default:
-            if (!(_celeSfx & 0x01)) { _celeSfx |= 0x01; _sound.play(Sound::SFX_NEW_BEST); }
+            if (!(_celeSfx & 0x01)) { _celeSfx |= 0x01; sound.play(Sound::SFX_NEW_BEST); }
             drawOverlay("THE BEST", true);
             break;
         }

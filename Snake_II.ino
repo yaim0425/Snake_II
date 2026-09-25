@@ -1,66 +1,55 @@
 // ====================================================================================
 // SNAKE II — Enlace de dependencias (wiring)
 //
-// Este archivo construye TODAS las clases y las inicia en setup():
+// Este archivo define los SERVICIOS GLOBALES (hardware) y crea el Engine:
 //   - Display y Buttons: hardware (I2C del OLED y pines de los botones).
-//   - Boot, Menu, Credits, Game, Legend: ventanas independientes
-//     (hermanas, no anidadas), instancias únicas para todo el juego. Sus
-//     begin() los llama Engine al entrar en cada estado, y entre transiciones
-//     sus valores se conservan.
-//   - Engine: despachador puro. Su estado interno decide qué ventana se ve;
-//     loop() solo llama engine.update() y engine.print().
+//   - Buzzer y Sound: sonido (Buzzer antes que Sound: orden de dependencia).
+//     Declarados extern en Globals.h; definidos aquí, en el mismo archivo y
+//     en orden de dependencia.
+//   - Engine: despachador puro que POSEE las ventanas (Boot, Menu, Credits,
+//     Game, Legend) como miembros. En Snake_II.ino ya NO hay ventanas
+//     globales: son internas de Engine.
 //
-// La clase Engine está en Engine.h / Engine.cpp.
+// setup() inicia el hardware y luego engine.begin() (entra al primer
+// estado, Boot); loop() hace la única lectura de botones del frame
+// (buttons.read()) y llama engine.update(), engine.print(), sound.update()
+// y display.show().
 // ====================================================================================
 
 #include "Config.h"
-#include "Display.h"
-#include "Buttons.h"
-#include "Boot.h"
-#include "Menu.h"
-#include "Credits.h"
-#include "Game.h"
-#include "Legend.h"
-#include "Buzzer.h"
-#include "Sound.h"
+#include "Globals.h"
 #include "Engine.h"
 
 #include <Arduino.h>
 
 // ====================================================================================
-// Instancias únicas (construidas antes de setup(), iniciadas en setup())
+// Servicios globales (hardware), compartidos por todas las clases.
+// Definidos aquí (no en un .cpp aparte) y en ORDEN DE DEPENDENCIA
+// (buzzer antes que sound): al vivir todos en esta misma unidad de
+// traducción se garantiza su orden de construcción y que Sound(buzzer)
+// ya encuentre al Buzzer construido.
 // ====================================================================================
 
-// Hardware
 Display display;
-
-// Entrada
 Buttons buttons(Config::Pin::BUTTONS);
+Buzzer  buzzer;
+Sound   sound(buzzer);
 
-// Sonido: Buzzer (hardware, un tono no bloqueante) + Sound
-// (secuencias de los efectos del juego). El estado On/Off se
-// edita inline en el menú (ver Menu::beginSoundEdit); Sound se
-// usa en el menú y en las transiciones del Engine.
-Buzzer buzzer;
-Sound sound(buzzer);
+// ====================================================================================
+// Despachador: posee las ventanas (Boot, Menu, Credits, Game, Legend) y
+// decide cuál se ve según su estado. Su constructor no recibe nada: las
+// ventanas usan los servicios globales directamente.
+// ====================================================================================
 
-// Ventanas: clases independientes (hermanas, compartidas por referencia).
-// Persisten entre estados: sus valores se conservan.
-Boot boot(display, buttons);
-Menu menu(display, buttons, sound, 0, "v0.1");
-Credits credits(display, buttons, sound);
-Game game(display, buttons, sound);
-Legend legend(display, buttons, sound);
+Engine engine;
 
-// Despachador: recibe las ventanas y decide cuál se ve según su estado.
-Engine engine(display, buttons, boot, menu, credits, game, legend, sound);
-
+// ====================================================================================
+// Inicialización: hardware + primera transición (Boot)
 // ====================================================================================
 
 void setup() {
   Serial.begin(115200);
 
-  // Iniciar hardware y entrar al primer estado (menú -> menu.begin())
   display.begin();
   buttons.begin();
   buzzer.begin();
@@ -70,6 +59,8 @@ void setup() {
   Serial.println("Snake II");
 }
 
+// ====================================================================================
+// Bucle principal
 // ====================================================================================
 
 void loop() {

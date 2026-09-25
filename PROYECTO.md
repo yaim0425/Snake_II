@@ -37,7 +37,10 @@ D:\Documents\ESP32S3\Snake_II.
 ## 1. Estado actual del proyecto
 
 En desarrollo por partes. La clase `Display` está completa. `Snake_II.ino` es el
-**enlace de dependencias (wiring)**: construye TODAS las clases y las inicia en
+**enlace de dependencias (wiring)**: define los **servicios globales** (`Display`,
+`Buttons`, `Buzzer`, `Sound`; declarados `extern` en `Globals.h`, sección 20) y
+crea el `Engine`, que **posee las ventanas como miembros** (`Boot`, `Legend`,
+`Menu`, `Credits`, `Game` — no son globales). Todos los `begin()` se inician en
 `setup()`.
 
 Las **constantes verdaderamente compartidas** viven en un solo `Config.h`
@@ -48,16 +51,20 @@ constantes propias como `static constexpr` (p. ej. `ANIM_TICK` en `Scroller`,
 `NEW_BEST_SIGN_MS` en `Game`, `ARROW_BLINK_PERIOD` en `Menu`).
 
 Arquitectura:
-- **Ventanas hermanas (no anidadas):** `Boot`, `Legend`, `Menu`, `Credits` y
-  `Game` son clases independientes, instancias únicas creadas
-  en `Snake_II.ino` (como `Display`, `Buttons`, `Buzzer` y `Sound`) y compartidas
-  por referencia. Sus valores persisten entre transiciones.
-- **`Engine` = despachador puro:** recibe las ventanas por referencia y NO las
-  anida. Su estado interno decide qué ventana se ve; al cambiar de estado llama al
-  `begin()` de la ventana entrante. `setup()` llama `display.begin()`,
-  `buttons.begin()` y `engine.begin()`; `loop()` hace la **única lectura de botones
-  del frame** (`buttons.read()`, antes de `engine.update()`) y luego llama
-  `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`.
+- **Ventanas dentro de `Engine` (no globales):** `Boot`, `Legend`, `Menu`,
+  `Credits` y `Game` son clases independientes (hermanas, no anidadas entre sí)
+  pero **miembros del `Engine`**: ninguna otra clase puede llamarlas, y la regla
+  "una ventana nunca conoce a las demás" queda garantizada por el compilador.
+  Solo los **servicios de hardware** (`Display`, `Buttons`, `Buzzer` y `Sound`)
+  son globales (`Globals.h`). Sus valores persisten entre transiciones (los
+  `begin()` solo reinician lo necesario).
+- **`Engine` = despachador puro:** posee las ventanas como miembros (no las
+  anida). Su estado interno decide qué ventana se ve; al cambiar de estado llama
+  al `begin()` de la ventana entrante. `setup()` llama `display.begin()`,
+  `buttons.begin()`, `buzzer.begin()`, `sound.begin()` y `engine.begin()`;
+  `loop()` hace la **única lectura de botones del frame** (`buttons.read()`, antes
+  de `engine.update()`) y luego llama `engine.update()`, `engine.print()`,
+  `sound.update()` y `display.show()`.
 - **Renderizado sin `clear()` global:** `Engine::print()` ya **no** limpia la
   pantalla. Cada ventana hace `display.clear()` **solo en su primer frame** tras
   su `begin()` y luego no vuelve a borrar lo estático: dibuja su fondo una sola
@@ -83,7 +90,8 @@ Arquitectura:
   `git show <commit>:GameBuzzer.h`).
 
 La clase `Engine` (despachador de ventanas, antes `App`) está separada del `.ino`
-en `Engine.h` / `Engine.cpp`, y recibe las ventanas **sin anidarlas**.
+en `Engine.h` / `Engine.cpp`, y **posee las ventanas** (miembros, no globales,
+sin anidarlas).
 
 También se incorporó `Sprite.h` (antes `SnakeSprites.h`, adaptada al estilo del
 proyecto, sección
@@ -159,6 +167,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 |---------|-----------|
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
 | `Config.h` | Constantes compartidas del proyecto (namespace `Config`, sección 19): pines (`Config::Pin`: botones, buzzer, SDA/SCL), geometría y regiones de la pantalla (`Config::Screen`: 128×64, celda 8, dirección I2C, Header/Body) y límites de la dificultad (`Config::Difficulty`: MIN/MAX/DEFAULT). Solo lo verdaderamente compartido; el resto es `static constexpr` en su clase. Sin `#define` para valores (constantes con tipo y ámbito). |
+| `Globals.h` | Declara `extern` los **servicios globales**: `Display display;`, `Buttons buttons;`, `Buzzer buzzer;` y `Sound sound;` (definidos en `Snake_II.ino`, sección 20). No define las ventanas: esas viven dentro de `Engine`. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
 | `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: Back, Select / Pause, None, None; cualquier botón la cierra con un sonido según el botón pulsado: MOVE = CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM). Completa. |
@@ -168,8 +177,8 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Game.h` / `Game.cpp` | Clase `Game` (ventana del juego de la serpiente: estados NEW/CONTINUE del `Engine`). **Coordina**: dificultad/velocidad, lectura de botones (MOVE → `Snake::turn`), `snake.step()` con manejo del resultado, alimento (`Food`), puntaje, sonidos, overlays y volcado del tablero con los segmentos de `Snake`. Completa. |
 | `Food.h` / `Food.cpp` | Clase `Food` (alimento del tablero, extraído de `Game`): estado (posición, presencia, tipo normal/especial), generación en celdas libres (`spawn`, que consulta la ocupación al tablero vía `Game::occupied`), dibujo del rombo (normal) o del sprite `SPECIAL_FOOD` (especial) y el temporizador de la comida especial. Completa. |
 | `Snake.h` / `Snake.cpp` | Clase `Snake` (lógica pura de la serpiente, extraída de `Game`): buffer circular de segmentos, dirección commitida + giro pendiente (sin reversa directa), paso con wrap, colisión, comer/crecer y elección de sprites de las partes. **Sin `Display`/`Sound`/`Food`**: `Game` coordina el ritmo, el alimento, los sonidos y el dibujo. Completa. |
-| `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas**: las recibe por referencia y su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Todos los `begin()` se lanzan desde `setup()`. Completa. |
-| `Snake_II.ino` | Enlace de dependencias (wiring). Construye TODAS las clases: `Display`, `Buttons` y las ventanas hermanas `Boot`/`Legend`/`Menu`/`Credits`/`Game` (compartidas por referencia, valores conservados). Crea `Engine` con esas referencias; `setup()` llama `display.begin()`, `buttons.begin()` y `engine.begin()`; `loop()` hace la **única lectura de botones del frame** (`buttons.read()`) y llama `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`. |
+| `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas** pero las **posee como miembros** (`_boot`, `_menu`, `_credits`, `_game`, `_legend`): su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Los `begin()` de las ventanas se lanzan desde `setup()` vía `engine.begin()`. Completa. |
+| `Snake_II.ino` | Enlace de dependencias (wiring). Define los **servicios globales** (`display`, `buttons`, `buzzer`, `sound`) en orden de dependencia (`buzzer` antes que `sound`) y crea `Engine engine;` (que posee las ventanas). `setup()` llama `display.begin()`, `buttons.begin()`, `buzzer.begin()`, `sound.begin()` y `engine.begin()`; `loop()` hace la **única lectura de botones del frame** (`buttons.read()`) y llama `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`. |
 | `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). Completa. |
 | `Sound.h` / `Sound.cpp` | Clase `Sound` (secuencias de los efectos del juego sobre `Buzzer`, con `setEnabled` para silenciar). Completa. |
 | `Sprite.h` | Namespace `Sprite` (tabla de sprites de la serpiente, estilo Nokia: cola, cuerpo, curvas, cabeza cerrada/abierta y panza; sprites de 4×4 px + sprite de la comida especial de 8×4 px). Solo datos (header-only, sin `.cpp`). Adaptada al estilo del proyecto. |
@@ -177,6 +186,16 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 
 Nota: Arduino solo compila el `.ino` del sketch. El respaldo quedó como `.txt`
 para que no interfiera en la compilación.
+
+Nota (refactor de servicios globales): desde esta tarea las clases nuestras ya no
+reciben `Display`/`Buttons`/`Sound`/`Buzzer` por constructor — las usan
+directamente vía `Globals.h` (que se incluye solo en los `.cpp`, no en los
+`.h`). `Sound` conserva su `Buzzer&` (bind en el `.ino`, que garantiza el orden
+`buzzer` antes que `sound` en la misma TU). Se mantienen constructor los
+parámetros de configuración: `Menu(bestScore, version)`, `Credits()`,
+`Scroller(bands, bandHeights)` y `Food(cols, rows, top)` (y `Game()`/`Boot()`/
+`Legend()` quedan sin parámetros). El constructor propio de cada ventana está
+documentado en su sección.
 
 ---
 
@@ -306,6 +325,13 @@ size=3 -> texto 18x24    -> cuadro  (18+6) x (24+2) = 24x26
   los estados
   del `Engine` `NEW`/`CONTINUE`/`CREDITS`). Los comentarios y la documentación (`PROYECTO.md`)
   se mantienen en español (convención del proyecto).
+- **Servicios globales, ventanas internas:** `Display`, `Buttons`, `Buzzer` y
+  `Sound` son los únicos **globales** (`Globals.h`: `extern`, definidos en
+  `Snake_II.ino` en orden de dependencia —`buzzer` antes que `sound`— para no
+  depender del orden de inicialización entre archivos y permitir que `Scroller`/`Food`
+  consulten `display.getWidth()` al construir `Engine`). Las **ventanas no son
+  globales**: viven dentro de `Engine` (sección 11), así ninguna clase puede
+  llamarlas por fuera del despachador.
 
 ---
 
@@ -381,8 +407,12 @@ Ubicación: `Menu.h` / `Menu.cpp`.
 ### Constructor
 
 ```cpp
-Menu(Display& display, Buttons& buttons, Sound& sound, uint16_t bestScore = 0, const char* version = "v0.1");
+Menu(uint16_t bestScore = 0, const char* version = "v0.1");
 ```
+
+Los servicios `Display`, `Buttons` y `Sound` son globales (sección 20); quedan
+como parámetros solo los datos de configuración. El `Scroller` interno se
+construye con `_scroller(1, nullptr)` en la lista de inicialización.
 
 ### Métodos
 
@@ -543,8 +573,10 @@ Ubicación: `Boot.h` / `Boot.cpp`.
 ### Constructor
 
 ```cpp
-Boot(Display& display, Buttons& buttons);
+Boot();
 ```
+
+Sin parámetros: usa los servicios globales `Display` y `Buttons` (sección 20).
 
 ### Métodos
 
@@ -583,8 +615,11 @@ Ubicación: `Legend.h` / `Legend.cpp`.
 ### Constructor
 
 ```cpp
-Legend(Display& display, Buttons& buttons, Sound& sound);
+Legend();
 ```
+
+Sin parámetros: usa los servicios globales `Display`, `Buttons` y `Sound`
+(sección 20).
 
 ### Métodos
 
@@ -728,9 +763,10 @@ el estado `SONIDO` ni recibe `SoundWindow`.
 ## 11. Clase `Engine` — despachador de ventanas
 
 Separada del `.ino` en `Engine.h` / `Engine.cpp` (antes `App`). **No anida las
-ventanas**: `Boot`, `Legend`, `Menu`, `Credits`, `Game`
-son clases independientes, instancias únicas creadas en `Snake_II.ino` y pasadas a
-`Engine` por referencia, igual que `Display` y `Buttons`.
+ventanas** pero las **posee como miembros**: `Boot`, `Legend`, `Menu`, `Credits`,
+`Game` son clases independientes (hermanas) declaradas como miembros `_boot`,
+`_menu`, `_credits`, `_game`, `_legend`. No son globales ni reciben las
+ventanas por referencia.
 
 ### Responsabilidad
 
@@ -743,20 +779,27 @@ de la ventana entrante). `loop()` no participa en las transiciones: solo llama a
 ### Constructor
 
 ```cpp
-Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
-       Credits& credits, Game& game, Legend& legend,
-       Sound& sound);
+Engine();
 ```
+
+Sin parámetros: los servicios (`Display`, `Buttons`, `Sound`) los consume como
+globales (sección 20) y las ventanas son sus propios miembros. En `Snake_II.ino`
+los globales se definen **antes** de `Engine engine;`, así los constructores de
+los miembros (p. ej. `Scroller`/`Food` que consultan `display.getWidth()`) ven
+los globales ya construidos (misma TU, orden de definición).
 
 ### Reglas de esta arquitectura
 
 1. **Todas las clases se inician en `setup()`** y se usan en `loop()`/`Engine`.
-   Los constructores son livianos (solo guardan referencias); el trabajo real va
+   Los constructores son livianos (los de las ventanas ya no guardan
+   referencias: usan los servicios globales); el trabajo real va
    en `begin()`/`update()`. Los `begin()` de las ventanas los llama `changeState()`
    al entrar (la primera se lanza dentro de `setup()` vía `engine.begin()`).
-2. **No se anidan las partes del juego:** `Juego` NO va dentro de `Menu` ni de
-   `Engine`. Cada ventana es una clase propia con el patrón
-   `begin()/update()/print()/done()`; `Engine` solo las despacha.
+2. **Las ventanas NO se anidan entre sí, el `Engine` las posee:** cada ventana es
+   una clase propia con el patrón `begin()/update()/print()/done()` (no código
+   inline dentro de `Engine`), y `Engine` solo las despacha. Desde el refactor de
+   servicios globales son **miembros del `Engine`** (no globales): ninguna otra
+   clase puede invocarlas.
 3. **El estado determina qué se ve** (solo `Engine` conoce `State`) **y los valores
    se conservan**: las ventanas son instancias persistentes (hermanas, no se
    recrean), así sus miembros sobreviven entre transiciones; el `begin()` solo
@@ -898,8 +941,9 @@ bit** y la desliza lateralmente sobre **N bandas sincronizadas** (todas usan el
 - **Constantes:** `STRIP_W = 128` (ancho de pantalla), `STRIP_H = 16` (máx.
   altura de texto 12x16), `ANIM_TICK = 4` ms por píxel (vuelo ≈ 0,5 s),
   `CHIP_TEXT = 1` / `CHIP_BG = 255`.
-- **Constructor:** `Scroller(Display& display, uint8_t bands = 1,
-  const uint8_t* bandHeights = nullptr)`. Asigna en heap los arrays de altos y
+- **Constructor:** `Scroller(uint8_t bands = 1,
+  const uint8_t* bandHeights = nullptr)`. Usa la `Display` global (sección 20);
+  asigna en heap los arrays de altos y
   de canvas de banda (**NOTA:** no hay constructor por defecto de `GFXcanvas8`
   en Adafruit_GFX, y la copia implícita es peligrosa; por eso `_chipBox` es
   `GFXcanvas8**`). Como reserva memoria con `new`, la copia está **bloqueada**
@@ -994,8 +1038,12 @@ que `Snake` expone (`length`/`segment`/`headPart`).
 ### Constructor
 
 ```cpp
-Game(Display& display, Buttons& buttons, Sound& sound);
+Game();
 ```
+
+Sin parámetros: consume los servicios globales (`Display`, `Buttons`, `Sound`,
+sección 20). Los miembros `_food`, `Snake _snake;` y `Menu`-independientes se
+construyen solos en su lista de inicialización.
 
 ### Constantes
 
@@ -1129,12 +1177,13 @@ por `Game` (miembro `_food`).
 ### Constructor
 
 ```cpp
-Food(Display& display, uint8_t cols, uint8_t rows, uint8_t top);
+Food(uint8_t cols, uint8_t rows, uint8_t top);
 ```
 
-Recibe la `Display` (para dibujar) y la geometría del tablero: rejilla de
+Recibe la geometría del tablero (dibuja con la `Display` global, sección 20):
+rejilla de
 `cols`×`rows` celdas de 8 px a partir de la fila `top` (el Body). `Game` la
-construye así: `_food(display, Snake::COLS, Snake::ROWS, Config::Screen::BODY_TOP)` (las
+construye así: `_food(Snake::COLS, Snake::ROWS, Config::Screen::BODY_TOP)` (las
 constantes del tablero viven en `Snake`).
 
 ### Enum y constantes
@@ -1164,7 +1213,7 @@ static constexpr uint8_t SPECIAL_TIME_DEFAULT = 60;   // segundos iniciales de l
 | `void draw() const` | Dibuja según el tipo: `NORMAL` → rombo (`drawNormal`, dos `fillTriangle`); `SPECIAL` → sprite (`drawSpecial`, píxel a píxel del sprite de 1 bit). Si no hay alimento no dibuja nada. |
 
 `Game` usa `_food` así: lo genera en `reset()` y al comer (`_food.spawn(Food::Type::NORMAL, *this)`; si devuelve `false` se muere), consulta `_food.has()/_food.x()/_food.y()` para detectar comida y boca abierta, dibuja `_food.draw()` al volcar el tablero y muestra `_food.specialTime()` en el Header. La construye en su lista de inicialización:
-`_food(display, Snake::COLS, Snake::ROWS, Config::Screen::BODY_TOP)` (las constantes del tablero viven en `Snake`, sección 18).
+`_food(Snake::COLS, Snake::ROWS, Config::Screen::BODY_TOP)` (las constantes del tablero viven en `Snake`, sección 18).
 
 ---
 
@@ -1316,3 +1365,42 @@ Las regiones `HEADER_TOP/H` y `BODY_TOP/H` reemplazan las constantes repetidas
 Los `static constexpr` de esas clases se eliminaron; solo `Boot` conserva sus
 constantes propias (`BAR_W`, `BAR_SPACING`, `ANIM_TICK`, `TOTAL_MS`), que son de
 su animación.
+
+---
+
+## 20. `Globals.h` — servicios globales
+
+Ubicación: `Globals.h`. Declara con `extern` los **servicios de hardware** que
+comparten todas las clases nuestras. Desde este refactor las clases ya no reciben
+los servicios por constructor (ver secciones 3, 6 y 11): el único lugar donde se
+**instancian** es `Snake_II.ino`.
+
+```cpp
+// Globals.h
+#pragma once
+
+#include "Display.h"
+#include "Buttons.h"
+#include "Buzzer.h"
+#include "Sound.h"
+
+extern Display display;
+extern Buttons buttons;
+extern Buzzer  buzzer;
+extern Sound   sound;
+```
+
+### Reglas
+
+1. **Se instancian solo en `Snake_II.ino`**, en orden de dependencia (`buzzer`
+   antes que `sound`, porque `Sound` guarda `Buzzer&`). Como todo está en la
+   misma TU y en ese orden, el `Engine` (declarado al final) se construye sobre
+   globales ya construidos: los miembros `Scroller` (`display.getWidth()`) y
+   `Food` son seguros. **No** se usa `static order/fiasco` ni factories: el
+   orden de definición basta.
+2. **Solo las clases de servicio son globales.** Las **ventanas** (`Boot`,
+   `Legend`, `Menu`, `Credits`, `Game`) NO: son miembros del `Engine` (sección
+   11) y por eso no aparecen aquí.
+3. **`Globals.h` se incluye solo desde los `.cpp`** (las cabeceras no lo
+   incluyen): evita acoplar los `.h` al global y mantiene el orden de includes
+   predecible. Un `.cpp` que usa un servicio global debe incluir `Globals.h`.

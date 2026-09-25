@@ -1,14 +1,13 @@
 #include "Scroller.h"
+#include "Globals.h"
 
 // ========================================================
 // Constructor: reserva los canvas de cada banda y los de la
-// tira/compositor
+// tira/compositor (usa la Display global)
 // ========================================================
 
-Scroller::Scroller(Display& display, uint8_t bands,
-                   const uint8_t* bandHeights)
-  : _display(display),
-    _bands((bands == 0) ? 1 : bands),
+Scroller::Scroller(uint8_t bands, const uint8_t* bandHeights)
+  : _bands((bands == 0) ? 1 : bands),
     _bandHeights(new uint8_t[bands == 0 ? 1 : bands]),
     _chipBox(new GFXcanvas8*[bands == 0 ? 1 : bands]),
     _composer(display.getWidth(), STRIP_H),
@@ -50,8 +49,8 @@ void Scroller::begin() {
 // ========================================================
 
 void Scroller::compose(const char* text, uint8_t size) {
-  int16_t x0 = (int16_t)((_display.getWidth() -
-                          _display.getTextWidth(text, size)) / 2);
+  int16_t x0 = (int16_t)((display.getWidth() -
+                          display.getTextWidth(text, size)) / 2);
 
   _composer.fillScreen(CHIP_BG);
   _composer.setTextSize(size);
@@ -78,8 +77,8 @@ void Scroller::compose(const char* text, uint8_t size) {
 
 void Scroller::startSlide(int8_t dir) {
   _dir = dir;
-  _slideX = (_dir > 0) ? (int16_t)_display.getWidth()
-                       : -(int16_t)_display.getWidth();
+  _slideX = (_dir > 0) ? (int16_t)display.getWidth()
+                       : -(int16_t)display.getWidth();
   _colAcc = 0;
   _animLast = millis();
 }
@@ -116,7 +115,7 @@ void Scroller::animate() {
 
 void Scroller::slideStrip(GFXcanvas8& chipBox, uint8_t h) {
   for (uint8_t r = 0; r < h; r++) {
-    for (uint16_t sx = 0; sx < (uint16_t)_display.getWidth(); sx++) {
+    for (uint16_t sx = 0; sx < (uint16_t)display.getWidth(); sx++) {
       int16_t sc = (int16_t)sx - _slideX;   // columna de la matriz (borde izq. = _slideX)
       if (sc < 0 || sc >= (int16_t)STRIP_W) continue;
 
@@ -141,9 +140,9 @@ void Scroller::blit(uint8_t band, int16_t y, uint16_t fgColor,
 
   slideStrip(chipBox, h);
 
-  Adafruit_SSD1306& s = _display.screen();
+  Adafruit_SSD1306& s = display.screen();
   for (uint8_t r = 0; r < h; r++) {
-    for (uint16_t c = 0; c < (uint16_t)_display.getWidth(); c++) {
+    for (uint16_t c = 0; c < (uint16_t)display.getWidth(); c++) {
       uint8_t v = chipBox.getPixel(c, r);
       s.drawPixel(c, y + r, (v == CHIP_TEXT) ? fgColor : bgColor);
     }

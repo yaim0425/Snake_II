@@ -3,11 +3,8 @@
 
 #include "Config.h"
 
-#include "Display.h"
-#include "Buttons.h"
 #include "Food.h"
 #include "Snake.h"
-#include "Sound.h"
 
 // ========================================================
 // Game — ventana del juego de la serpiente
@@ -61,10 +58,11 @@ public:
   // Config::Difficulty (MIN/MAX/DEFAULT), igual que el menú.
 
   // ========================================================
-  // Constructor (recibe Display, Buttons y Sound compartidos)
+  // Constructor (sin parámetros de servicios: usa los globales
+  // Display, Buttons y Sound — Globals.h)
   // ========================================================
 
-  Game(Display& display, Buttons& buttons, Sound& sound);
+  Game();
 
   // ========================================================
   // Inicialización (al entrar en la ventana)
@@ -171,14 +169,6 @@ private:
 
   // Velocidad según dificultad (1..10): cuanto más alta, más rápido
   uint16_t speedFor(uint8_t level) const;
-
-  // ========================================================
-  // Dependencias
-  // ========================================================
-
-  Display& _display;
-  Buttons& _buttons;
-  Sound& _sound;
 
   // ========================================================
   // Estado

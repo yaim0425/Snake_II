@@ -3,8 +3,6 @@
 
 #include <Arduino.h>
 
-#include "Display.h"
-
 // ========================================================
 // Food — alimento del tablero (normal y especial)
 //
@@ -48,11 +46,12 @@ public:
   static constexpr uint8_t SPECIAL_TIME_DEFAULT = 60;
 
   // ========================================================
-  // Constructor (recibe la Display y la geometría del tablero:
-  // COLS x ROWS celdas de 8 px a partir de la fila `top`)
+  // Constructor (recibe la geometría del tablero: COLS x ROWS
+  // celdas de 8 px a partir de la fila `top`; dibuja con la
+  // Display global — Globals.h)
   // ========================================================
 
-  Food(Display& display, uint8_t cols, uint8_t rows, uint8_t top);
+  Food(uint8_t cols, uint8_t rows, uint8_t top);
 
   // ========================================================
   // Inicialización: no hay alimento
@@ -102,10 +101,9 @@ private:
   static constexpr uint8_t CELL = 8;
 
   // ========================================================
-  // Dependencias y estado
+  // Estado
   // ========================================================
 
-  Display& _display;
   uint8_t _cols;      // columnas del tablero
   uint8_t _rows;      // filas del tablero
   uint8_t _top;       // fila superior del tablero (Body)

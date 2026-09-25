@@ -1,15 +1,14 @@
 #include "Boot.h"
+#include "Globals.h"
 
 #include <Adafruit_GFX.h>
 
 // ========================================================
-// Constructor
+// Constructor (usa los servicios globales Display/Buttons)
 // ========================================================
 
-Boot::Boot(Display& display, Buttons& buttons)
-  : _display(display),
-    _buttons(buttons),
-    _shift(0),
+Boot::Boot()
+  : _shift(0),
     _prevShift(0),
     _tickAccum(0),
     _lastMs(0),
@@ -37,7 +36,7 @@ void Boot::begin() {
 void Boot::update() {
   // Cualquier botón termina la animación
   for (uint8_t i = 0; i < Buttons::MAX_BUTTONS; i++) {
-    if (_buttons.pressed(i)) {
+    if (buttons.pressed(i)) {
       _done = true;
       return;
     }
@@ -73,7 +72,7 @@ void Boot::update() {
 
 void Boot::print() {
   if (_redraw) {
-    _display.clear();
+    display.clear();
     _redraw = false;
   } else if (_shift == _prevShift) {
     return;  // nada cambió: el resto de la pantalla se mantiene
@@ -90,7 +89,7 @@ void Boot::print() {
 // ========================================================
 
 void Boot::drawBars() {
-  const int16_t w = _display.getWidth();
+  const int16_t w = display.getWidth();
 
   // TITULO: las líneas se mueven de izquierda a derecha
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
@@ -112,7 +111,7 @@ void Boot::drawBars() {
 // ========================================================
 
 void Boot::eraseOldBars() {
-  const int16_t w = _display.getWidth();
+  const int16_t w = display.getWidth();
 
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
     int16_t oldX = (x + _prevShift) % w;
@@ -133,7 +132,7 @@ void Boot::eraseOldBars() {
 
 void Boot::eraseBarDiff(int16_t oldX, int16_t newX, uint8_t top,
                         uint8_t height, int16_t width) {
-  Adafruit_SSD1306& s = _display.screen();
+  Adafruit_SSD1306& s = display.screen();
 
   for (uint8_t i = 0; i < BAR_W; i++) {
     int16_t oc = (oldX + i) % width;
@@ -153,7 +152,7 @@ void Boot::eraseBarDiff(int16_t oldX, int16_t newX, uint8_t top,
 // ========================================================
 
 void Boot::drawBar(int16_t x, uint8_t top, uint8_t height, int16_t width) {
-  Adafruit_SSD1306& s = _display.screen();
+  Adafruit_SSD1306& s = display.screen();
 
   if (x + BAR_W <= width) {
     s.fillRect(x, top, BAR_W, height, SSD1306_WHITE);

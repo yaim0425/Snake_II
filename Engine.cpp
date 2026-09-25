@@ -1,24 +1,17 @@
 #include "Engine.h"
+#include "Globals.h"
 
 // ========================================================
-// Constructor: guarda las ventanas ya construidas (no las anida)
+// Constructor: no recibe nada. Las ventanas (servicios globales
+// de por medio, ver Globals.h) son miembros propios y se
+// construyen en su orden de declaración.
 // ========================================================
 
-Engine::Engine(Display& display, Buttons& buttons, Boot& boot, Menu& menu,
-               Credits& credits, Game& game, Legend& legend,
-               Sound& sound)
-  : _state(State::BOOT),
-    _display(display),
-    _buttons(buttons),
-    _boot(boot),
-    _menu(menu),
-    _credits(credits),
-    _game(game),
-    _legend(legend),
-    _sound(sound) {}
+Engine::Engine()
+  : _state(State::BOOT) {}
 
 // ========================================================
-// Inicialización (estado inicial: menú). Se llama desde setup().
+// Inicialización (estado inicial: Boot). Se llama desde setup().
 // ========================================================
 
 void Engine::begin() {
@@ -47,7 +40,7 @@ void Engine::update() {
       // Confirmar opción (ACTION_RIGHT) -> cambiar de ventana
       int8_t sel = _menu.confirm();
       if (sel >= 0) {
-        _sound.play(Sound::SFX_CONFIRM);
+        sound.play(Sound::SFX_CONFIRM);
         switch (sel) {
           case Menu::OPT_NEW:      changeState(State::NEW);      break;
           case Menu::OPT_CONTINUE:  changeState(State::CONTINUE);  break;
@@ -62,7 +55,7 @@ void Engine::update() {
 
       _game.update();
       if (_game.done()) {
-        _sound.play(Sound::SFX_BACK);
+        sound.play(Sound::SFX_BACK);
         _menu.setBestScore(_game.bestScore());
         // "Continue" solo se habilita si la partida sigue en curso Y el
         // jugador tiene puntos (score > 0): al salir sin haber comido no
@@ -81,7 +74,7 @@ void Engine::update() {
 
       _credits.update();
       if (_credits.done()) {
-        _sound.play(Sound::SFX_BACK);
+        sound.play(Sound::SFX_BACK);
         changeState(State::MENU);
       }
       break;
@@ -100,7 +93,7 @@ void Engine::update() {
 }
 
 // ========================================================
-// Dibujar (limpia y dibuja solo la ventana activa)
+// Dibujar (dibuja solo la ventana activa)
 // ========================================================
 
 void Engine::print() {
