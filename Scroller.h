@@ -23,6 +23,15 @@
 // tiene su canvas persistente (`_chipBox`), su alto y sus
 // colores de volcado (fg/bg) propios; la tira se compone con
 // compose() y cada banda se vuelca con blit().
+//
+// El volcado solo ocurre cuando hay algo nuevo que pintar: un
+// dirty flag (`_dirty`) lo ponen begin(), startSlide(), el
+// avance de la animación e invalidate() (la ventana lo llama
+// tras su clear(), que se lleva por delante lo ya volcado), y
+// lo limpia blit() cuando todas las bandas se han volcado en el
+// frame. En reposo (tira centrada, sin animación y sin clear
+// detrás) blit() no hace nada: la banda ya está en pantalla y
+// no hace falta repintar sus 2048 px en cada frame.
 // ========================================================
 
 class Scroller {
@@ -67,10 +76,23 @@ public:
   void animate();
 
   // ========================================================
+  // Forzar el volcado de las bandas en el próximo frame: la
+  // ventana lo llama tras su `display.clear()` (el clear se
+  // lleva por delante lo que ya estaba volcado, así que la
+  // banda hay que volver a pintarla aunque la tira esté en
+  // reposo).
+  // ========================================================
+
+  void invalidate();
+
+  // ========================================================
   // Volcado de una banda: pinta las columnas visibles de la
   // tira sobre la banda persistente `band` y la vuelca a la
   // pantalla en la fila `y` (fila superior de la banda), con
   // el glifo en `fgColor` y el fondo en `bgColor`.
+  //
+  // Es un no-op si no hay nada nuevo que volcar (`_dirty` a 0):
+  // en reposo la banda ya coincide con la pantalla.
   // ========================================================
 
   void blit(uint8_t band, int16_t y, uint16_t fgColor, uint16_t bgColor);
@@ -111,6 +133,8 @@ private:
   int8_t _dir;        // +1 entra por la derecha (mueve hacia la izquierda), -1 al revés
   int16_t _slideX;    // borde izquierdo de la tira en pantalla (objetivo 0 = centrada)
   Ticker _ticker;     // avance de 1 px por ANIM_TICK ms (acumulador por tiempo)
+  bool _dirty;        // hay algo nuevo que volcar a pantalla (o la ventana limpió detrás)
+  uint8_t _blitted;   // bandas ya volcadas en el frame actual (limpia _dirty al llegar a _bands)
 
   // ========================================================
   // Internos

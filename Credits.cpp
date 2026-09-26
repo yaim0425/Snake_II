@@ -134,6 +134,10 @@ void Credits::print() {
     display.screen().fillRect(0, roleY - 1, w, roleH + 2, SSD1306_WHITE);
 
     _redraw = false;
+
+    // El clear se ha llevado por delante las dos bandas del scroller: hay
+    // que volver a volcarlas (aunque la tira esté centrada y no se mueva).
+    _scroller.invalidate();
   }
 
   // Dinámicos (cada frame): el rol y el nombre en sus bandas

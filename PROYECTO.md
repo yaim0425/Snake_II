@@ -437,7 +437,7 @@ construye con `_scroller(1, nullptr)` en la lista de inicialización.
 | `void setOptions(textos, conteo)` | Fija la lista y la cantidad de opciones (1..`MAX_OPTIONS`=8). El menú (textos y rombos) se adapta al conteo. |
 | `void setContinueAvailable(bool)` | **Muestra/oculta la opción "Continue"** según haya partida en curso que reanudar. `true` = lista de 5 opciones (New, Continue, Dificultad, Sound, Créditos); `false` = lista de 4 (New, Dificultad, Sound, Créditos). Estado inicial: `false` (al arrancar no hay partida). Quién lo decide: el `Engine` al volver del juego solo pasa `true` si la partida sigue en curso **y** tiene puntos (`!gameOver && score() > 0`). Cambia la lista interna (como `setOptions`) conservando la selección y adaptándola a la nueva cantidad. |
 | `void update()` | Lee botones, navega con `MOVE_RIGHT`/`MOVE_LEFT` y anima el deslizamiento lateral; log en Serial al cambiar de opción; toca `SFX_CLICK` al navegar. En las opciones "Sound" y "Dificultad" gestiona el **modo de edición inline** (ver abajo). |
-| `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Best + versión). En modo de edición de sonido dibuja el **selector On/Off** en la banda de los rombos; en modo de edición de dificultad, el **selector `< N >`** (nivel 1..10). |
+| `void print()` | Dibuja título, cuadro fijo con la opción deslizante, rombos de posición y pie (Best + versión). La banda de la opción se vuelca con `Scroller::blit`, que **en reposo es un no-op** (dirty flag del `Scroller`: solo pinta si hay algo nuevo, ver sección 14). En modo de edición de sonido dibuja el **selector On/Off** en la banda de los rombos; en modo de edición de dificultad, el **selector `< N >`** (nivel 1..10). |
 | `int8_t selected()` | Índice de la opción seleccionada. |
 | `int8_t confirm()` | Devuelve la opción seleccionada si se confirma con `ACTION_RIGHT` (pulse recién presionado), o `-1`. **`OPT_SOUND` y `OPT_DIFFICULTY` nunca se devuelven**: esas opciones se editan inline (ver abajo). Es el "activar opción" del resto del menú. |
 | `void setBestScore(uint16_t)` | Actualiza el puntaje máximo mostrado. |
@@ -558,13 +558,15 @@ sin "Continue". Cantidad real máxima `MAX_OPTIONS = 8`.
   que está en pantalla entre frames, así la opción anterior **se mantiene hasta
   ser borrada** por la nueva (`slideStrip` sobrescribe columna a columna la banda
   con la tira entrante, incluidos sus fondos; `blit` la vuelca a la pantalla con
-  sus colores). Al navegar con `MOVE_RIGHT` la tira entra por la **derecha** (se
+  sus colores). Al navegar   `MOVE_RIGHT` la tira entra por la **derecha** (se
   mueve a la izquierda); con `MOVE_LEFT` por la **izquierda**. Arranca **fuera
   de pantalla** y avanza **una columna por cada `ANIM_TICK` ms** (`animate`,
   acumulado por tiempo; vuelo total ≈ `128 × 4 ms ≈ 0,5 s`). Si se navega a
   mitad de la animación, la banda conserva lo que había y la nueva tira se
   superpone (pueden verse varias opciones a la vez). Todas las opciones quedan
-  con el **mismo ancho de 128 px** (espacios vacíos incluidos).
+  con el **mismo ancho de 128 px** (espacios vacíos incluidos). Con la tira ya
+  centrada y sin navegar, `blit()` **no repinta la banda** (dirty flag del
+  `Scroller`, sección 14): queda tal cual en la pantalla.
 - **Rombos de posición:** banda `45..53`, pegada a la línea separadora en la `54`
   (antes de la fila del pie, `DIA_TOP = 45`). Solo el **seleccionado** es un **rombo simétrico
   completo** de 9 filas (dibujado con dos `fillTriangle`, como el alimento del
@@ -953,8 +955,8 @@ llama a `display.clear()`, lo decide cada ventana.
    | Ventana | Estáticos (una vez) | Dinámicos por frame |
    |---------|---------------------|---------------------|
    | `Boot` | — (primer frame: clear completo + `drawFirstBars()`) | Franjas: se dibujan en la posición nueva y se repinta en negro la posición anterior (la columna liberada, con el módulo normalizado para el rebalse); si no cambió el desplazamiento no se dibuja nada. |
-   | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria; al llegar al límite se procesa igual que haber soltado el botón, volviendo el parpadeo normal) |
-   | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas) |
+    | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` —**solo cuando el scroller tiene algo nuevo que volcar** (navegar, recomponer o tras el `clear`; en reposo se salta, sección 14)— + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria; al llegar al límite se procesa igual que haber soltado el botón, volviendo el parpadeo normal) |
+    | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas; se vuelcan juntas en el mismo frame y solo si hay algo nuevo que pintar, sección 14) |
    | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
    | `Game` | Primer frame: clear completo + Header (puntaje 12x16 izq., segundos restantes de la comida especial 12x16 der.) y alimento y serpiente | Header solo si cambia el puntaje o `_food.specialTime()` (banda 0..15); tablero (Body 16..63) solo si `_dirtyBoard` (movimiento, comida nueva, transición de estado): borra el Body, redibuja alimento + serpiente; overlay "3-2-1"/"PAUSA"/"GAME OVER"/festejo de récord (texto invertido sobre banda blanca: cuadro centrado para el conteo, de lado a lado para PAUSA, GAME OVER y los letreros del festejo "BUT"/"YOU ARE"/"THE BEST") en cada frame según el estado —en el conteo, al final de cada dígito el número y su cuadro se ocultan (`COUNT_HIDE_MS`), marcando `_dirtyBoard` una sola vez para restaurar el tablero —; al morir superando el récord, el "GAME OVER" es un ciclo "GAME OVER" → "BUT" → "YOU ARE" → "THE BEST" (`NEW_BEST_SIGN_MS` cada uno) que se repite hasta que se presiona un botón, y el `SFX_NEW_BEST` suena solo la primera vez que aparece el letrero "THE BEST" |
 
@@ -990,17 +992,37 @@ bit** y la desliza lateralmente sobre **N bandas sincronizadas** (todas usan el
   los canvas y los arrays. La lista de
   inicialización respeta el **orden de declaración** (regla de la tarea 3).
 - **API:**
-  - `begin()` — reposiciona el deslizamiento (objetivo 0, sin borrar bandas).
+  - `begin()` — reposiciona el deslizamiento (objetivo 0, sin borrar bandas) y
+    marca las bandas para volcar (`_dirty`).
   - `compose(const char* text, uint8_t size)` — dibuja el texto centrado en la
-    tira (canvas auxiliar `_composer` 128×16 → matriz `_strip[16][16]`).
+    tira (canvas auxiliar `_composer` 128×16 → matriz `_strip[16][16]`). **No**
+    marca nada: sola no cambia lo que hay en pantalla (la tira solo se aplica a
+    las bandas cuando desliza o cuando se fuerza el volcado).
   - `startSlide(int8_t dir)` — `+1` entra por la derecha, `-1` por la izquierda;
-    arranca desde el borde (`_slideX = ±ancho`).
+    arranca desde el borde (`_slideX = ±ancho`) y marca `_dirty`.
   - `animate()` — avanza 1 px por `ANIM_TICK` ms (acumulador por tiempo, llama a
-    `slideStrip` según `_slideX`); a llamar en `update()`.
+    `slideStrip` según `_slideX`); a llamar en `update()`. Mientras `_slideX != 0`
+    pone `_dirty`: en cada frame hay algo nuevo que pintar, y al llegar a 0 queda
+    un **último volcado** que asienta la banda (del frame siguiente en adelante
+    `blit()` no hace nada).
+  - `invalidate()` — fuerza el volcado de las bandas en el próximo frame: la
+    ventana la llama **después de su `display.clear()`**, que se lleva por
+    delante lo ya volcado (menú y créditos, en su primer frame).
   - `blit(uint8_t band, int16_t y, uint16_t fgColor, uint16_t bgColor)` —
     sobrescribe la banda persistente con la tira entrante (columna a columna,
     fondos incluidos) y la vuelca a la pantalla en la fila `y`, con `fgColor`
-    para los glifos y `bgColor` para el fondo. A llamar en `print()`.
+    para los glifos y `bgColor` para el fondo. A llamar en `print()`. **Es un
+    no-op si no hay nada nuevo que volcar** (`_dirty` a 0).
+- **Dirty flag (reposo):** con el flag `_dirty` el `blit()` se salta cuando la
+  tira está en reposo, que es el caso normal: antes volcaba en cada frame los
+  2048 px de la tira sobre el canvas persistente y los 2048 del canvas a la
+  pantalla para dejar exactamente lo mismo. Lo ponen `begin()`, `startSlide()`,
+  `animate()` (mientras haya desplazamiento) e `invalidate()`; lo limpia `blit()`
+  cuando **todas** las bandas se han volcado en el frame (`_blitted` llega a
+  `_bands`), porque `blit()` se llama una vez por banda y con varias (Créditos)
+  un solo volcado no basta para darla por hecha. El frame en que el vuelo termina
+  (`_slideX` llega a 0) sigue volcando, así que la banda queda asentada antes de
+  dejar de repintarse.
 - **Usos:** `Menu` = 1 banda (16 px, `blit(0, TEXT_SEL_TOP, NEGRO, BLANCO)`);
   `Credits` = 2 bandas (`BAND_HEIGHTS = {16, 8}`, rol 12x16 / nombre 6x8, cada
   `drawBand(slot, y, fg, bg)` compone y vuelca su banda).

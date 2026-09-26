@@ -530,12 +530,20 @@ void Menu::print() {
     }
 
     _redraw = false;
+
+    // El clear se ha llevado por delante la banda de la opción que el
+    // scroller tenía volcada: hay que volver a pintarla (aunque la tira
+    // esté centrada y no se mueva).
+    _scroller.invalidate();
   }
 
   // Dinámicos (cada frame): la banda de la opción deslizante y los rombos.
   // La banda persistente (lo que ya está en pantalla) se mantiene intacta;
   // la tira nueva desliza y sus columnas sobrescriben la banda hasta
-  // reemplazarla por completo. La opción anterior permanece hasta ser borrada
+  // reemplazarla por completo. La opción anterior permanece hasta ser borrada.
+  // El scroller se salta este volcado cuando está en reposo (nada nuevo que
+  // pintar: la banda ya está en la pantalla) y solo vuelca al navegar, al
+  // recomponer la opción o tras el clear de arriba.
   _scroller.blit(0, TEXT_SEL_TOP, SSD1306_BLACK, SSD1306_WHITE);
 
   if (_editingSound) {

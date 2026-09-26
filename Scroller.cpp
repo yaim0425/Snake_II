@@ -13,7 +13,9 @@ Scroller::Scroller(uint8_t bands, const uint8_t* bandHeights)
     _composer(display.getWidth(), STRIP_H),
     _dir(1),
     _slideX(0),
-    _ticker(ANIM_TICK) {
+    _ticker(ANIM_TICK),
+    _dirty(true),
+    _blitted(0) {
 
   for (uint8_t i = 0; i < _bands; i++) {
     _bandHeights[i] = (bandHeights != nullptr) ? bandHeights[i] : STRIP_H;
@@ -34,11 +36,17 @@ Scroller::~Scroller() {
 // ========================================================
 // Inicialización (al entrar en la ventana: tira centrada,
 // sin desplazamiento)
+//
+// La banda queda marcada para volcar: la ventana acaba de
+// limpiar la pantalla, así que hay que pintarla aunque la tira
+// no se mueva.
 // ========================================================
 
 void Scroller::begin() {
   _slideX = 0;
   _ticker.start();
+  _dirty = true;
+  _blitted = 0;
 }
 
 // ========================================================
@@ -79,15 +87,24 @@ void Scroller::startSlide(int8_t dir) {
   _slideX = (_dir > 0) ? (int16_t)display.getWidth()
                        : -(int16_t)display.getWidth();
   _ticker.start();
+  _dirty = true;    // entra una tira nueva: hay que volcar las bandas
+  _blitted = 0;
 }
 
 // ========================================================
 // Animación: la tira avanza 1 px por cada ANIM_TICK ms
 // (Ticker acumula por tiempo, constante aunque el loop sea lento)
+//
+// Mientras la tira está fuera del centro hay algo nuevo que
+// pintar en cada frame (aunque en este frame no haya ticks), así
+// que `_dirty` se pone a 1: al terminar el vuelo (|_slideX| = 0)
+// queda un último volcado que asienta la banda y, del frame
+// siguiente en adelante, blit() ya no hace nada.
 // ========================================================
 
 void Scroller::animate() {
   if (_slideX == 0) return;
+  _dirty = true;
 
   uint32_t steps = _ticker.consume();
   for (uint32_t i = 0; i < steps; i++) {
@@ -97,6 +114,16 @@ void Scroller::animate() {
       if (_slideX < 0) _slideX++;
     }
   }
+}
+
+// ========================================================
+// Volcado forzado (lo llama la ventana tras su display.clear(),
+// que se lleva por delante lo ya volcado)
+// ========================================================
+
+void Scroller::invalidate() {
+  _dirty = true;
+  _blitted = 0;
 }
 
 // ========================================================
@@ -121,12 +148,21 @@ void Scroller::slideStrip(GFXcanvas8& chipBox, uint8_t h) {
 // ========================================================
 // Volcado de una banda: sin borrado, la vieja queda hasta que
 // la nueva la cubre. Todas las bandas usan el mismo _slideX y
-// deslizan sincronizadas
+// deslizan sincronizadas.
+//
+// Si no hay nada nuevo que volcar (`_dirty` a 0) se sale sin
+// hacer nada: la banda persistente ya está en pantalla y sus
+// 2048 px no hay que repintarlos en cada frame. La bandera se
+// limpia recién cuando TODAS las bandas se han volcado en este
+// frame (`_blitted` llega a `_bands`), porque blit() se llama una
+// vez por banda y con varias (Créditos) un volcado no basta para
+// darla por hecha.
 // ========================================================
 
 void Scroller::blit(uint8_t band, int16_t y, uint16_t fgColor,
                     uint16_t bgColor) {
   if (band >= _bands) return;
+  if (!_dirty) return;   // en reposo: la banda ya está en pantalla
 
   GFXcanvas8& chipBox = *_chipBox[band];
   uint8_t h = _bandHeights[band];
@@ -139,6 +175,11 @@ void Scroller::blit(uint8_t band, int16_t y, uint16_t fgColor,
       uint8_t v = chipBox.getPixel(c, r);
       s.drawPixel(c, y + r, (v == CHIP_TEXT) ? fgColor : bgColor);
     }
+  }
+
+  if (++_blitted >= _bands) {
+    _dirty = false;
+    _blitted = 0;
   }
 }
 
