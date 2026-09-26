@@ -2,14 +2,15 @@
 #include "Globals.h"
 
 // ========================================================
-// Constructor: reserva los canvas de cada banda y los de la
-// tira/compositor (usa la Display global)
+// Constructor: reserva las tiras y los canvas de cada banda y
+// los de tira/compositor (usa la Display global)
 // ========================================================
 
 Scroller::Scroller(uint8_t bands, const uint8_t* bandHeights)
   : _bands((bands == 0) ? 1 : bands),
     _bandHeights(new uint8_t[bands == 0 ? 1 : bands]),
     _chipBox(new GFXcanvas8*[bands == 0 ? 1 : bands]),
+    _strips(new uint8_t[(bands == 0 ? 1 : bands) * STRIP_BYTES]),
     _composer(display.getWidth(), STRIP_H),
     _dir(1),
     _slideX(0),
@@ -24,13 +25,14 @@ Scroller::Scroller(uint8_t bands, const uint8_t* bandHeights)
 }
 
 // ========================================================
-// Destructor: libera los canvas de las bandas
+// Destructor: libera las tiras y los canvas de las bandas
 // ========================================================
 
 Scroller::~Scroller() {
   for (uint8_t i = 0; i < _bands; i++) delete _chipBox[i];
   delete[] _chipBox;
   delete[] _bandHeights;
+  delete[] _strips;
 }
 
 // ========================================================
@@ -50,12 +52,26 @@ void Scroller::begin() {
 }
 
 // ========================================================
-// Composición de la tira: texto centrado en la matriz de 1 bit
-// (se compone en el canvas auxiliar sin tocar las bandas
-// actuales)
+// Tira de 1 bit de una banda (las N tiras van seguidas en
+// _strips, una STRIP_BYTES cada una)
 // ========================================================
 
-void Scroller::compose(const char* text, uint8_t size) {
+uint8_t* Scroller::strip(uint8_t band) {
+  return _strips + (uint16_t)band * STRIP_BYTES;
+}
+
+// ========================================================
+// Composición de la tira de una banda: texto centrado en la
+// matriz de 1 bit (se compone en el canvas auxiliar sin tocar
+// las otras bandas ni los canvas persistentes). La tira queda
+// en memoria: se compone una sola vez por cambio de texto y
+// blit() la reutiliza tantas veces como haga falta.
+// ========================================================
+
+void Scroller::compose(uint8_t band, const char* text, uint8_t size) {
+  if (band >= _bands) return;
+
+  uint8_t* dst = strip(band);
   int16_t x0 = (int16_t)((display.getWidth() -
                           display.getTextWidth(text, size)) / 2);
 
@@ -70,9 +86,9 @@ void Scroller::compose(const char* text, uint8_t size) {
     for (uint8_t c = 0; c < STRIP_W; c++) {
       uint8_t bit = (uint8_t)(1 << (c % 8));
       if (_composer.getPixel(c, r) == CHIP_TEXT)
-        _strip[r][c / 8] |= bit;
+        dst[r * (STRIP_W / 8) + c / 8] |= bit;
       else
-        _strip[r][c / 8] &= (uint8_t)~bit;
+        dst[r * (STRIP_W / 8) + c / 8] &= (uint8_t)~bit;
     }
   }
 }
@@ -127,19 +143,21 @@ void Scroller::invalidate() {
 }
 
 // ========================================================
-// Pintar las columnas visibles de la tira sobre una banda
-// persistente: cada columna de la tira (incluidos sus espacios
-// de fondo) sobrescribe lo que había, así la opción anterior se
-// mantiene hasta ser borrada por la nueva
+// Pintar las columnas visibles de la tira de una banda sobre
+// su canvas persistente: cada columna de la tira (incluidos
+// sus espacios de fondo) sobrescribe lo que había, así la
+// opción anterior se mantiene hasta ser borrada por la nueva
 // ========================================================
 
-void Scroller::slideStrip(GFXcanvas8& chipBox, uint8_t h) {
+void Scroller::slideStrip(uint8_t band, GFXcanvas8& chipBox, uint8_t h) {
+  const uint8_t* src = strip(band);
+
   for (uint8_t r = 0; r < h; r++) {
     for (uint16_t sx = 0; sx < (uint16_t)display.getWidth(); sx++) {
       int16_t sc = (int16_t)sx - _slideX;   // columna de la matriz (borde izq. = _slideX)
       if (sc < 0 || sc >= (int16_t)STRIP_W) continue;
 
-      bool glyph = _strip[r][sc / 8] & (uint8_t)(1 << (sc % 8));
+      bool glyph = src[r * (STRIP_W / 8) + sc / 8] & (uint8_t)(1 << (sc % 8));
       chipBox.drawPixel(sx, r, glyph ? CHIP_TEXT : CHIP_BG);
     }
   }
@@ -167,7 +185,7 @@ void Scroller::blit(uint8_t band, int16_t y, uint16_t fgColor,
   GFXcanvas8& chipBox = *_chipBox[band];
   uint8_t h = _bandHeights[band];
 
-  slideStrip(chipBox, h);
+  slideStrip(band, chipBox, h);
 
   Adafruit_SSD1306& s = display.screen();
   for (uint8_t r = 0; r < h; r++) {

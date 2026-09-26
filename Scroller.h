@@ -10,19 +10,25 @@
 // Scroller — animación "scroller de 1 bit" (compartida por
 // Menu y Credits; antes estaba duplicada en ambas clases)
 //
-// Una tira de 128x16 px se compone centrada en una matriz de 1
-// bit (1 = glifo, 0 = fondo), desliza lateralmente (1 px cada
-// ANIM_TICK ms, acumulado por tiempo: constante aunque el loop
-// sea lento) y sobrescribe columna a columna una banda
-// persistente. Así la opción/entrada anterior se mantiene en
-// pantalla hasta que la nueva la cubre (superposición al
+// Cada banda tiene su TIRA de 128x16 px (matriz de 1 bit:
+// 1 = glifo, 0 = fondo) y su canvas persistente. La tira se
+// compone centrada con compose() y se desliza lateralmente
+// (1 px cada ANIM_TICK ms, acumulado por tiempo: constante
+// aunque el loop sea lento) sobre su banda, sobrescribiendo
+// columna a columna. Así la opción/entrada anterior se mantiene
+// en pantalla hasta que la nueva la cubre (superposición al
 // navegar rápido).
 //
 // Soporta N bandas que deslizan a la vez con el MISMO _slideX
 // (Créditos: rol 12x16 + nombre 6x8 sincronizados). Cada banda
-// tiene su canvas persistente (`_chipBox`), su alto y sus
-// colores de volcado (fg/bg) propios; la tira se compone con
-// compose() y cada banda se vuelca con blit().
+// tiene su tira, su canvas persistente (`_chipBox`), su alto y
+// sus colores de volcado (fg/bg) propios; el desplazamiento es
+// el mismo para todas, así que aparecen a la vez.
+//
+// Cada banda con su propia tira (en vez de una tira compartida
+// recompuesta antes de cada blit) es lo que permite componer
+// solo cuando el texto cambia: la tira queda en la memoria y
+// blit() puede repetirse sin volver a componerla.
 //
 // El volcado solo ocurre cuando hay algo nuevo que pintar: un
 // dirty flag (`_dirty`) lo ponen begin(), startSlide(), el
@@ -45,7 +51,7 @@ public:
   // `bandHeights`= alto en px de cada banda (si nullptr, todas
   //                usan STRIP_H = 16).
   // Usa la Display global (Globals.h) para el ancho de la tira.
-  // Los canvas se reservan en el constructor (como antes).
+  // Las tiras y los canvas se reservan en el constructor.
 
   Scroller(uint8_t bands = 1,
            const uint8_t* bandHeights = nullptr);
@@ -62,10 +68,13 @@ public:
   void begin();
 
   // ========================================================
-  // Composición de la tira (texto centrado en 128 px)
+  // Composición de la tira de una banda (texto centrado en
+  // 128 px). La tira queda en memoria: se puede componer una
+  // sola vez (al cambiar el texto) y blit() puede repetirse
+  // sin volver a componer.
   // ========================================================
 
-  void compose(const char* text, uint8_t size);
+  void compose(uint8_t band, const char* text, uint8_t size);
 
   // ========================================================
   // Animación lateral (arranca desde el borde, ±ancho)
@@ -105,6 +114,7 @@ private:
 
   static constexpr uint8_t  STRIP_W   = 128;  // columnas de la tira (= ancho de pantalla)
   static constexpr uint8_t  STRIP_H   = 16;   // filas de la tira (máx.: alto del texto 12x16)
+  static constexpr uint16_t STRIP_BYTES = STRIP_H * (STRIP_W / 8);  // 256 B por banda (128x16 a 1 bit)
   static constexpr uint32_t ANIM_TICK = 4;    // ms por píxel de desplazamiento (~0,5 s)
 
   // Valores del canvas: 1 = glifo (texto), 255 = fondo/chip
@@ -112,7 +122,7 @@ private:
   static constexpr uint8_t CHIP_BG   = 255;
 
   // ========================================================
-  // Bandas (una por canvas persistente)
+  // Bandas (una tira y un canvas persistente por banda)
   // ========================================================
 
   uint8_t _bands;
@@ -120,11 +130,11 @@ private:
   GFXcanvas8** _chipBox;   // banda persistente por banda: lo que está en pantalla
 
   // ========================================================
-  // Tira y compositor
+  // Tiras (una por banda, seguidas) y compositor
   // ========================================================
 
-  uint8_t _strip[STRIP_H][STRIP_W / 8];  // matriz 128x16 de 1 bit de la tira entrante
-  GFXcanvas8 _composer;                  // canvas auxiliar (128x16) para componer la tira
+  uint8_t* _strips;        // tira de 1 bit por banda: _strips[band * STRIP_BYTES ...]
+  GFXcanvas8 _composer;    // canvas auxiliar (128x16) para componer la tira
 
   // ========================================================
   // Estado del deslizamiento
@@ -140,9 +150,12 @@ private:
   // Internos
   // ========================================================
 
-  // Pintar las columnas visibles de la tira sobre una banda
-  // persistente (incluidos sus espacios de fondo)
-  void slideStrip(GFXcanvas8& chipBox, uint8_t h);
+  // Tira de 1 bit de una banda (las N tiras van seguidas en _strips)
+  uint8_t* strip(uint8_t band);
+
+  // Pintar las columnas visibles de la tira de una banda sobre su
+  // canvas persistente (incluidos sus espacios de fondo)
+  void slideStrip(uint8_t band, GFXcanvas8& chipBox, uint8_t h);
 };
 
 #endif

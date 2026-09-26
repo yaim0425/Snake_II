@@ -48,6 +48,7 @@ Credits::Credits()
 void Credits::begin() {
   _entry = 1;  // entrada central (Snake II / v0.1)
   _scroller.begin();
+  loadEntry();  // compone rol y nombre (la tira de cada banda queda en memoria)
   _exit = false;
   _redraw = true;
 }
@@ -82,6 +83,7 @@ void Credits::navigate() {
 
   if (moved) {
     sound.play(Sound::SFX_CLICK);
+    loadEntry();  // el texto nuevo se compone una sola vez (no en cada frame)
     _scroller.startSlide((_entry > before) ? 1 : -1);
     Serial.printf("Credits: opcion %u -> %u\n", before, _entry);
   }
@@ -90,24 +92,31 @@ void Credits::navigate() {
 }
 
 // ========================================================
-// Componer el rol (slot 0) o el nombre (slot 1) en la tira
+// Componer la entrada actual: el rol (SLOT_ROLE, texto 12x16)
+// y su nombre (SLOT_NAME, texto 6x8) van a la tira de cada
+// banda (el Scroller tiene una tira por banda, así que las dos
+// se quedan compuestas y no hay que recomponerlas al dibujar).
+// Se llama solo al entrar y al navegar.
 // ========================================================
 
-void Credits::loadEntry(uint8_t slot) {
-  uint8_t size = (slot == 0) ? TEXT_12x16 : TEXT_6x8;
-  _scroller.compose(ROLE_NAME[_entry][slot], size);
+void Credits::loadEntry() {
+  for (uint8_t slot = 0; slot < NUM_SLOTS; slot++) {
+    uint8_t size = (slot == SLOT_ROLE) ? TEXT_12x16 : TEXT_6x8;
+    _scroller.compose(slot, ROLE_NAME[_entry][slot], size);
+  }
 }
 
 // ========================================================
-// Dibujar una banda (rol = 0, nombre = 1): compone su tira y
-// vuelca su banda persistente. Ambas bandas deslizan a la vez
-// con el mismo _slideX del Scroller, por lo que aparecen
-// sincronizadas (mismo offset horizontal)
+// Dibujar una banda (rol = SLOT_ROLE, nombre = SLOT_NAME):
+// vuelca su canvas persistente, ya compuesto al entrar o al
+// navegar. Ambas bandas deslizan a la vez con el mismo _slideX
+// del Scroller, por lo que aparecen sincronizadas (mismo offset
+// horizontal); con la tira en reposo el blit es un no-op
+// (dirty flag del Scroller).
 // ========================================================
 
 void Credits::drawBand(uint8_t slot, int16_t y, uint16_t fgColor,
                        uint16_t bgColor) {
-  loadEntry(slot);
   _scroller.blit(slot, y, fgColor, bgColor);
 }
 
@@ -140,10 +149,12 @@ void Credits::print() {
     _scroller.invalidate();
   }
 
-  // Dinámicos (cada frame): el rol y el nombre en sus bandas
-  // persistente (la tira desliza y sobrescribe columna a columna)
-  drawBand(0, roleY, SSD1306_BLACK, SSD1306_WHITE);
-  drawBand(1, PIE_TOP + 1, SSD1306_WHITE, SSD1306_BLACK);
+  // Dinámicos: el rol y el nombre en sus bandas persistentes (la tira
+  // desliza y sobrescribe columna a columna). Las bandas ya están
+  // compuestas (loadEntry al entrar o al navegar), así que aquí solo se
+  // vuelcan; con la tira en reposo el Scroller no hace nada.
+  drawBand(SLOT_ROLE, roleY, SSD1306_BLACK, SSD1306_WHITE);
+  drawBand(SLOT_NAME, PIE_TOP + 1, SSD1306_WHITE, SSD1306_BLACK);
 }
 
 // ========================================================

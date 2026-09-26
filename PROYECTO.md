@@ -866,7 +866,7 @@ enum class State : uint8_t {
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
 | `NEW` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con el conteo regresivo 3-2-1 (un `SFX_TICK` por dígito). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setBestScore(game.bestScore())`), **oculta/muestra "Continue" al volver** (`menu.setContinueAvailable(resumable)`, donde `resumable = !game.isGameOver() && game.score() > 0`: partida en curso **y** con puntos), deja la selección del menú en `Continue` si `resumable`, o en `New` en caso contrario (`menu.setSelected(...)`) y pasa a `MENU`. |
 | `CONTINUE` | `Game` | Reanudar la partida anterior (`begin(false)`): queda en pausa y se retoma con `ACTION_RIGHT` (Btn2, "Select / Pause") o `ACTION_LEFT`; si no hay partida en curso arranca una nueva. Al salir (`done()`) igual que `NEW`. |
-| `CREDITS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo `Scroller` compartido que el menú** pero con **2 bandas sincronizadas** (`BAND_HEIGHTS = {16, 8}` = altos de rol 12x16 y nombre 6x8): rol y nombre se componen por separado en la misma tira (`loadEntry` → `compose`) y deslizan a la vez con el **mismo `_slideX`** interno del `Scroller` (aparecen al mismo tiempo). `drawBand(slot, y, fg, bg)` compone el slot y vuelca su **banda persistente** (`_chipBox[slot]`) con sus colores; la tira la sobrescribe **columna a columna** con sus fondos, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). El deslizamiento **arranca desde el borde** (`startSlide`, fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (igual que el menú, ≈0,5 s). Al navegar suena `SFX_CLICK` y al salir (`done()`) suena `SFX_BACK` (lo toca el `Engine`) y pasa directo a `MENU`. |
+| `CREDITS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo `Scroller` que el menú** pero con **2 bandas sincronizadas** (`BAND_HEIGHTS = {16, 8}` = altos de rol 12x16 y nombre 6x8): cada banda tiene su **propia tira** de 128x16 (el rol en `SLOT_ROLE`, el nombre en `SLOT_NAME`), que se compone **solo al entrar y al navegar** (`loadEntry` → `Scroller::compose`); `drawBand(slot, y, fg, bg)` vuelca su **canvas persistente** con sus colores y la tira se sobrescribe **columna a columna** con sus fondos, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). El deslizamiento **arranca desde el borde** (`startSlide`, fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (igual que el menú, ≈0,5 s). Al navegar suena `SFX_CLICK` y al salir (`done()`) suena `SFX_BACK` (lo toca el `Engine`) y pasa directo a `MENU`. |
 
 ### Métodos
 
@@ -994,7 +994,7 @@ bit** y la desliza lateralmente sobre **N bandas sincronizadas** (todas usan el
 - **API:**
   - `begin()` — reposiciona el deslizamiento (objetivo 0, sin borrar bandas) y
     marca las bandas para volcar (`_dirty`).
-  - `compose(const char* text, uint8_t size)` — dibuja el texto centrado en la
+  - `compose(uint8_t band, const char* text, uint8_t size)` — dibuja el texto centrado en 128 px y lo guarda en la **tira propia de esa banda** (`_strips[band * STRIP_BYTES]`); la tira queda en memoria: se compone una sola vez por cambio de texto y `blit()` la reutiliza sin recomponer.
     tira (canvas auxiliar `_composer` 128×16 → matriz `_strip[16][16]`). **No**
     marca nada: sola no cambia lo que hay en pantalla (la tira solo se aplica a
     las bandas cuando desliza o cuando se fuerza el volcado).
@@ -1025,7 +1025,7 @@ bit** y la desliza lateralmente sobre **N bandas sincronizadas** (todas usan el
   dejar de repintarse.
 - **Usos:** `Menu` = 1 banda (16 px, `blit(0, TEXT_SEL_TOP, NEGRO, BLANCO)`);
   `Credits` = 2 bandas (`BAND_HEIGHTS = {16, 8}`, rol 12x16 / nombre 6x8, cada
-  `drawBand(slot, y, fg, bg)` compone y vuelca su banda).
+  `drawBand(slot, y, fg, bg)` solo vuelca su banda (ya compuesta en `loadEntry`). En reposo `blit()` es un no-op (dirty flag de `Scroller`).
 - **Detalle de diseño:** `compose` usa `_display.getTextWidth()` (ya no se
   duplica la lógica de centrado); `blit` recibe el índice de banda y los
   colores (el sketch original pedía `blit(Display&, int16_t y, uint8_t h)` pero

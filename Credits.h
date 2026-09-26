@@ -15,6 +15,14 @@ public:
   static constexpr uint8_t NUM_ENTRIES = 3;
 
   // ========================================================
+  // Bandas del Scroller (2 sincronizadas)
+  // ========================================================
+
+  static constexpr uint8_t NUM_SLOTS   = 2;   // bandas del Scroller
+  static constexpr uint8_t SLOT_ROLE   = 0;   // rol 12x16 (banda del cuadro blanco)
+  static constexpr uint8_t SLOT_NAME   = 1;   // nombre 6x8 (banda del pie)
+
+  // ========================================================
   // Constructor (sin parámetros de servicios: usa los globales
   // Display, Buttons y Sound — Globals.h)
   // ========================================================
@@ -59,7 +67,8 @@ private:
   // Scroller de 1 bit compartido (igual que el menú): DOS bandas
   // sincronizadas (deslizan con el mismo _slideX). El rol
   // (12x16) y el nombre (6x8) se componen por separado en la
-  // tira y cada banda sobrescribe columna a columna su canvas
+  // tira de cada banda —cada banda del Scroller tiene la suya—
+  // y cada una sobrescribe columna a columna su canvas
   // persistente: la entrada anterior se mantiene hasta que la
   // nueva la cubre. El deslizamiento arranca desde el borde.
   // ========================================================
@@ -71,9 +80,9 @@ private:
   // ========================================================
 
   void navigate();
-  void loadEntry(uint8_t slot);  // compone rol/nombre en la tira de 1 bit
+  void loadEntry();  // compone rol y nombre de la entrada actual (solo al entrar o al navegar)
 
-  // Compone el slot y vuelca su banda persistente sincronizada
+  // Vuelca la banda persistente del slot (ya compuesta)
   void drawBand(uint8_t slot, int16_t y, uint16_t fgColor, uint16_t bgColor);
 };
 
