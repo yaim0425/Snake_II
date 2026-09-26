@@ -999,20 +999,30 @@ serpiente (estilo Nokia) y el sprite de la **comida especial**. Es un
 ni archivo `.cpp`; los sprites se leen con `Sprite::pixel(part, x, y)` y
 `Sprite::specialPixel(x, y)`.
 
-**Empaquetado a 1 bit por píxel.** Ninguna tabla guarda un byte por píxel: el
-dibujo se sigue escribiendo en el código como `0`/`1` y el compilador lo aplana
-(`constexpr`), así que en memoria solo queda la versión empaquetada (no queda una
-copia doble).
+**Empaquetado a 1 bit por píxel.** Ninguna tabla guarda un byte por píxel: cada
+sprite se escribe **directamente como un literal binario** del tamaño exacto de sus
+px (16 bits = un `uint16_t` para los 4×4, 8 bits = un `uint8_t` por fila para la
+comida especial), así que en memoria solo queda la versión empaquetada y no hay
+ningún paso de conversión ni tabla intermedia.
 
 | Tabla | Antes | Ahora | Bytes |
 |-------|-------|-------|-------|
 | Sprites de la serpiente (4×4) | `uint8_t SPRITES[COUNT][4][4]` | `uint16_t SPRITES[COUNT]` (16 px = 16 bits) | 432 → **54** |
 | Comida especial (8×4) | `uint8_t SPECIAL_FOOD[4][8]` | `uint8_t SPECIAL_FOOD[4]` (1 byte por fila: 8 px = 8 bits) | 32 → **4** |
 
-En ambos casos el px `(0,0)` (esquina superior izquierda) es el bit más
-significativo y el último px, el bit 0; el acceso a un píxel concreto lo hacen
-las funciones `constexpr` `pixel()` / `specialPixel()` (el juego nunca indexa los
-bits a mano).
+Los literales binarios llevan separadores `'` para que las filas del dibujo se sigan
+leyendo: en los 4×4, cuatro grupos de 4 bits (uno por fila, de arriba abajo); en la
+comida especial, dos grupos de 4 por fila. El px `(0,0)` (esquina superior izquierda)
+es el bit más significativo y el último px, el bit 0; el acceso a un píxel concreto lo
+hacen las funciones `constexpr` `pixel()` / `specialPixel()` (el juego nunca indexa
+los bits a mano).
+
+```cpp
+constexpr uint16_t SPRITES[COUNT] = {
+  0b0110'0110'0100'0100,  // TAIL_TO_UP
+  0b0000'0011'1111'0000,  // TAIL_TO_RIGHT
+  ...
+};
 
 ```cpp
 constexpr uint8_t SIZE = 4;                 // sprite de 4×4 px
@@ -1037,14 +1047,12 @@ enum Part : uint8_t {
 |---------|-----------|
 | `SIZE` | Lado del sprite en píxeles (4). |
 | `BITS` | Píxeles por sprite de la serpiente (16) = bits de su `uint16_t`. |
-| `Pattern` / `pack(Pattern)` | `constexpr`: el dibujo legible de 0/1 de un sprite de 4×4 y el empaquetado a `uint16_t` (px `(0,0)` = bit 15). |
-| `SPRITES[COUNT]` | Tabla de sprites **empaquetados** (1 bit por píxel) indexada por `Part`. Rango: 0..3 cola, 4..7 cuerpo, 8..11 curvas, 12..15 cabeza cerrada, 16..19 cabeza abierta, 20..25 panza, 26 `EMPTY`, 27 `COUNT`. |
+| `SPRITES[COUNT]` | Tabla de sprites **empaquetados** (1 bit por píxel) indexada por `Part`: cada sprite es un literal binario de 16 bits, en cuatro grupos de 4 (una fila por grupo). Rango: 0..3 cola, 4..7 cuerpo, 8..11 curvas, 12..15 cabeza cerrada, 16..19 cabeza abierta, 20..25 panza, 26 `EMPTY`, 27 `COUNT`. |
 | `pixel(Part, x, y)` | `constexpr`: píxel del sprite (`x` = columna, `y` = fila) desde el `uint16_t` empaquetado. |
 | `EMPTY` | Sprite vacío (todo fondo). |
 | `COUNT` | Cantidad de sprites de la tabla. |
 | `SPECIAL_FOOD_W` / `SPECIAL_FOOD_H` | Ancho (8) y alto (4) en píxeles del sprite de la comida especial. |
-| `packRow8(a..h)` | `constexpr`: una fila de 8 px en 0/1 → 1 byte (px `(0,0)` = bit 7). |
-| `SPECIAL_FOOD[SPECIAL_FOOD_H]` | Sprite de 1 bit de la **comida especial** (8×4 px) **empaquetado por fila** (1 byte por fila = 4 bytes), tabla aparte por no encajar en los 4×4 de la serpiente. |
+| `SPECIAL_FOOD[SPECIAL_FOOD_H]` | Sprite de 1 bit de la **comida especial** (8×4 px) **empaquetado por fila**: un literal binario de 8 px por fila (px `(0,0)` = bit 7) = 4 bytes en total, tabla aparte por no encajar en los 4×4 de la serpiente. |
 | `specialPixel(x, y)` | `constexpr`: píxel de la comida especial (`x` = columna, `y` = fila). |
 
 La panza recta comparte sprite por par de direcciones: `BELLY_TO_RIGHT` =

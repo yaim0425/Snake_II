@@ -16,12 +16,12 @@
 //
 // Los 4×4 van EMPAQUETADOS: 1 bit por píxel, así cada
 // sprite cabe en un uint16_t (16 px) en vez de 16 bytes, y
-// los 27 sprites pasan de 432 a 54 bytes. El dibujo se sigue
-// escribiendo legible (0/1, con `Pattern`); `pack()` lo
-// aplana en tiempo de compilación, de modo que en memoria
-// solo queda la tabla empaquetada (no queda una copia doble).
-// La comida especial (8×4) se empaqueta por fila: 8 px = 1
-// byte, así que ocupa 4 bytes en vez de 32 (`packRow8()`).
+// los 27 sprites pasan de 432 a 54 bytes. Cada sprite se
+// escribe como un literal binario de 16 bits, en cuatro
+// grupos de 4 (una fila cada grupo, de arriba abajo) para
+// que el dibujo siga siendo legible. La comida especial
+// (8×4) se empaqueta por fila: 8 px = 1 byte, así que son
+// 4 bytes en vez de 32, un literal binario de 8 por fila.
 //
 // Es un namespace de SOLO datos: no necesita instancia ni
 // archivo .cpp; los sprites se leen con Sprite::pixel(part,
@@ -83,12 +83,13 @@ namespace Sprite {
 
   // ========================================================
   // Empaque: un sprite de 4×4 son 16 px de 1 bit = 16 bits,
-  // o sea un uint16_t (no un byte por píxel). `Pattern` es el
-  // dibujo legible de 0/1 que se escribe en el código y
-  // `pack()` lo aplana en tiempo de compilación.
+  // o sea un uint16_t (no un byte por píxel).
   //
   // Orden de los bits: fila 0,1,2,3 izquierda-derecha -> bit 15,14,...,0
   // (px (0,0) en el bit 15, px (3,3) en el bit 0), tal como se lee en `pixel()`.
+  // Por eso cada sprite se escribe como un literal binario de 16
+  // bits partido en cuatro grupos de 4: un grupo por fila, de
+  // arriba abajo. 1 = glifo, 0 = fondo.
 
   // ========================================================
   // Sprites de la serpiente (empaquetados: 1 bit por px)
@@ -98,63 +99,63 @@ namespace Sprite {
     // ------------------------------------------------------
     // TAIL
     // ------------------------------------------------------
-    pack(Pattern{ {0,1,1,0}, {0,1,1,0}, {0,1,0,0}, {0,1,0,0} }),  // TAIL_TO_UP
-    pack(Pattern{ {0,0,0,0}, {0,0,1,1}, {1,1,1,1}, {0,0,0,0} }),  // TAIL_TO_RIGHT
-    pack(Pattern{ {0,1,0,0}, {0,1,0,0}, {0,1,1,0}, {0,1,1,0} }),  // TAIL_TO_DOWN
-    pack(Pattern{ {0,0,0,0}, {1,1,0,0}, {1,1,1,1}, {0,0,0,0} }),  // TAIL_TO_LEFT
+    0b0110'0110'0100'0100,  // TAIL_TO_UP
+    0b0000'0011'1111'0000,  // TAIL_TO_RIGHT
+    0b0100'0100'0110'0110,  // TAIL_TO_DOWN
+    0b0000'1100'1111'0000,  // TAIL_TO_LEFT
 
     // ------------------------------------------------------
     // BODY
     // ------------------------------------------------------
 
-    pack(Pattern{ {0,1,1,0}, {0,1,0,0}, {0,0,1,0}, {0,1,1,0} }),  // BODY_TO_UP
-    pack(Pattern{ {0,0,0,0}, {1,1,0,1}, {1,0,1,1}, {0,0,0,0} }),  // BODY_TO_RIGHT
-    pack(Pattern{ {0,1,1,0}, {0,0,1,0}, {0,1,0,0}, {0,1,1,0} }),  // BODY_TO_DOWN
-    pack(Pattern{ {0,0,0,0}, {1,0,1,1}, {1,1,0,1}, {0,0,0,0} }),  // BODY_TO_LEFT
+    0b0110'0100'0010'0110,  // BODY_TO_UP
+    0b0000'1101'1011'0000,  // BODY_TO_RIGHT
+    0b0110'0010'0100'0110,  // BODY_TO_DOWN
+    0b0000'1011'1101'0000,  // BODY_TO_LEFT
 
     // ------------------------------------------------------
     // CORNERS
     // ------------------------------------------------------
 
-    pack(Pattern{ {0,1,1,0}, {0,1,0,1}, {0,0,1,1}, {0,0,0,0} }),  // CORNER_RIGHT_UP
-    pack(Pattern{ {0,0,0,0}, {0,0,1,1}, {0,1,0,1}, {0,1,1,0} }),  // CORNER_RIGHT_DOWN
-    pack(Pattern{ {0,1,1,0}, {1,0,1,0}, {1,1,0,0}, {0,0,0,0} }),  // CORNER_LEFT_UP
-    pack(Pattern{ {0,0,0,0}, {1,1,0,0}, {1,0,1,0}, {0,1,1,0} }),  // CORNER_LEFT_DOWN
+    0b0110'0101'0011'0000,  // CORNER_RIGHT_UP
+    0b0000'0011'0101'0110,  // CORNER_RIGHT_DOWN
+    0b0110'1010'1100'0000,  // CORNER_LEFT_UP
+    0b0000'1100'1010'0110,  // CORNER_LEFT_DOWN
 
     // ------------------------------------------------------
     // HEAD CLOSE
     // ------------------------------------------------------
 
-    pack(Pattern{ {0,0,0,0}, {0,1,1,0}, {0,1,1,0}, {0,1,0,1} }),  // HEAD_UP_CLOSE
-    pack(Pattern{ {1,0,0,0}, {0,1,1,0}, {1,1,1,0}, {0,0,0,0} }),  // HEAD_RIGHT_CLOSE
-    pack(Pattern{ {0,1,0,1}, {0,1,1,0}, {0,1,1,0}, {0,0,0,0} }),  // HEAD_DOWN_CLOSE
-    pack(Pattern{ {0,0,0,1}, {0,1,1,0}, {0,1,1,1}, {0,0,0,0} }),  // HEAD_LEFT_CLOSE
+    0b0000'0110'0110'0101,  // HEAD_UP_CLOSE
+    0b1000'0110'1110'0000,  // HEAD_RIGHT_CLOSE
+    0b0101'0110'0110'0000,  // HEAD_DOWN_CLOSE
+    0b0001'0110'0111'0000,  // HEAD_LEFT_CLOSE
 
     // ------------------------------------------------------
     // HEAD OPEN
     // ------------------------------------------------------
 
-    pack(Pattern{ {0,0,0,0}, {1,0,0,1}, {0,1,1,0}, {0,1,0,1} }),  // HEAD_UP_OPEN
-    pack(Pattern{ {1,0,1,0}, {0,1,0,0}, {1,1,0,0}, {0,0,1,0} }),  // HEAD_RIGHT_OPEN
-    pack(Pattern{ {0,1,0,1}, {0,1,1,0}, {1,0,0,1}, {0,0,0,0} }),  // HEAD_DOWN_OPEN
-    pack(Pattern{ {0,1,0,1}, {0,0,1,0}, {0,0,1,1}, {0,1,0,0} }),  // HEAD_LEFT_OPEN
+    0b0000'1001'0110'0101,  // HEAD_UP_OPEN
+    0b1010'0100'1100'0010,  // HEAD_RIGHT_OPEN
+    0b0101'0110'1001'0000,  // HEAD_DOWN_OPEN
+    0b0101'0010'0011'0100,  // HEAD_LEFT_OPEN
 
     // ------------------------------------------------------
     // BELLY
     // ------------------------------------------------------
 
-    pack(Pattern{ {0,1,1,0}, {1,1,0,1}, {1,0,1,1}, {0,1,1,0} }),  // BELLY_TO_RIGHT (compartido con BELLY_TO_UP)
-    pack(Pattern{ {0,1,1,0}, {1,0,1,1}, {1,1,0,1}, {0,1,1,0} }),  // BELLY_TO_LEFT (compartido con BELLY_TO_DOWN)
-    pack(Pattern{ {0,1,1,1}, {0,1,0,1}, {0,0,1,1}, {0,0,0,0} }),  // BELLY_RIGHT_UP
-    pack(Pattern{ {0,0,0,0}, {0,0,1,1}, {0,1,0,1}, {0,1,1,1} }),  // BELLY_RIGHT_DOWN
-    pack(Pattern{ {1,1,1,0}, {1,0,1,0}, {1,1,0,0}, {0,0,0,0} }),  // BELLY_LEFT_UP
-    pack(Pattern{ {0,0,0,0}, {1,1,0,0}, {1,0,1,0}, {1,1,1,0} }),  // BELLY_LEFT_DOWN
+    0b0110'1101'1011'0110,  // BELLY_TO_RIGHT (compartido con BELLY_TO_UP)
+    0b0110'1011'1101'0110,  // BELLY_TO_LEFT (compartido con BELLY_TO_DOWN)
+    0b0111'0101'0011'0000,  // BELLY_RIGHT_UP
+    0b0000'0011'0101'0111,  // BELLY_RIGHT_DOWN
+    0b1110'1010'1100'0000,  // BELLY_LEFT_UP
+    0b0000'1100'1010'1110,  // BELLY_LEFT_DOWN
 
     // ------------------------------------------------------
     // EMPTY
     // ------------------------------------------------------
 
-    pack(Pattern{ {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0} })   // EMPTY
+    0b0000'0000'0000'0000  // EMPTY
   };
 
   // ========================================================
@@ -169,25 +170,18 @@ namespace Sprite {
   // ========================================================
   // Comida especial (8×4 px, empaquetado por fila: 8 px de
   // 1 bit = 8 bits = 1 byte por fila, o sea 4 bytes en vez
-  // de 32). El dibujo se sigue escribiendo en 0/1 con
-  // packRow8(), que aplana la fila en tiempo de compilación.
+  // de 32). Cada fila es un literal binario de 8 px, con el
+  // px (0,0) en el bit 7.
   // ========================================================
 
   constexpr uint8_t SPECIAL_FOOD_W = 8;   // ancho en px (8 px = 1 byte por fila)
   constexpr uint8_t SPECIAL_FOOD_H = 4;   // alto en px (4 filas = 4 bytes)
 
-  // Fila de 8 px (0/1) -> 1 byte, con el px (0,0) en el bit 7
-  constexpr uint8_t packRow8(uint8_t a, uint8_t b, uint8_t c, uint8_t d,
-                             uint8_t e, uint8_t f, uint8_t g, uint8_t h) {
-    return (uint8_t)((a << 7) | (b << 6) | (c << 5) | (d << 4) |
-                     (e << 3) | (f << 2) | (g << 1) | h);
-  }
-
   constexpr uint8_t SPECIAL_FOOD[SPECIAL_FOOD_H] = {
-    packRow8(0, 1, 0, 1, 0, 1, 0, 0),  // fila 0
-    packRow8(1, 0, 1, 1, 1, 1, 1, 0),  // fila 1
-    packRow8(1, 1, 1, 1, 1, 1, 1, 1),  // fila 2
-    packRow8(0, 0, 1, 0, 0, 1, 0, 0)   // fila 3
+    0b0101'0100,  // fila 0
+    0b1011'1110,  // fila 1
+    0b1111'1111,  // fila 2
+    0b0010'0100   // fila 3
   };
 
   // Píxel de la comida especial (x = columna, y = fila): px (0,0) = bit 7
