@@ -116,8 +116,8 @@ const Sound::Seq Sound::EFFECTS[] = {
 // Constructor
 // ========================================================
 
-Sound::Sound(Buzzer& buzzer)
-  : _buzzer(buzzer),
+Sound::Sound(uint8_t pin)
+  : _buzzer(pin),
     _seq(nullptr),
     _len(0),
     _step(0),
@@ -128,6 +128,7 @@ Sound::Sound(Buzzer& buzzer)
 // ========================================================
 
 void Sound::begin() {
+  _buzzer.begin();
   stop();
 }
 

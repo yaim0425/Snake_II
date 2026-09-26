@@ -3,9 +3,9 @@
 //
 // Este archivo define los SERVICIOS GLOBALES (hardware) y crea el Engine:
 //   - Display y Buttons: hardware (I2C del OLED y pines de los botones).
-//   - Buzzer y Sound: sonido (Buzzer antes que Sound: orden de dependencia).
-//     Declarados extern en Globals.h; definidos aquí, en el mismo archivo y
-//     en orden de dependencia.
+//   - Sound: sonido. Contiene su propia capa de hardware Buzzer (por valor,
+//     pin Config::Pin::BUZZER) y la inicializa en sound.begin().
+//     Declarado extern en Globals.h; definido aquí.
 //   - Engine: despachador puro que POSEE las ventanas (Boot, Menu, Credits,
 //     Game, Legend) como miembros. En Snake_II.ino ya NO hay ventanas
 //     globales: son internas de Engine.
@@ -24,17 +24,14 @@
 
 // ====================================================================================
 // Servicios globales (hardware), compartidos por todas las clases.
-// Definidos aquí (no en un .cpp aparte) y en ORDEN DE DEPENDENCIA
-// (buzzer antes que sound): al vivir todos en esta misma unidad de
-// traducción se garantiza su orden de construcción y que Sound(buzzer)
-// ya encuentre al Buzzer construido.
+// Definidos aquí (no en un .cpp aparte); el orden de construcción
+// no importa: cada servicio se inicializa en su begin() desde setup().
 // ====================================================================================
 
 Display display;
 Buttons buttons(Config::Pin::BUTTONS);
 
-Buzzer  buzzer;
-Sound   sound(buzzer);
+Sound   sound(Config::Pin::BUZZER);
 
 // ====================================================================================
 // Despachador: posee las ventanas (Boot, Menu, Credits, Game, Legend) y
@@ -53,8 +50,7 @@ void setup() {
 
   display.begin();
   buttons.begin();
-  buzzer.begin();
-  sound.begin();
+  sound.begin();   // adjunta el canal del buzzer (que Sound posee) y silencia
   engine.begin();
 
   Serial.println("Snake II");

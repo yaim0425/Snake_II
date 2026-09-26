@@ -8,10 +8,12 @@
 // Sound — sonidos del juego (contenido)
 //
 // Compone los efectos de sonido de Snake II como secuencias
-// de tonos (Note) sobre la capa de hardware Buzzer. Todo es
-// NO bloqueante: play() arranca el efecto y update()
-// (llamado desde loop()) lo avanza paso a paso a medida
-// que cada tono termina.
+// de tonos (Note) sobre la capa de hardware Buzzer, que
+// POSEE por valor: el Buzzer es detalle interno de Sound
+// (no es un servicio global) y solo se inicializa con
+// begin(). Todo es NO bloqueante: play() arranca el efecto y
+// update() (llamado desde loop()) lo avanza paso a paso a
+// medida que cada tono termina.
 //
 // Con el sonido desactivado (setEnabled(false)) play() no
 // hace nada, pensado para la opción "Sound" del menú.
@@ -42,13 +44,15 @@ public:
   };
 
   // ========================================================
-  // Constructor (recibe el Buzzer ya construido)
+  // Constructor (pin del buzzer; la capa de hardware se
+  // construye aquí y se inicializa en begin())
   // ========================================================
 
-  Sound(Buzzer& buzzer);
+  explicit Sound(uint8_t pin = Config::Pin::BUZZER);
 
   // ========================================================
-  // Inicialización (silencia y reinicia la secuencia)
+  // Inicialización (adjunta el canal del buzzer, silencia y
+  // reinicia la secuencia)
   // ========================================================
 
   void begin();
@@ -133,7 +137,7 @@ private:
   // Estado
   // ========================================================
 
-  Buzzer&  _buzzer;
+  Buzzer   _buzzer;  // capa de hardware (propia de Sound)
   const Note* _seq;   // secuencia en curso (null = sin efecto)
   uint8_t  _len;      // cantidad de notas de la secuencia
   uint8_t  _step;     // nota actual

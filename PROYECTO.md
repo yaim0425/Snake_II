@@ -38,7 +38,7 @@ D:\Documents\ESP32S3\Snake_II.
 
 En desarrollo por partes. La clase `Display` está completa. `Snake_II.ino` es el
 **enlace de dependencias (wiring)**: define los **servicios globales** (`Display`,
-`Buttons`, `Buzzer`, `Sound`; declarados `extern` en `Globals.h`, sección 20) y
+`Buttons`, `Sound`; declarados `extern` en `Globals.h`, sección 20) y
 crea el `Engine`, que **posee las ventanas como miembros** (`Boot`, `Legend`,
 `Menu`, `Credits`, `Game` — no son globales). Todos los `begin()` se inician en
 `setup()`.
@@ -55,13 +55,15 @@ Arquitectura:
   `Credits` y `Game` son clases independientes (hermanas, no anidadas entre sí)
   pero **miembros del `Engine`**: ninguna otra clase puede llamarlas, y la regla
   "una ventana nunca conoce a las demás" queda garantizada por el compilador.
-  Solo los **servicios de hardware** (`Display`, `Buttons`, `Buzzer` y `Sound`)
-  son globales (`Globals.h`). Sus valores persisten entre transiciones (los
+  Solo los **servicios de hardware** (`Display`, `Buttons` y `Sound`)
+  son globales (`Globals.h`). El `Buzzer` **no** es un servicio global: es
+  propiedad exclusiva de `Sound` (miembro por valor). Sus valores persisten
+  entre transiciones (los
   `begin()` solo reinician lo necesario).
 - **`Engine` = despachador puro:** posee las ventanas como miembros (no las
   anida). Su estado interno decide qué ventana se ve; al cambiar de estado llama
   al `begin()` de la ventana entrante. `setup()` llama `display.begin()`,
-  `buttons.begin()`, `buzzer.begin()`, `sound.begin()` y `engine.begin()`;
+  `buttons.begin()`, `sound.begin()` (que inicializa su `Buzzer` interno) y `engine.begin()`;
   `loop()` hace la **única lectura de botones del frame** (`buttons.read()`, antes
   de `engine.update()`) y luego llama `engine.update()`, `engine.print()`,
   `sound.update()` y `display.show()`.
@@ -178,7 +180,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 |---------|-----------|
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
 | `Config.h` | Constantes compartidas del proyecto (namespace `Config`, sección 19): pines (`Config::Pin`: botones, buzzer, SDA/SCL), geometría y regiones de la pantalla (`Config::Screen`: 128×64, celda 8, dirección I2C, Header/Body) y límites de la dificultad (`Config::Difficulty`: MIN_LEVEL/MAX_LEVEL/DEFAULT_LEVEL). Solo lo verdaderamente compartido; el resto es `static constexpr` en su clase. Sin `#define` para valores (constantes con tipo y ámbito). |
-| `Globals.h` | Declara `extern` los **servicios globales**: `Display display;`, `Buttons buttons;`, `Buzzer buzzer;` y `Sound sound;` (definidos en `Snake_II.ino`, sección 20). No define las ventanas: esas viven dentro de `Engine`. |
+| `Globals.h` | Declara `extern` los **servicios globales**: `Display display;`, `Buttons buttons;` y `Sound sound;` (definidos en `Snake_II.ino`, sección 20). **No** declara el `Buzzer` (es interno de `Sound`). No define las ventanas: esas viven dentro de `Engine`. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
 | `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: Back, Select / Pause, None, None; cualquier botón la cierra con un sonido según el botón pulsado: MOVE = CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM). Completa. |
@@ -189,9 +191,9 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Food.h` / `Food.cpp` | Clase `Food` (alimento del tablero, extraído de `Game`): estado (posición, presencia, tipo normal/especial), generación en celdas libres (`spawn`, que consulta la ocupación al tablero vía `Game::occupied`), dibujo del rombo (normal) o del sprite `SPECIAL_FOOD` (especial) y el temporizador de la comida especial. Completa. |
 | `Snake.h` / `Snake.cpp` | Clase `Snake` (lógica pura de la serpiente, extraída de `Game`): buffer circular de segmentos, dirección commitida + giro pendiente (sin reversa directa), paso con wrap, colisión, comer/crecer y elección de sprites de las partes. **Sin `Display`/`Sound`/`Food`**: `Game` coordina el ritmo, el alimento, los sonidos y el dibujo. Completa. |
 | `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas** pero las **posee como miembros** (`_boot`, `_menu`, `_credits`, `_game`, `_legend`): su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Los `begin()` de las ventanas se lanzan desde `setup()` vía `engine.begin()`. Completa. |
-| `Snake_II.ino` | Enlace de dependencias (wiring). Define los **servicios globales** (`display`, `buttons`, `buzzer`, `sound`) en orden de dependencia (`buzzer` antes que `sound`) y crea `Engine engine;` (que posee las ventanas). `setup()` llama `display.begin()`, `buttons.begin()`, `buzzer.begin()`, `sound.begin()` y `engine.begin()`; `loop()` hace la **única lectura de botones del frame** (`buttons.read()`) y llama `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`. |
-| `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). Completa. |
-| `Sound.h` / `Sound.cpp` | Clase `Sound` (secuencias de los efectos del juego sobre `Buzzer`, con `setEnabled` para silenciar). Completa. |
+| `Snake_II.ino` | Enlace de dependencias (wiring). Define los **servicios globales** (`display`, `buttons`, `sound`) y crea `Engine engine;` (que posee las ventanas). `Sound` se construye con el pin: `Sound sound(Config::Pin::BUZZER);` (el `Buzzer` es suyo). `setup()` llama `display.begin()`, `buttons.begin()`, `sound.begin()` (que inicializa su `Buzzer` interno) y `engine.begin()`; `loop()` hace la **única lectura de botones del frame** (`buttons.read()`) y llama `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`. |
+| `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). **No es un servicio global**: la posee `Sound` por valor (sección 10.2). Completa. |
+| `Sound.h` / `Sound.cpp` | Classe `Sound` (secuencias de los efectos del juego sobre su `Buzzer` interno —miembro por valor, inicializado en `begin()`—, con `setEnabled` para silenciar). Completa. |
 | `Sprite.h` | Namespace `Sprite` (tabla de sprites de la serpiente, estilo Nokia: cola, cuerpo, curvas, cabeza cerrada/abierta y panza; sprites de 4×4 px + sprite de la comida especial de 8×4 px). Solo datos (header-only, sin `.cpp`). Adaptada al estilo del proyecto. |
 | `Timer.h` | Reloj de 64 bits y cronómetros compartidos (`nowMs()`, `Stopwatch`, `Ticker`), basados en `esp_timer_get_time()` (sección 21). Solo reloj (header-only, sin `.cpp`). |
 | `PROYECTO.md` | Este documento. |
@@ -202,10 +204,13 @@ para que no interfiera en la compilación.
 Nota (refactor de servicios globales): desde esta tarea las clases nuestras ya no
 reciben `Display`/`Buttons`/`Sound`/`Buzzer` por constructor — las usan
 directamente vía `Globals.h` (que se incluye solo en los `.cpp`, no en los
-`.h`). `Sound` conserva su `Buzzer&` (bind en el `.ino`, que garantiza el orden
-`buzzer` antes que `sound` en la misma TU). Se mantienen constructor los
+`.h`). `Sound` es la **única** clase que usa `Buzzer`, y lo **posee por valor**
+(`Sound(uint8_t pin)` lo construye con el pin y `Sound::begin()` lo inicializa);
+ya no quedan `Buzzer buzzer;` global ni el bind `Sound(Buzzer&)`. Se mantienen
+constructor los
 parámetros de configuración: `Menu(bestScore, version)`, `Credits()`,
-`Scroller(bands, bandHeights)` y `Food(cols, rows, top)` (y `Game()`/`Boot()`/
+`Scroller(bands, bandHeights)`, `Food(cols, rows, top)` y `Sound(pin)`
+(y `Game()`/`Boot()`/
 `Legend()` quedan sin parámetros). El constructor propio de cada ventana está
 documentado en su sección.
 
@@ -337,11 +342,12 @@ size=3 -> texto 18x24    -> cuadro  (18+6) x (24+2) = 24x26
   los estados
   del `Engine` `NEW`/`CONTINUE`/`CREDITS`). Los comentarios y la documentación (`PROYECTO.md`)
   se mantienen en español (convención del proyecto).
-- **Servicios globales, ventanas internas:** `Display`, `Buttons`, `Buzzer` y
-  `Sound` son los únicos **globales** (`Globals.h`: `extern`, definidos en
-  `Snake_II.ino` en orden de dependencia —`buzzer` antes que `sound`— para no
-  depender del orden de inicialización entre archivos y permitir que `Scroller`/`Food`
-  consulten `display.getWidth()` al construir `Engine`). Las **ventanas no son
+- **Servicios globales, ventanas internas:** `Display`, `Buttons` y `Sound` son los
+  únicos **globales** (`Globals.h`: `extern`, definidos en
+  `Snake_II.ino`; el orden de construcción ya no importa porque cada servicio se
+  inicializa en su `begin()` desde `setup()`, y así `Scroller`/`Food`
+  pueden consultar `display.getWidth()` al construir `Engine`). El `Buzzer` **no**
+  es global: lo contiene `Sound` por valor. Las **ventanas no son
   globales**: viven dentro de `Engine` (sección 11), así ninguna clase puede
   llamarlas por fuera del despachador.
 
@@ -678,6 +684,12 @@ Ubicación: `Buzzer.h` / `Buzzer.cpp`. Reproduce **un solo tono a la vez**, de f
 `Sound::update()`) lo apaga al agotarse el tiempo. Sin `delay()`, el juego nunca se
 congela. Usa LEDC del núcleo ESP32 (Core 3.x), como el `GameBuzzer` original.
 
+**No es un servicio global:** es propiedad exclusiva de `Sound`, que lo contiene
+como **miembro por valor** (`Buzzer _buzzer;`) y lo construye con el pin recibido.
+Solo `Sound` lo usa: no hay `extern Buzzer` en `Globals.h` ni instancia global en
+`Snake_II.ino`, y su `begin()` lo llama `Sound::begin()`. La API es pública dentro
+de `Buzzer`, pero está encapsulada por la estructura de `Sound`.
+
 ### Constructor
 
 ```cpp
@@ -700,7 +712,8 @@ Buzzer(uint8_t pin = Config::Pin::BUZZER);   // pin 14 (Config)
 ## 10.2 Clase `Sound` — API (sonidos del juego)
 
 Ubicación: `Sound.h` / `Sound.cpp`. Compone los efectos de Snake II como **secuencias
-de tonos** (`Note` = `{freq, durMs}`, `0` = silencio) sobre `Buzzer`. Todo es no
+de tonos** (`Note` = `{freq, durMs}`, `0` = silencio) sobre su **`Buzzer` interno**
+(miembro por valor, inicializado en `Sound::begin()`). Todo es no
 bloqueante: `play()` arranca el efecto y `update()` lo avanza paso a paso cuando
 cada nota termina. Con el sonido desactivado `play()` no hace nada (pensado para la
 opción "Sound" del menú, `setEnabled(false)`).
@@ -716,8 +729,12 @@ API pública de `Sound` no expone `Note`, `Seq` ni las tablas.
 ### Constructor
 
 ```cpp
-Sound(Buzzer& buzzer);
+explicit Sound(uint8_t pin = Config::Pin::BUZZER);
 ```
+
+El `Buzzer` se **construye por valor** dentro de `Sound` (miembro `_buzzer`, primer
+miembro y primero en la lista de inicialización): ya no hay `Buzzer&` ni instancia
+global.
 
 ### Enum y efectos
 
@@ -751,15 +768,16 @@ Los tonos siguen la paleta del `GameBuzzer` original.
 
 | Método | Descripción |
 |--------|-------------|
-| `void begin()` | Silencia y reinicia la secuencia. |
+| `void begin()` | Inicializa la capa de hardware (`_buzzer.begin()`, que adjunta el canal LEDC) y después `stop()` (silencia y reinicia la secuencia). Es el único lugar que inicializa el `Buzzer`. |
 | `void setEnabled(bool)` / `enabled()` | Activa/desactiva el sonido (opción "Sound"); al desactivar corta el efecto en curso. |
 | `void play(Sfx)` | Arranca la secuencia del efecto (no bloqueante). |
 | `void update()` | Avanza a la siguiente nota (llama `_buzzer.update()` antes). Llamar una vez por `loop()`. |
 | `void stop()` | Corta el efecto en curso y silencia. |
 | `bool playing()` | `true` mientras suena un efecto. |
 
-En `Snake_II.ino`: `Buzzer buzzer;` y `Sound sound(buzzer);` (instancias únicas,
-`buzzer.begin()` y `sound.begin()` en `setup()`, `sound.update()` en `loop()`).
+En `Snake_II.ino`: `Sound sound(Config::Pin::BUZZER);` (instancia única del
+servicio global; el `Buzzer` que contiene se inicializa con `sound.begin()` en
+`setup()` y `sound.update()` se llama en `loop()`).
 
 ---
 
@@ -1406,7 +1424,7 @@ namespace Config {
 
 | Namespace | Constantes | Las usan |
 |-----------|------------|----------|
-| `Config::Pin` | `BUTTONS`, `BUZZER`, `OLED_SDA`, `OLED_SCL` | `Snake_II.ino` (pasa `Config::Pin::BUTTONS` a `Buttons`), `Buzzer` (pin por defecto), `Display` (pines I2C por defecto) |
+| `Config::Pin` | `BUTTONS`, `BUZZER`, `OLED_SDA`, `OLED_SCL` | `Snake_II.ino` (pasa `Config::Pin::BUTTONS` a `Buttons` y `Config::Pin::BUZZER` a `Sound`, que construye su `Buzzer`), `Buzzer` (pin por defecto), `Display` (pines I2C por defecto) |
 | `Config::Screen` | `WIDTH`/`HEIGHT`/`CELL`/`ADDRESS` y regiones `HEADER_*`/`BODY_*` | `Display` (defaults del constructor y `regionBounds`), `Boot` (bandas TITULO=Header/CUERPO=Body), `Game` (tablero en el Body), `Credits` (rol del Body) |
 | `Config::Difficulty` | `MIN_LEVEL`/`MAX_LEVEL`/`DEFAULT_LEVEL` | `Menu` (selector de dificultad inline) y `Game` (`setDifficulty`/velocidad): antes duplicadas en ambas clases. El sufijo `_LEVEL` y `DEFAULT_LEVEL` evitan la macro `DEFAULT` del core ESP32 (`Arduino.h`). |
 
@@ -1431,29 +1449,29 @@ los servicios por constructor (ver secciones 3, 6 y 11): el único lugar donde s
 
 #include "Display.h"
 #include "Buttons.h"
-#include "Buzzer.h"
 #include "Sound.h"
 
 extern Display display;
 extern Buttons buttons;
-extern Buzzer  buzzer;
 extern Sound   sound;
 ```
 
 ### Reglas
 
-1. **Se instancian solo en `Snake_II.ino`**, en orden de dependencia (`buzzer`
-   antes que `sound`, porque `Sound` guarda `Buzzer&`). Como todo está en la
-   misma TU y en ese orden, el `Engine` (declarado al final) se construye sobre
-   globales ya construidos: los miembros `Scroller` (`display.getWidth()`) y
-   `Food` son seguros. **No** se usa `static order/fiasco` ni factories: el
-   orden de definición basta.
+1. **Se instancian solo en `Snake_II.ino`**, y cada uno se inicializa en su
+   `begin()` desde `setup()` (por eso el **orden de definición ya no importa**:
+   el `Engine`, declarado al final, se construye sobre globales que solo
+   necesitan su constructor —`Scroller` (`display.getWidth()`) y `Food` son
+   seguros— y el trabajo real va en los `begin()`). **No** se usa
+   `static order/fiasco` ni factories.
 2. **Solo las clases de servicio son globales.** Las **ventanas** (`Boot`,
    `Legend`, `Menu`, `Credits`, `Game`) NO: son miembros del `Engine` (sección
-   11) y por eso no aparecen aquí.
+   11) y por eso no aparecen aquí. El **`Buzzer` tampoco**: es una pieza de
+   hardware interna de `Sound` (miembro por valor), no un servicio global.
 3. **`Globals.h` se incluye solo desde los `.cpp`** (las cabeceras no lo
    incluyen): evita acoplar los `.h` al global y mantiene el orden de includes
    predecible. Un `.cpp` que usa un servicio global debe incluir `Globals.h`.
+   `Sound.h` sí incluye `Buzzer.h`, porque su miembro es un `Buzzer` por valor.
 
 ---
 
