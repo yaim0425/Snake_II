@@ -53,43 +53,9 @@ public:
   bool pressed(uint8_t index) const;
   bool released(uint8_t index) const;
 
-  bool moveUp() const;
-  bool moveRight() const;
-  bool moveDown() const;
-  bool moveLeft() const;
-
-  bool actionUp() const;
-  bool actionRight() const;
-  bool actionDown() const;
-  bool actionLeft() const;
-
-  // ========================================================
-  // Pressed
-  // ========================================================
-
-  bool moveUpPressed() const;
-  bool moveRightPressed() const;
-  bool moveDownPressed() const;
-  bool moveLeftPressed() const;
-
-  bool actionUpPressed() const;
-  bool actionRightPressed() const;
-  bool actionDownPressed() const;
-  bool actionLeftPressed() const;
-
-  // ========================================================
-  // Released
-  // ========================================================
-
-  bool moveUpReleased() const;
-  bool moveRightReleased() const;
-  bool moveDownReleased() const;
-  bool moveLeftReleased() const;
-
-  bool actionUpReleased() const;
-  bool actionRightReleased() const;
-  bool actionDownReleased() const;
-  bool actionLeftReleased() const;
+  // Los accesos por botón con nombre (moveUp/moveDown..., xxxPressed/xxxReleased)
+  // se eliminaron: se usan state/pressed/released con el enum Button, p. ej.
+  // `buttons.pressed(Buttons::ACTION_RIGHT)`. API única, sin boilerplate.
 
 private:
 

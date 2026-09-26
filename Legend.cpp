@@ -52,17 +52,17 @@ void Legend::update() {
   // ACTION_DOWN/ACTION_LEFT (None) = SFX_CLICK
   bool exit = false;
 
-  if (buttons.moveUpPressed() || buttons.moveRightPressed() ||
-      buttons.moveDownPressed() || buttons.moveLeftPressed()) {
+  if (buttons.pressed(Buttons::MOVE_UP) || buttons.pressed(Buttons::MOVE_RIGHT) ||
+      buttons.pressed(Buttons::MOVE_DOWN) || buttons.pressed(Buttons::MOVE_LEFT)) {
     sound.play(Sound::SFX_CLICK);
     exit = true;
-  } else if (buttons.actionUpPressed()) {
+  } else if (buttons.pressed(Buttons::ACTION_UP)) {
     sound.play(Sound::SFX_BACK);
     exit = true;
-  } else if (buttons.actionRightPressed()) {
+  } else if (buttons.pressed(Buttons::ACTION_RIGHT)) {
     sound.play(Sound::SFX_CONFIRM);
     exit = true;
-  } else if (buttons.actionDownPressed() || buttons.actionLeftPressed()) {
+  } else if (buttons.pressed(Buttons::ACTION_DOWN) || buttons.pressed(Buttons::ACTION_LEFT)) {
     sound.play(Sound::SFX_CLICK);
     exit = true;
   }

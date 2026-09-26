@@ -86,7 +86,7 @@ void Credits::navigate() {
     Serial.printf("Credits: opcion %u -> %u\n", before, _entry);
   }
 
-  if (buttons.actionUpPressed()) _exit = true;
+  if (buttons.pressed(Buttons::ACTION_UP)) _exit = true;
 }
 
 // ========================================================

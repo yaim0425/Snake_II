@@ -185,12 +185,12 @@ void Menu::update() {
       _soundEnabled = true;
       sound.play(Sound::SFX_CLICK);
     }
-    if (buttons.actionRightPressed()) {
+    if (buttons.pressed(Buttons::ACTION_RIGHT)) {
       // btn2 (Select): aplica el valor actual y vuelve al menú
       sound.setEnabled(_soundEnabled);
       if (_soundEnabled) sound.play(Sound::SFX_CONFIRM);
       endSoundEdit();
-    } else if (buttons.actionUpPressed()) {
+    } else if (buttons.pressed(Buttons::ACTION_UP)) {
       // btn1 (Back): cancela sin cambiar el estado y vuelve al menú
       sound.play(Sound::SFX_BACK);
       endSoundEdit();
@@ -208,12 +208,12 @@ void Menu::update() {
       _editDifficulty--;
       sound.play(Sound::SFX_CLICK);
     }
-    if (buttons.actionRightPressed()) {
+    if (buttons.pressed(Buttons::ACTION_RIGHT)) {
       // btn2 (Select): aplica el valor y vuelve al menú
       _difficulty = _editDifficulty;
       sound.play(Sound::SFX_CONFIRM);
       endDifficultyEdit();
-    } else if (buttons.actionUpPressed()) {
+    } else if (buttons.pressed(Buttons::ACTION_UP)) {
       // btn1 (Back): cancela sin cambiar el estado y vuelve al menú
       sound.play(Sound::SFX_BACK);
       endDifficultyEdit();
@@ -222,12 +222,12 @@ void Menu::update() {
     navigate();
     // Al confirmar la opción "Dificultad" (btn2) se entra en modo edición
     // inline, igual que "Sound" (ver Engine).
-    if (buttons.actionRightPressed() && optionAt(_selected) == OPT_DIFFICULTY) {
+    if (buttons.pressed(Buttons::ACTION_RIGHT) && optionAt(_selected) == OPT_DIFFICULTY) {
       sound.play(Sound::SFX_CLICK);
       beginDifficultyEdit();
       return;
     }
-    if (buttons.actionRightPressed() && optionAt(_selected) == OPT_SOUND) {
+    if (buttons.pressed(Buttons::ACTION_RIGHT) && optionAt(_selected) == OPT_SOUND) {
       sound.play(Sound::SFX_CLICK);
       beginSoundEdit();
       return;
@@ -573,7 +573,7 @@ int8_t Menu::confirm() const {
   // Option): con "Continue" oculto la lista es 4 opciones y los índices
   // ya no coinciden con el enum, así el Engine compara con los mismos
   // valores (OPT_NEW/OPT_CONTINUE/OPT_CREDITS).
-  if (buttons.actionRightPressed() &&
+  if (buttons.pressed(Buttons::ACTION_RIGHT) &&
       optionAt(_selected) != OPT_SOUND &&
       optionAt(_selected) != OPT_DIFFICULTY)
     return (int8_t)optionAt(_selected);
