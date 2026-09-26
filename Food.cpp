@@ -4,6 +4,8 @@
 
 #include "Sprite.h"
 
+#include "Config.h"
+
 #include <Adafruit_GFX.h>
 
 // ========================================================
@@ -128,8 +130,8 @@ void Food::draw() const {
 
 void Food::drawNormal() const {
   Adafruit_SSD1306& s = display.screen();
-  int16_t cx = (int16_t)_x * CELL + CELL / 2;
-  int16_t cy = _top + (int16_t)_y * CELL + CELL / 2;
+  int16_t cx = (int16_t)_x * Config::Screen::CELL + Config::Screen::CELL / 2;
+  int16_t cy = _top + (int16_t)_y * Config::Screen::CELL + Config::Screen::CELL / 2;
 
   s.fillTriangle(cx, cy - 3, cx + 3, cy, cx, cy + 3, SSD1306_WHITE);
   s.fillTriangle(cx, cy - 3, cx - 3, cy, cx, cy + 3, SSD1306_WHITE);
@@ -138,14 +140,14 @@ void Food::drawNormal() const {
 // ========================================================
 // Comida especial: sprite SPECIAL_FOOD (8×4 px de 1 bit)
 // dibujado a 1 px por bit, centrado verticalmente en la
-// celda (la celda mide 8 px, el sprite 4)
+// celda (la celda mide Config::Screen::CELL px, el sprite 4)
 // ========================================================
 
 void Food::drawSpecial() const {
   Adafruit_SSD1306& s = display.screen();
-  int16_t baseX = (int16_t)_x * CELL;
-  int16_t baseY = _top + (int16_t)_y * CELL
-                  + (CELL - Sprite::SPECIAL_FOOD_H) / 2;
+  int16_t baseX = (int16_t)_x * Config::Screen::CELL;
+  int16_t baseY = _top + (int16_t)_y * Config::Screen::CELL
+                  + (Config::Screen::CELL - Sprite::SPECIAL_FOOD_H) / 2;
 
   for (uint8_t i = 0; i < Sprite::SPECIAL_FOOD_H; i++) {
     for (uint8_t j = 0; j < Sprite::SPECIAL_FOOD_W; j++) {

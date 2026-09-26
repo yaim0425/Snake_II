@@ -187,8 +187,8 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Scroller.h` / `Scroller.cpp` | Clase `Scroller` (scroller de 1 bit compartido: compone una tira 128x16 y desliza lateralmente N bandas sincronizadas con el mismo desplazamiento; cada banda tiene su canvas persistente y sus colores de frente/fondo; usada por `Menu` con 1 banda y por `Credits` con 2). Completa. |
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit —1 banda del `Scroller` compartido— y rombos de posición). Completa. **Incluye la edición inline de la opción "Sound"** (selector On/Off en la banda de los rombos) **y de la opción "Dificultad"** (selector `< N >`, nivel 1..10, con repetición al mantener presionado; al mantener, solo queda fija la flecha del botón activo). |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral —2 bandas sincronizadas del `Scroller` compartido— y `SFX_CLICK` al navegar, vuelve al menú con `ACTION_UP`). Completa. |
-| `Game.h` / `Game.cpp` | Clase `Game` (ventana del juego de la serpiente: estados NEW/CONTINUE del `Engine`). **Coordina**: dificultad/velocidad, lectura de botones (MOVE → `Snake::turn`), `snake.step()` con manejo del resultado, alimento (`Food`), puntaje, sonidos, overlays y volcado del tablero con los segmentos de `Snake`. Completa. |
-| `Food.h` / `Food.cpp` | Clase `Food` (alimento del tablero, extraído de `Game`): estado (posición, presencia, tipo normal/especial), generación en celdas libres (`spawn`, que consulta la ocupación al tablero vía `Game::occupied`), dibujo del rombo (normal) o del sprite `SPECIAL_FOOD` (especial) y el temporizador de la comida especial. Completa. |
+| `Game.h` / `Game.cpp` | Clase `Game` (ventana del juego de la serpiente: estados NEW/CONTINUE del `Engine`). **Coordina**: dificultad/velocidad, lectura de botones (MOVE → `Snake::turn`), `snake.step()` con manejo del resultado, alimento (`Food`), puntaje, sonidos, overlays y volcado del tablero con los segmentos de `Snake` (celda de `Config::Screen::CELL`, sprites escalados con `SPRITE_SCALE`). Completa. |
+| `Food.h` / `Food.cpp` | Clase `Food` (alimento del tablero, extraído de `Game`): estado (posición, presencia, tipo normal/especial), generación en celdas libres (`spawn`, que consulta la ocupación al tablero vía `Game::occupied`), dibujo del rombo (normal) o del sprite `SPECIAL_FOOD` (especial) —la celda la toma de `Config::Screen::CELL`, no declara una propia— y el temporizador de la comida especial. Completa. |
 | `Snake.h` / `Snake.cpp` | Clase `Snake` (lógica pura de la serpiente, extraída de `Game`): buffer circular de segmentos, dirección commitida + giro pendiente (sin reversa directa), paso con wrap, colisión, comer/crecer y elección de sprites de las partes. **Sin `Display`/`Sound`/`Food`**: `Game` coordina el ritmo, el alimento, los sonidos y el dibujo. Completa. |
 | `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas** pero las **posee como miembros** (`_boot`, `_menu`, `_credits`, `_game`, `_legend`): su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Los `begin()` de las ventanas se lanzan desde `setup()` vía `engine.begin()`. Completa. |
 | `Snake_II.ino` | Enlace de dependencias (wiring). Define los **servicios globales** (`display`, `buttons`, `sound`) y crea `Engine engine;` (que posee las ventanas). `Sound` se construye con el pin: `Sound sound(Config::Pin::BUZZER);` (el `Buzzer` es suyo). `setup()` llama `display.begin()`, `buttons.begin()`, `sound.begin()` (que inicializa su `Buzzer` interno) y `engine.begin()`; `loop()` hace la **única lectura de botones del frame** (`buttons.read()`) y llama `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`. |
@@ -1116,13 +1116,17 @@ construyen solos en su lista de inicialización.
 
 | Constante | Valor | Significado |
 |-----------|-------|-------------|
-| `Config::Difficulty::MIN_LEVEL` / `MAX_LEVEL` / `DEFAULT_LEVEL` | 1 / 10 / 5 | Nivel de dificultad acotado (mismo rango y fuente única que el menú; ya no se duplica en `Game`). La fila superior del tablero es el Body: `Config::Screen::BODY_TOP`. |
+| `Config::Difficulty::MIN_LEVEL` / `MAX_LEVEL` / `DEFAULT_LEVEL` | 1 / 10 / 5 | Nivel de dificultad acotado (mismo rango y fuente única que el menú; ya no se duplica en `Game`). |
+| `SPRITE_SCALE` | 2 | Px por lado de cada píxel del sprite al dibujarlo: los sprites de `Sprite::SIZE` (4×4) se dibujan como bloques 2×2 para llenar la celda (`Sprite::SIZE * SPRITE_SCALE = Config::Screen::CELL` = 8). Antes era el `2` literal de `drawSprite`. |
 | `COUNTDOWN_MS` | 3000 | Duración del conteo regresivo inicial (3 s, un dígito por segundo: 3-2-1). |
 | `COUNT_HIDE_MS` | 250 | Fase de parpadeo al final de cada dígito: el número (y su cuadro) se ocultan antes de que aparezca el siguiente. |
 
 La geometría del tablero (`COLS`=16, `ROWS`=6, `MAX_LENGTH`=96, rejilla de 16×6
-celdas de 8 px en el Body de 128×48) vive en `Snake` (sección 18); `Game` la
-usa vía `Snake::COLS`/`Snake::ROWS` (p. ej. para construir `Food`).
+celdas en el Body de 128×48) vive en `Snake` (sección 18); `Game` la
+usa vía `Snake::COLS`/`Snake::ROWS` (p. ej. para construir `Food`). **El tamaño de
+la celda no se declara en `Game`**: se toma de `Config::Screen::CELL` (8 px), la
+fuente única que también usa `Food` al dibujar el alimento; lo propio de `Game` es
+solo el factor de escala del sprite (`SPRITE_SCALE`).
 
 ### Métodos
 
@@ -1159,7 +1163,7 @@ usa vía `Snake::COLS`/`Snake::ROWS` (p. ej. para construir `Food`).
 - **Comer/crecer, colisión, giro, sprites:** los resuelve `Snake` (sección 18);
   `Game` solo consume el resultado y repinta.
 - **Alimento:** rombo simétrico centrado en la celda (dos `fillTriangle`), como
-  el rombo del menú; lo dibuja `Food`. La **semilla del generador aleatorio** se
+  el rombo del menú; lo dibuja `Food` (sección 17). La **semilla del generador aleatorio** se
   fija en `Game::reset()` (lo consume `Food::spawn`) con `randomSeed(esp_random()
   ^ (uint32_t)nowMs())`: `esp_random()` es el RNG de hardware del ESP32 (entropía
   real, no predecible como `micros()`) y se combina con el reloj de 64 bits.
@@ -1252,9 +1256,15 @@ Food(uint8_t cols, uint8_t rows, uint8_t top);
 
 Recibe la geometría del tablero (dibuja con la `Display` global, sección 20):
 rejilla de
-`cols`×`rows` celdas de 8 px a partir de la fila `top` (el Body). `Game` la
+`cols`×`rows` celdas de `Config::Screen::CELL` px a partir de la fila `top` (el
+Body). `Game` la
 construye así: `_food(Snake::COLS, Snake::ROWS, Config::Screen::BODY_TOP)` (las
 constantes del tablero viven en `Snake`).
+
+**El tamaño de la celda no se declara en `Food`:** el viejo `static constexpr
+uint8_t CELL = 8` privado duplicaba `Config::Screen::CELL`; ahora ambas clases
+(`Food` y `Game`) toman la celda de `Config` (sección 19), que es la fuente
+única. `Food.cpp` incluye `Config.h`.
 
 ### Enum y constantes
 
@@ -1429,7 +1439,7 @@ namespace Config {
 | Namespace | Constantes | Las usan |
 |-----------|------------|----------|
 | `Config::Pin` | `BUTTONS`, `BUZZER`, `OLED_SDA`, `OLED_SCL` | `Snake_II.ino` (pasa `Config::Pin::BUTTONS` a `Buttons` y `Config::Pin::BUZZER` a `Sound`, que construye su `Buzzer`), `Buzzer` (pin por defecto), `Display` (pines I2C por defecto) |
-| `Config::Screen` | `WIDTH`/`HEIGHT`/`CELL`/`ADDRESS` y regiones `HEADER_*`/`BODY_*` | `Display` (defaults del constructor y `regionBounds`), `Boot` (bandas TITULO=Header/CUERPO=Body), `Game` (tablero en el Body), `Credits` (rol del Body) |
+| `Config::Screen` | `WIDTH`/`HEIGHT`/`CELL`/`ADDRESS` y regiones `HEADER_*`/`BODY_*` | `Display` (defaults del constructor y `regionBounds`), `Boot` (bandas TITULO=Header/CUERPO=Body), `Game` (tablero en el Body, celda de los sprites y `BODY_TOP` al volcar el tablero), `Food` (celda del alimento: centro del rombo y sprite especial), `Credits` (rol del Body) |
 | `Config::Difficulty` | `MIN_LEVEL`/`MAX_LEVEL`/`DEFAULT_LEVEL` | `Menu` (selector de dificultad inline) y `Game` (`setDifficulty`/velocidad): antes duplicadas en ambas clases. El sufijo `_LEVEL` y `DEFAULT_LEVEL` evitan la macro `DEFAULT` del core ESP32 (`Arduino.h`). |
 
 Las regiones `HEADER_TOP/H` y `BODY_TOP/H` reemplazan las constantes repetidas
@@ -1437,6 +1447,13 @@ Las regiones `HEADER_TOP/H` y `BODY_TOP/H` reemplazan las constantes repetidas
 Los `static constexpr` de esas clases se eliminaron; solo `Boot` conserva sus
 constantes propias (`BAR_W`, `BAR_SPACING`, `ANIM_TICK`, `TOTAL_MS`), que son de
 su animación.
+
+`CELL` sigue la misma regla: es la **única** medida de px por celda. Reemplaza al
+`static constexpr uint8_t CELL = 8` que `Food` declaraba por su cuenta y a los `8`
+literales de `Game::drawSprite`. Lo que **no** es compartido (el factor de escala
+con que un sprite de 4×4 llena la celda) queda como constante propia con nombre en
+la clase que la usa: `Game::SPRITE_SCALE = 2` (`Sprite::SIZE * SPRITE_SCALE ==
+Config::Screen::CELL`).
 
 ---
 

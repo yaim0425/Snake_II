@@ -20,13 +20,14 @@
 // tablero con los segmentos que Snake expone.
 //
 //   - Tablero: rejilla de Snake::COLS x Snake::ROWS celdas de
-//     8x8 px en el Body (filas 16..63). La serpiente sale por
-//     un borde y reaparece por el opuesto (wrap en X y en Y,
-//     estilo Nokia del juego original).
+//     Config::Screen::CELL px (8x8) en el Body (filas 16..63). La
+//     serpiente sale por un borde y reaparece por el opuesto (wrap
+//     en X y en Y, estilo Nokia del juego original).
 //   - Sprites: los 4x4 px de Sprite, dibujados con píxel doble
-//     (2x2 px) para ocupar la celda de 8x8. La parte de cada
-//     segmento (cola/cuerpo/curva/cabeza) la deriva Snake de la
-//     geometría de sus vecinos y de la dirección de la cabeza.
+//     (SPRITE_SCALE = 2 px por lado) para ocupar la celda de 8x8.
+//     La parte de cada segmento (cola/cuerpo/curva/cabeza) la
+//     deriva Snake de la geometría de sus vecinos y de la dirección
+//     de la cabeza.
 //   - Estados: START (conteo regresivo 3-2-1), PLAY (se mueve
 //     cada _moveDelay ms según la dificultad), PAUSE y
 //     GAME_OVER.
@@ -142,8 +143,14 @@ private:
   // ========================================================
   // Geometría y tiempos
   // ========================================================
-  // La fila superior del tablero es el Body: Config::Screen::BODY_TOP.
+  // La celda del tablero mide `Config::Screen::CELL` px (8x8) y
+  // la fila superior del tablero es el Body
+  // (`Config::Screen::BODY_TOP`): la celda no se redeclara aquí,
+  // se toma de `Config` (fuente única, la usan `Food` y `Game`).
+  // Los sprites de 4x4 px se escalan con `SPRITE_SCALE` (2 px por
+  // lado del sprite) para llenar la celda: SIZE * SPRITE_SCALE = CELL.
 
+  static constexpr uint8_t SPRITE_SCALE = 2;       // px por lado de cada píxel del sprite (4x4 escalado = 8x8)
   static constexpr uint32_t COUNTDOWN_MS = 3000;   // duración del conteo regresivo inicial (3 s, uno por dígito)
   static constexpr uint32_t COUNT_HIDE_MS = 250;   // al final de cada dígito: el número (y su cuadro) se ocultan antes del siguiente (parpadeo)
   static constexpr uint32_t NEW_BEST_SIGN_MS = 1500; // duración de cada letrero del festejo de nuevo récord ("GAME OVER"/"BUT"/"YOU ARE"/"THE BEST")

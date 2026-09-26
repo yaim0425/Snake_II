@@ -47,8 +47,8 @@ public:
 
   // ========================================================
   // Constructor (recibe la geometría del tablero: COLS x ROWS
-  // celdas de 8 px a partir de la fila `top`; dibuja con la
-  // Display global — Globals.h)
+  // celdas de `Config::Screen::CELL` px a partir de la fila
+  // `top`; dibuja con la Display global — Globals.h)
   // ========================================================
 
   Food(uint8_t cols, uint8_t rows, uint8_t top);
@@ -92,13 +92,6 @@ public:
   void draw() const;
 
 private:
-
-  // ========================================================
-  // Geometría
-  // ========================================================
-
-  // Píxeles por celda del tablero (celdas de 8x8 px)
-  static constexpr uint8_t CELL = 8;
 
   // ========================================================
   // Estado

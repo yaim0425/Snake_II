@@ -275,18 +275,22 @@ bool Game::occupied(uint8_t x, uint8_t y) const {
 
 // ========================================================
 // Dibujar un sprite en la celda (x, y): cada píxel del sprite
-// 4x4 se dibuja como un bloque 2x2 px (completa la celda 8x8).
+// 4x4 se dibuja como un bloque SPRITE_SCALE x SPRITE_SCALE px
+// (2x2: completa la celda de Config::Screen::CELL px = 8x8).
 // ========================================================
 
 void Game::drawSprite(Sprite::Part part, uint8_t x, uint8_t y) {
   Adafruit_SSD1306& s = display.screen();
-  int16_t baseX = (int16_t)x * 8;
-  int16_t baseY = Config::Screen::BODY_TOP + (int16_t)y * 8;
+  int16_t baseX = (int16_t)x * Config::Screen::CELL;
+  int16_t baseY = Config::Screen::BODY_TOP + (int16_t)y * Config::Screen::CELL;
 
   for (uint8_t i = 0; i < Sprite::SIZE; i++) {
     for (uint8_t j = 0; j < Sprite::SIZE; j++) {
-      if (Sprite::pixel(part, j, i))
-        s.fillRect(baseX + 2*(int16_t)j, baseY + 2*(int16_t)i, 2, 2, SSD1306_WHITE);
+      if (Sprite::pixel(part, j, i)) {
+        s.fillRect(baseX + SPRITE_SCALE * (int16_t)j,
+                   baseY + SPRITE_SCALE * (int16_t)i,
+                   SPRITE_SCALE, SPRITE_SCALE, SSD1306_WHITE);
+      }
     }
   }
 }
