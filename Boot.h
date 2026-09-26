@@ -98,6 +98,8 @@ private:
   // Dibuja una línea vertical de BAR_W px (con rebalse por el borde derecho)
   void drawBar(int16_t x, uint8_t top, uint8_t height, int16_t width);
 
+  void drawFirstBars();
+
   // Dibuja todas las franjas (TITULO y CUERPO) en el desplazamiento actual
   void drawBars();
 

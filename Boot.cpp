@@ -1,3 +1,4 @@
+#include "HardwareSerial.h"
 #include "Boot.h"
 #include "Globals.h"
 
@@ -65,15 +66,36 @@ void Boot::update() {
 void Boot::print() {
   if (_redraw) {
     display.clear();
+    drawFirstBars();
     _redraw = false;
   } else if (_shift == _prevShift) {
     return;  // nada cambió: el resto de la pantalla se mantiene
   } else {
-    eraseOldBars();
+    // eraseOldBars();
   }
 
   drawBars();
   _prevShift = _shift;
+}
+
+// ========================================================
+// Dibujar las franjas iniciales
+// ========================================================
+
+void Boot::drawFirstBars() {
+  const int16_t w = display.getWidth();
+
+  // TITULO: las líneas se mueven de izquierda a derecha
+  for (int16_t x = 0; x < w; x += BAR_SPACING) {
+    int16_t px = (x + _shift) % w;
+    drawBar(px, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, (int16_t)SSD1306_WHITE);
+  }
+
+  // CUERPO: las líneas se mueven de derecha a izquierda
+  for (int16_t x = 0; x < w; x += BAR_SPACING) {
+    int16_t px = ((x - _shift) % w + w) % w;
+    drawBar(px, Config::Screen::BODY_TOP, Config::Screen::BODY_H, (int16_t)SSD1306_WHITE);
+  }
 }
 
 // ========================================================
@@ -85,14 +107,18 @@ void Boot::drawBars() {
 
   // TITULO: las líneas se mueven de izquierda a derecha
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
-    int16_t px = (x + _shift) % w;
-    drawBar(px, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, w);
+    int16_t px = (x + _shift + w + BAR_W - 1) % w;
+    drawBar(px, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, (int16_t)SSD1306_WHITE);
+    px = ((px - BAR_W) % w + w) % w;
+    drawBar(px, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, (int16_t)SSD1306_BLACK);
   }
 
   // CUERPO: las líneas se mueven de derecha a izquierda
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
-    int16_t px = ((x - _shift) % w + w) % w;
-    drawBar(px, Config::Screen::BODY_TOP, Config::Screen::BODY_H, w);
+    int16_t px = ((x - _shift) % w + w - BAR_W + 1) % w;
+    drawBar(px, Config::Screen::BODY_TOP, Config::Screen::BODY_H, (int16_t)SSD1306_WHITE);
+    px = (px + BAR_W) % w;
+    drawBar(px, Config::Screen::BODY_TOP, Config::Screen::BODY_H, (int16_t)SSD1306_BLACK);
   }
 }
 
@@ -143,15 +169,15 @@ void Boot::eraseBarDiff(int16_t oldX, int16_t newX, uint8_t top,
 // Dibujar una línea vertical de BAR_W px (con rebalse)
 // ========================================================
 
-void Boot::drawBar(int16_t x, uint8_t top, uint8_t height, int16_t width) {
-  Adafruit_SSD1306& s = display.screen();
+void Boot::drawBar(int16_t x, uint8_t y, uint8_t height, int16_t color) {
+  const int16_t w = display.getWidth();
 
-  if (x + BAR_W <= width) {
-    s.fillRect(x, top, BAR_W, height, SSD1306_WHITE);
+  if (x + BAR_W <= w) {
+    display.fillRect(x, y, BAR_W, height, color);
   } else {
     // Rebalsa por el borde derecho: se dibuja en dos partes
-    s.fillRect(x, top, width - x, height, SSD1306_WHITE);
-    s.fillRect(0, top, BAR_W - (width - x), height, SSD1306_WHITE);
+    display.fillRect(x, y, w - x, height, color);
+    display.fillRect(0, y, BAR_W - (w - x), height, color);
   }
 }
 

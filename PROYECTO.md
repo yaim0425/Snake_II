@@ -607,17 +607,20 @@ Sin parámetros: usa los servicios globales `Display` y `Buttons` (sección 20).
 - **Bandas completas:** `TITULO` = filas **0..15** y `CUERPO` = filas **16..63**
   (sin márgenes, como las regiones de la pantalla).
 - **Líneas:** verticales de `BAR_W = 3 px` de grosor separadas `BAR_SPACING = 8 px`,
-  dibujadas con `fillRect` directo sobre el OLED.
+  dibujadas con `Display::fillRect` (sección 7); ya no se accede a la pantalla cruda.
 - **Rebalse:** al llegar al borde derecho la línea se parte en dos tramos (`drawBar`:
   tramo derecho + tramo por la izquierda) para que no se corte en seco.
 - **Movimiento:** `_shift` avanza 1 px cada `ANIM_TICK = 30 ms` (ciclo completo de
   8 px). En `TITULO` las líneas se mueven **de izquierda a derecha**; en `CUERPO`
   **de derecha a izquierda**.
-- **Limpieza incremental (sin `clear()` por frame):** en el primer frame se hace
-  un `clear()` completo; luego, al avanzar, se borran **solo las columnas que cada
-  franja deja de ocupar** (las columnas que coinciden con la posición nueva se
-  mantienen) y se dibujan las franjas en su nueva posición; el resto de la pantalla
-  no se toca. Si el desplazamiento no cambió, no se dibuja nada.
+- **Limpieza incremental (sin `clear()` por frame):** el primer frame hace un `clear()`
+  completo y dibuja el patrón inicial en la posición lógica (`drawFirstBars()`); en cada
+  avance, `drawBars()` pinta cada franja en su **nueva** posición y **repinta en negro
+  la posición anterior** (con el módulo normalizado a `0..ancho-1`, porque
+  `fillRect` recorta en vez de envolver: sin eso la franja que rebalsa por la derecha
+  dejaba 1 px blanco fijo en la última columna). El resto de la pantalla no se toca. Si
+  el desplazamiento no cambió, no se dibuja nada. `eraseOldBars()`/`eraseBarDiff()` ya
+  no se usan (el borrado quedó dentro de `drawBars()`).
 - **Duración:** `TOTAL_MS = 4000 ms` o cualquier botón, lo que ocurra primero; luego
   `Engine` entra al menú.
 
@@ -949,7 +952,7 @@ llama a `display.clear()`, lo decide cada ventana.
 
    | Ventana | Estáticos (una vez) | Dinámicos por frame |
    |---------|---------------------|---------------------|
-   | `Boot` | — (primer frame: clear completo) | Franjas: se borran **solo las columnas que cada franja deja de ocupar** (las coincidentes se mantienen) y se dibujan las nuevas; si no cambió el desplazamiento no se dibuja nada. |
+   | `Boot` | — (primer frame: clear completo + `drawFirstBars()`) | Franjas: se dibujan en la posición nueva y se repinta en negro la posición anterior (la columna liberada, con el módulo normalizado para el rebalse); si no cambió el desplazamiento no se dibuja nada. |
    | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria; al llegar al límite se procesa igual que haber soltado el botón, volviendo el parpadeo normal) |
    | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas) |
    | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
