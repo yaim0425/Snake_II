@@ -74,6 +74,10 @@ public:
 
   void drawPixel(uint8_t x, uint8_t y, bool black = false);
 
+  // Rectángulo relleno: misma firma que Adafruit_SSD1306::fillRect
+  // (reenvío directo a la pantalla)
+  void fillRect(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t color);
+
   // ========================================================
   // Texto
   // ========================================================

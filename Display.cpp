@@ -62,6 +62,11 @@ void Display::drawPixel(uint8_t x, uint8_t y, bool black) {
     _screen->drawPixel(x, y, SSD1306_WHITE);
 }
 
+void Display::fillRect(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t color) {
+  if (_screen == nullptr) return;
+  _screen->fillRect(x, y, w, h, color);
+}
+
 
 // ========================================================
 // Regiones

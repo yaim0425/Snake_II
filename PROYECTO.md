@@ -290,6 +290,7 @@ y con cualquier tamaño (`TEXT_6x8`, `TEXT_12x16`, `TEXT_18x24`).
 | `void clear()` | Limpia el buffer de la pantalla. |
 | `void show()` | Envía el buffer al OLED. |
 | `void drawPixel(x, y, black=false)` | Dibuja 1 píxel (blanco o negro). |
+| `void fillRect(x, y, w, h, color)` | Rectángulo relleno. Misma firma que `Adafruit_SSD1306::fillRect` (`int16_t, int16_t, uint16_t, uint16_t, uint16_t`); es un reenvío directo a la pantalla (con el guard de `_screen == nullptr` del resto de métodos). |
 | `TextPos getTextPos(texto, align, size=1, region=FULL)` | Devuelve x,y (esquina sup-izq) según alineación y región. |
 | `void drawText(texto, x, y, size=1)` | Imprime texto en posición píxel exacta. |
 | `void drawTextInverted(texto, x, y, size=1)` | Imprime texto en negro (sobre cualquier fondo) en posición exacta. |
