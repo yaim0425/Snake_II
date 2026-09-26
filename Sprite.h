@@ -20,10 +20,12 @@
 // escribiendo legible (0/1, con `Pattern`); `pack()` lo
 // aplana en tiempo de compilación, de modo que en memoria
 // solo queda la tabla empaquetada (no queda una copia doble).
+// La comida especial (8×4) se empaqueta por fila: 8 px = 1
+// byte, así que ocupa 4 bytes en vez de 32 (`packRow8()`).
 //
 // Es un namespace de SOLO datos: no necesita instancia ni
 // archivo .cpp; los sprites se leen con Sprite::pixel(part,
-// x, y) y Sprite::SPECIAL_FOOD.
+// x, y) y Sprite::specialPixel(x, y).
 // ========================================================
 
 namespace Sprite {
@@ -165,17 +167,33 @@ namespace Sprite {
   }
 
   // ========================================================
-  // Comida especial (8×4 px)
+  // Comida especial (8×4 px, empaquetado por fila: 8 px de
+  // 1 bit = 8 bits = 1 byte por fila, o sea 4 bytes en vez
+  // de 32). El dibujo se sigue escribiendo en 0/1 con
+  // packRow8(), que aplana la fila en tiempo de compilación.
   // ========================================================
 
-  constexpr uint8_t SPECIAL_FOOD_W = 8;   // ancho en px
-  constexpr uint8_t SPECIAL_FOOD_H = 4;   // alto en px
-  constexpr uint8_t SPECIAL_FOOD[SPECIAL_FOOD_H][SPECIAL_FOOD_W] = {
-    { 0, 1, 0, 1, 0, 1, 0, 0 },
-    { 1, 0, 1, 1, 1, 1, 1, 0 },
-    { 1, 1, 1, 1, 1, 1, 1, 1 },
-    { 0, 0, 1, 0, 0, 1, 0, 0 }
+  constexpr uint8_t SPECIAL_FOOD_W = 8;   // ancho en px (8 px = 1 byte por fila)
+  constexpr uint8_t SPECIAL_FOOD_H = 4;   // alto en px (4 filas = 4 bytes)
+
+  // Fila de 8 px (0/1) -> 1 byte, con el px (0,0) en el bit 7
+  constexpr uint8_t packRow8(uint8_t a, uint8_t b, uint8_t c, uint8_t d,
+                             uint8_t e, uint8_t f, uint8_t g, uint8_t h) {
+    return (uint8_t)((a << 7) | (b << 6) | (c << 5) | (d << 4) |
+                     (e << 3) | (f << 2) | (g << 1) | h);
+  }
+
+  constexpr uint8_t SPECIAL_FOOD[SPECIAL_FOOD_H] = {
+    packRow8(0, 1, 0, 1, 0, 1, 0, 0),  // fila 0
+    packRow8(1, 0, 1, 1, 1, 1, 1, 0),  // fila 1
+    packRow8(1, 1, 1, 1, 1, 1, 1, 1),  // fila 2
+    packRow8(0, 0, 1, 0, 0, 1, 0, 0)   // fila 3
   };
+
+  // Píxel de la comida especial (x = columna, y = fila): px (0,0) = bit 7
+  constexpr bool specialPixel(uint8_t x, uint8_t y) {
+    return (SPECIAL_FOOD[y] & ((uint8_t)0x80 >> x)) != 0;
+  }
 }
 
 #endif

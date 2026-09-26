@@ -996,11 +996,27 @@ bit** y la desliza lateralmente sobre **N bandas sincronizadas** (todas usan el
 Ubicación: `Sprite.h`. Tabla estática con los sprites de las partes de la
 serpiente (estilo Nokia) y el sprite de la **comida especial**. Es un
 **namespace de solo datos** (no una clase): no necesita instancia
-ni archivo `.cpp`; los sprites se leen con `Sprite::SPRITES[Part]` y
-`Sprite::SPECIAL_FOOD`.
+ni archivo `.cpp`; los sprites se leen con `Sprite::pixel(part, x, y)` y
+`Sprite::specialPixel(x, y)`.
+
+**Empaquetado a 1 bit por píxel.** Ninguna tabla guarda un byte por píxel: el
+dibujo se sigue escribiendo en el código como `0`/`1` y el compilador lo aplana
+(`constexpr`), así que en memoria solo queda la versión empaquetada (no queda una
+copia doble).
+
+| Tabla | Antes | Ahora | Bytes |
+|-------|-------|-------|-------|
+| Sprites de la serpiente (4×4) | `uint8_t SPRITES[COUNT][4][4]` | `uint16_t SPRITES[COUNT]` (16 px = 16 bits) | 432 → **54** |
+| Comida especial (8×4) | `uint8_t SPECIAL_FOOD[4][8]` | `uint8_t SPECIAL_FOOD[4]` (1 byte por fila: 8 px = 8 bits) | 32 → **4** |
+
+En ambos casos el px `(0,0)` (esquina superior izquierda) es el bit más
+significativo y el último px, el bit 0; el acceso a un píxel concreto lo hacen
+las funciones `constexpr` `pixel()` / `specialPixel()` (el juego nunca indexa los
+bits a mano).
 
 ```cpp
 constexpr uint8_t SIZE = 4;                 // sprite de 4×4 px
+constexpr uint8_t BITS = SIZE * SIZE;       // px por sprite = bits de su uint16_t
 
 enum Part : uint8_t {
   TAIL_TO_UP = 0, TAIL_TO_RIGHT, TAIL_TO_DOWN, TAIL_TO_LEFT,   // cola
@@ -1020,11 +1036,16 @@ enum Part : uint8_t {
 | Miembro | Contenido |
 |---------|-----------|
 | `SIZE` | Lado del sprite en píxeles (4). |
-| `SPRITES[COUNT][SIZE][SIZE]` | Tabla de sprites de 1 bit (`1` = glifo, `0` = fondo) indexada por `Part`. Rango: 0..3 cola, 4..7 cuerpo, 8..11 curvas, 12..15 cabeza cerrada, 16..19 cabeza abierta, 20..25 panza, 26 `EMPTY`, 27 `COUNT`. |
+| `BITS` | Píxeles por sprite de la serpiente (16) = bits de su `uint16_t`. |
+| `Pattern` / `pack(Pattern)` | `constexpr`: el dibujo legible de 0/1 de un sprite de 4×4 y el empaquetado a `uint16_t` (px `(0,0)` = bit 15). |
+| `SPRITES[COUNT]` | Tabla de sprites **empaquetados** (1 bit por píxel) indexada por `Part`. Rango: 0..3 cola, 4..7 cuerpo, 8..11 curvas, 12..15 cabeza cerrada, 16..19 cabeza abierta, 20..25 panza, 26 `EMPTY`, 27 `COUNT`. |
+| `pixel(Part, x, y)` | `constexpr`: píxel del sprite (`x` = columna, `y` = fila) desde el `uint16_t` empaquetado. |
 | `EMPTY` | Sprite vacío (todo fondo). |
 | `COUNT` | Cantidad de sprites de la tabla. |
 | `SPECIAL_FOOD_W` / `SPECIAL_FOOD_H` | Ancho (8) y alto (4) en píxeles del sprite de la comida especial. |
-| `SPECIAL_FOOD[SPECIAL_FOOD_H][SPECIAL_FOOD_W]` | Sprite de 1 bit de la **comida especial** (8×4 px), tabla aparte por no encajar en los 4×4 de la serpiente. |
+| `packRow8(a..h)` | `constexpr`: una fila de 8 px en 0/1 → 1 byte (px `(0,0)` = bit 7). |
+| `SPECIAL_FOOD[SPECIAL_FOOD_H]` | Sprite de 1 bit de la **comida especial** (8×4 px) **empaquetado por fila** (1 byte por fila = 4 bytes), tabla aparte por no encajar en los 4×4 de la serpiente. |
+| `specialPixel(x, y)` | `constexpr`: píxel de la comida especial (`x` = columna, `y` = fila). |
 
 La panza recta comparte sprite por par de direcciones: `BELLY_TO_RIGHT` =
 `BELLY_TO_UP` y `BELLY_TO_LEFT` = `BELLY_TO_DOWN`.

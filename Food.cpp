@@ -149,7 +149,7 @@ void Food::drawSpecial() const {
 
   for (uint8_t i = 0; i < Sprite::SPECIAL_FOOD_H; i++) {
     for (uint8_t j = 0; j < Sprite::SPECIAL_FOOD_W; j++) {
-      if (Sprite::SPECIAL_FOOD[i][j])
+      if (Sprite::specialPixel(j, i))
         s.drawPixel(baseX + (int16_t)j, baseY + (int16_t)i, SSD1306_WHITE);
     }
   }
