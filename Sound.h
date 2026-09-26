@@ -101,6 +101,26 @@ private:
   };
 
   // ========================================================
+  // Secuencias de notas de cada efecto (los tonos viven en
+  // Sound.cpp). Son detalle de la implementación: solo las
+  // usa la tabla EFFECTS de abajo, que las indexa con el
+  // mismo orden del enum Sfx.
+  // ========================================================
+
+  static const Note SEQ_CLICK[];
+  static const Note SEQ_CONFIRM[];
+  static const Note SEQ_BACK[];
+  static const Note SEQ_EAT[];
+  static const Note SEQ_START[];
+  static const Note SEQ_LEVEL_UP[];
+  static const Note SEQ_GAME_OVER[];
+  static const Note SEQ_TICK[];
+  static const Note SEQ_TURN[];
+  static const Note SEQ_PAUSE[];
+  static const Note SEQ_RESUME[];
+  static const Note SEQ_NEW_BEST[];
+
+  // ========================================================
   // Tabla de efectos indexada por Sfx (definida en Sound.cpp):
   // EFFECTS[SFX_NONE]..EFFECTS[SFX_NEW_BEST], en el mismo orden
   // del enum. Reemplaza a las 12 constantes LEN_*: el largo de

@@ -10,13 +10,20 @@
 // Tabla estática con los sprites de las partes de la
 // serpiente (estilo Nokia): cola, cuerpo, curvas, cabeza
 // (fauces cerradas/abiertas) y panza. Cada sprite de la
-// serpiente es una matriz de 4×4 px (SIZE) de 1 bit:
-// 1 = glifo, 0 = fondo. También incluye el sprite de la
-// comida especial (SPECIAL_FOOD, 8×4 px).
+// serpiente es de 4×4 px (SIZE) de 1 bit: 1 = glifo,
+// 0 = fondo. También incluye el sprite de la comida especial
+// (SPECIAL_FOOD, 8×4 px).
+//
+// Los 4×4 van EMPAQUETADOS: 1 bit por píxel, así cada
+// sprite cabe en un uint16_t (16 px) en vez de 16 bytes, y
+// los 27 sprites pasan de 432 a 54 bytes. El dibujo se sigue
+// escribiendo legible (0/1, con `Pattern`); `pack()` lo
+// aplana en tiempo de compilación, de modo que en memoria
+// solo queda la tabla empaquetada (no queda una copia doble).
 //
 // Es un namespace de SOLO datos: no necesita instancia ni
-// archivo .cpp; los sprites se leen con Sprite::SPRITES[Part]
-// y Sprite::SPECIAL_FOOD.
+// archivo .cpp; los sprites se leen con Sprite::pixel(part,
+// x, y) y Sprite::SPECIAL_FOOD.
 // ========================================================
 
 namespace Sprite {
@@ -25,7 +32,8 @@ namespace Sprite {
   // Dimensiones
   // ========================================================
 
-  constexpr uint8_t SIZE = 4;
+  constexpr uint8_t SIZE = 4;            // ancho y alto del sprite de la serpiente (4×4 px)
+  constexpr uint8_t BITS = SIZE * SIZE;  // px por sprite = bits de su uint16_t
 
   // ========================================================
   // Partes de la serpiente
@@ -72,71 +80,89 @@ namespace Sprite {
   };
 
   // ========================================================
-  // Sprites de la serpiente
+  // Empaque: un sprite de 4×4 son 16 px de 1 bit = 16 bits,
+  // o sea un uint16_t (no un byte por píxel). `Pattern` es el
+  // dibujo legible de 0/1 que se escribe en el código y
+  // `pack()` lo aplana en tiempo de compilación.
+  //
+  // Orden de los bits: fila 0,1,2,3 izquierda-derecha -> bit 15,14,...,0
+  // (px (0,0) en el bit 15, px (3,3) en el bit 0), tal como se lee en `pixel()`.
+
+  // ========================================================
+  // Sprites de la serpiente (empaquetados: 1 bit por px)
   // ========================================================
 
-  constexpr uint8_t SPRITES[COUNT][SIZE][SIZE] = {
+  constexpr uint16_t SPRITES[COUNT] = {
     // ------------------------------------------------------
     // TAIL
     // ------------------------------------------------------
-    { { 0, 1, 1, 0 }, { 0, 1, 1, 0 }, { 0, 1, 0, 0 }, { 0, 1, 0, 0 } },  // TAIL_TO_UP
-    { { 0, 0, 0, 0 }, { 0, 0, 1, 1 }, { 1, 1, 1, 1 }, { 0, 0, 0, 0 } },  // TAIL_TO_RIGHT
-    { { 0, 1, 0, 0 }, { 0, 1, 0, 0 }, { 0, 1, 1, 0 }, { 0, 1, 1, 0 } },  // TAIL_TO_DOWN
-    { { 0, 0, 0, 0 }, { 1, 1, 0, 0 }, { 1, 1, 1, 1 }, { 0, 0, 0, 0 } },  // TAIL_TO_LEFT
+    pack(Pattern{ {0,1,1,0}, {0,1,1,0}, {0,1,0,0}, {0,1,0,0} }),  // TAIL_TO_UP
+    pack(Pattern{ {0,0,0,0}, {0,0,1,1}, {1,1,1,1}, {0,0,0,0} }),  // TAIL_TO_RIGHT
+    pack(Pattern{ {0,1,0,0}, {0,1,0,0}, {0,1,1,0}, {0,1,1,0} }),  // TAIL_TO_DOWN
+    pack(Pattern{ {0,0,0,0}, {1,1,0,0}, {1,1,1,1}, {0,0,0,0} }),  // TAIL_TO_LEFT
 
     // ------------------------------------------------------
     // BODY
     // ------------------------------------------------------
 
-    { { 0, 1, 1, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 1, 1, 0 } },  // BODY_TO_UP
-    { { 0, 0, 0, 0 }, { 1, 1, 0, 1 }, { 1, 0, 1, 1 }, { 0, 0, 0, 0 } },  // BODY_TO_RIGHT
-    { { 0, 1, 1, 0 }, { 0, 0, 1, 0 }, { 0, 1, 0, 0 }, { 0, 1, 1, 0 } },  // BODY_TO_DOWN
-    { { 0, 0, 0, 0 }, { 1, 0, 1, 1 }, { 1, 1, 0, 1 }, { 0, 0, 0, 0 } },  // BODY_TO_LEFT
+    pack(Pattern{ {0,1,1,0}, {0,1,0,0}, {0,0,1,0}, {0,1,1,0} }),  // BODY_TO_UP
+    pack(Pattern{ {0,0,0,0}, {1,1,0,1}, {1,0,1,1}, {0,0,0,0} }),  // BODY_TO_RIGHT
+    pack(Pattern{ {0,1,1,0}, {0,0,1,0}, {0,1,0,0}, {0,1,1,0} }),  // BODY_TO_DOWN
+    pack(Pattern{ {0,0,0,0}, {1,0,1,1}, {1,1,0,1}, {0,0,0,0} }),  // BODY_TO_LEFT
 
     // ------------------------------------------------------
     // CORNERS
     // ------------------------------------------------------
 
-    { { 0, 1, 1, 0 }, { 0, 1, 0, 1 }, { 0, 0, 1, 1 }, { 0, 0, 0, 0 } },  // CORNER_RIGHT_UP
-    { { 0, 0, 0, 0 }, { 0, 0, 1, 1 }, { 0, 1, 0, 1 }, { 0, 1, 1, 0 } },  // CORNER_RIGHT_DOWN
-    { { 0, 1, 1, 0 }, { 1, 0, 1, 0 }, { 1, 1, 0, 0 }, { 0, 0, 0, 0 } },  // CORNER_LEFT_UP
-    { { 0, 0, 0, 0 }, { 1, 1, 0, 0 }, { 1, 0, 1, 0 }, { 0, 1, 1, 0 } },  // CORNER_LEFT_DOWN
+    pack(Pattern{ {0,1,1,0}, {0,1,0,1}, {0,0,1,1}, {0,0,0,0} }),  // CORNER_RIGHT_UP
+    pack(Pattern{ {0,0,0,0}, {0,0,1,1}, {0,1,0,1}, {0,1,1,0} }),  // CORNER_RIGHT_DOWN
+    pack(Pattern{ {0,1,1,0}, {1,0,1,0}, {1,1,0,0}, {0,0,0,0} }),  // CORNER_LEFT_UP
+    pack(Pattern{ {0,0,0,0}, {1,1,0,0}, {1,0,1,0}, {0,1,1,0} }),  // CORNER_LEFT_DOWN
 
     // ------------------------------------------------------
     // HEAD CLOSE
     // ------------------------------------------------------
 
-    { { 0, 0, 0, 0 }, { 0, 1, 1, 0 }, { 0, 1, 1, 0 }, { 0, 1, 0, 1 } },  // HEAD_UP_CLOSE
-    { { 1, 0, 0, 0 }, { 0, 1, 1, 0 }, { 1, 1, 1, 0 }, { 0, 0, 0, 0 } },  // HEAD_RIGHT_CLOSE
-    { { 0, 1, 0, 1 }, { 0, 1, 1, 0 }, { 0, 1, 1, 0 }, { 0, 0, 0, 0 } },  // HEAD_DOWN_CLOSE
-    { { 0, 0, 0, 1 }, { 0, 1, 1, 0 }, { 0, 1, 1, 1 }, { 0, 0, 0, 0 } },  // HEAD_LEFT_CLOSE
+    pack(Pattern{ {0,0,0,0}, {0,1,1,0}, {0,1,1,0}, {0,1,0,1} }),  // HEAD_UP_CLOSE
+    pack(Pattern{ {1,0,0,0}, {0,1,1,0}, {1,1,1,0}, {0,0,0,0} }),  // HEAD_RIGHT_CLOSE
+    pack(Pattern{ {0,1,0,1}, {0,1,1,0}, {0,1,1,0}, {0,0,0,0} }),  // HEAD_DOWN_CLOSE
+    pack(Pattern{ {0,0,0,1}, {0,1,1,0}, {0,1,1,1}, {0,0,0,0} }),  // HEAD_LEFT_CLOSE
 
     // ------------------------------------------------------
     // HEAD OPEN
     // ------------------------------------------------------
 
-    { { 0, 0, 0, 0 }, { 1, 0, 0, 1 }, { 0, 1, 1, 0 }, { 0, 1, 0, 1 } },  // HEAD_UP_OPEN
-    { { 1, 0, 1, 0 }, { 0, 1, 0, 0 }, { 1, 1, 0, 0 }, { 0, 0, 1, 0 } },  // HEAD_RIGHT_OPEN
-    { { 0, 1, 0, 1 }, { 0, 1, 1, 0 }, { 1, 0, 0, 1 }, { 0, 0, 0, 0 } },  // HEAD_DOWN_OPEN
-    { { 0, 1, 0, 1 }, { 0, 0, 1, 0 }, { 0, 0, 1, 1 }, { 0, 1, 0, 0 } },  // HEAD_LEFT_OPEN
+    pack(Pattern{ {0,0,0,0}, {1,0,0,1}, {0,1,1,0}, {0,1,0,1} }),  // HEAD_UP_OPEN
+    pack(Pattern{ {1,0,1,0}, {0,1,0,0}, {1,1,0,0}, {0,0,1,0} }),  // HEAD_RIGHT_OPEN
+    pack(Pattern{ {0,1,0,1}, {0,1,1,0}, {1,0,0,1}, {0,0,0,0} }),  // HEAD_DOWN_OPEN
+    pack(Pattern{ {0,1,0,1}, {0,0,1,0}, {0,0,1,1}, {0,1,0,0} }),  // HEAD_LEFT_OPEN
 
     // ------------------------------------------------------
     // BELLY
     // ------------------------------------------------------
 
-    { { 0, 1, 1, 0 }, { 1, 1, 0, 1 }, { 1, 0, 1, 1 }, { 0, 1, 1, 0 } },  // BELLY_TO_RIGHT || BELLY_TO_UP
-    { { 0, 1, 1, 0 }, { 1, 0, 1, 1 }, { 1, 1, 0, 1 }, { 0, 1, 1, 0 } },  // BELLY_TO_LEFT || BELLY_TO_DOWN
-    { { 0, 1, 1, 1 }, { 0, 1, 0, 1 }, { 0, 0, 1, 1 }, { 0, 0, 0, 0 } },  // BELLY_RIGHT_UP
-    { { 0, 0, 0, 0 }, { 0, 0, 1, 1 }, { 0, 1, 0, 1 }, { 0, 1, 1, 1 } },  // BELLY_RIGHT_DOWN
-    { { 1, 1, 1, 0 }, { 1, 0, 1, 0 }, { 1, 1, 0, 0 }, { 0, 0, 0, 0 } },  // BELLY_LEFT_UP
-    { { 0, 0, 0, 0 }, { 1, 1, 0, 0 }, { 1, 0, 1, 0 }, { 1, 1, 1, 0 } },  // BELLY_LEFT_DOWN
+    pack(Pattern{ {0,1,1,0}, {1,1,0,1}, {1,0,1,1}, {0,1,1,0} }),  // BELLY_TO_RIGHT (compartido con BELLY_TO_UP)
+    pack(Pattern{ {0,1,1,0}, {1,0,1,1}, {1,1,0,1}, {0,1,1,0} }),  // BELLY_TO_LEFT (compartido con BELLY_TO_DOWN)
+    pack(Pattern{ {0,1,1,1}, {0,1,0,1}, {0,0,1,1}, {0,0,0,0} }),  // BELLY_RIGHT_UP
+    pack(Pattern{ {0,0,0,0}, {0,0,1,1}, {0,1,0,1}, {0,1,1,1} }),  // BELLY_RIGHT_DOWN
+    pack(Pattern{ {1,1,1,0}, {1,0,1,0}, {1,1,0,0}, {0,0,0,0} }),  // BELLY_LEFT_UP
+    pack(Pattern{ {0,0,0,0}, {1,1,0,0}, {1,0,1,0}, {1,1,1,0} }),  // BELLY_LEFT_DOWN
 
     // ------------------------------------------------------
     // EMPTY
     // ------------------------------------------------------
 
-    { { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, { 0, 0, 0, 0 } }   // EMPTY
+    pack(Pattern{ {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0} })   // EMPTY
   };
+
+  // ========================================================
+  // Píxel de un sprite (x = columna, y = fila, desde 0).
+  // Usa el empaque de 16 bits: px (0,0) -> bit 15.
+  // ========================================================
+
+  constexpr bool pixel(Part part, uint8_t x, uint8_t y) {
+    return (SPRITES[(uint8_t)part] & ((uint16_t)1 << (BITS - 1 - (y * SIZE + x)))) != 0;
+  }
 
   // ========================================================
   // Comida especial (8×4 px)

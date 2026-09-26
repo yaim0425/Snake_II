@@ -1,8 +1,10 @@
 #include "Sound.h"
 
 // ========================================================
-// Secuencias de los efectos (tablas estáticas).
-// Los tonos siguen la paleta del GameBuzzer original.
+// Secuencias de notas de cada efecto (definición de los
+// miembros estáticos SEQ_*: los tonos siguen la paleta del
+// GameBuzzer original). Tablas privadas de la clase: solo las
+// usa la tabla EFFECTS de más abajo.
 // 0 en freq = silencio (espera de durMs).
 // ========================================================
 
@@ -95,19 +97,19 @@ const Sound::Note Sound::SEQ_NEW_BEST[] = {
 // ========================================================
 
 const Sound::Seq Sound::EFFECTS[] = {
-  { nullptr,             0 },                           // SFX_NONE
-  { SEQ_CLICK,     sizeof(SEQ_CLICK)     / sizeof(Note) }, // SFX_CLICK
-  { SEQ_CONFIRM,   sizeof(SEQ_CONFIRM)   / sizeof(Note) }, // SFX_CONFIRM
-  { SEQ_BACK,      sizeof(SEQ_BACK)      / sizeof(Note) }, // SFX_BACK
-  { SEQ_EAT,       sizeof(SEQ_EAT)       / sizeof(Note) }, // SFX_EAT
-  { SEQ_START,     sizeof(SEQ_START)     / sizeof(Note) }, // SFX_START
-  { SEQ_LEVEL_UP,  sizeof(SEQ_LEVEL_UP)  / sizeof(Note) }, // SFX_LEVEL_UP
-  { SEQ_GAME_OVER, sizeof(SEQ_GAME_OVER) / sizeof(Note) }, // SFX_GAME_OVER
-  { SEQ_TICK,      sizeof(SEQ_TICK)      / sizeof(Note) }, // SFX_TICK
-  { SEQ_TURN,      sizeof(SEQ_TURN)      / sizeof(Note) }, // SFX_TURN
-  { SEQ_PAUSE,     sizeof(SEQ_PAUSE)     / sizeof(Note) }, // SFX_PAUSE
-  { SEQ_RESUME,    sizeof(SEQ_RESUME)    / sizeof(Note) }, // SFX_RESUME
-  { SEQ_NEW_BEST,  sizeof(SEQ_NEW_BEST)  / sizeof(Note) }  // SFX_NEW_BEST
+  { nullptr,             0 },                                       // SFX_NONE
+  { SEQ_CLICK,     sizeof(SEQ_CLICK)       / sizeof(Sound::Note) }, // SFX_CLICK
+  { SEQ_CONFIRM,   sizeof(SEQ_CONFIRM)     / sizeof(Sound::Note) }, // SFX_CONFIRM
+  { SEQ_BACK,      sizeof(SEQ_BACK)        / sizeof(Sound::Note) }, // SFX_BACK
+  { SEQ_EAT,       sizeof(SEQ_EAT)         / sizeof(Sound::Note) }, // SFX_EAT
+  { SEQ_START,     sizeof(SEQ_START)       / sizeof(Sound::Note) }, // SFX_START
+  { SEQ_LEVEL_UP,  sizeof(SEQ_LEVEL_UP)    / sizeof(Sound::Note) }, // SFX_LEVEL_UP
+  { SEQ_GAME_OVER, sizeof(SEQ_GAME_OVER)   / sizeof(Sound::Note) }, // SFX_GAME_OVER
+  { SEQ_TICK,      sizeof(SEQ_TICK)        / sizeof(Sound::Note) }, // SFX_TICK
+  { SEQ_TURN,      sizeof(SEQ_TURN)        / sizeof(Sound::Note) }, // SFX_TURN
+  { SEQ_PAUSE,     sizeof(SEQ_PAUSE)       / sizeof(Sound::Note) }, // SFX_PAUSE
+  { SEQ_RESUME,    sizeof(SEQ_RESUME)      / sizeof(Sound::Note) }, // SFX_RESUME
+  { SEQ_NEW_BEST,  sizeof(SEQ_NEW_BEST)    / sizeof(Sound::Note) }  // SFX_NEW_BEST
 };
 
 // ========================================================

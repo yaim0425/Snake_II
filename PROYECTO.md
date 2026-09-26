@@ -377,11 +377,7 @@ enum Button : uint8_t {
 | `Buttons(const int8_t* pins, uint32_t buttonDelay = 30)` | Constructor, recibe los pines y el tiempo de debounce en ms. |
 | `void begin()` | Configura `INPUT_PULLDOWN` y lee el estado inicial. |
 | `void read()` | Leer físicamente, aplicar debounce y generar eventos. **Se llama una sola vez por `loop()`** (en `loop()`, antes de `engine.update()`); las ventanas solo consultan `state`/`pressed`/`released` sin volver a leer. |
-| `bool state(index)` / `pressed(index)` / `released(index)` | Acceso por índice (0-7) útil para ciclos genéricos. |
-| `moveUp() / moveRight() / moveDown() / moveLeft()` | Estado actual (mantenido). |
-| `actionUp() / actionRight() / actionDown() / actionLeft()` | Estado actual (mantenido). |
-| `...,Pressed()` | Evento de pulso (true solo en el ciclo en que se presiona). |
-| `...,Released()` | Evento de liberación (true solo en el ciclo en que se suelta). |
+| `bool state(index)` / `pressed(index)` / `released(index)` | **Acceso único** por botón, con los valores del enum `Button`: `state(Buttons::MOVE_LEFT)` = estado actual (mantenido), `pressed(Buttons::ACTION_RIGHT)` = evento de pulso (true solo en el ciclo en que se presiona), `released(...)` = evento de liberación. Los 24 getters con nombre (`moveUp()`/`actionRightPressed()`/`...,Released()`, etc.) se eliminaron: API única sin boilerplate. |
 
 ### Diseño del debounce (estados agrupados en bytes)
 
@@ -709,11 +705,13 @@ bloqueante: `play()` arranca el efecto y `update()` lo avanza paso a paso cuando
 cada nota termina. Con el sonido desactivado `play()` no hace nada (pensado para la
 opción "Sound" del menú, `setEnabled(false)`).
 
-Las 12 secuencias `SEQ_*` se indexan con una **única tabla `EFFECTS[]` de
-`{const Note* notes, uint8_t len}`** (orden igual al enum `Sfx`, `SFX_NONE` incluido,
-con secuencia vacía): reemplaza a las 12 constantes `LEN_*` (el largo de cada
-secuencia se deriva con `sizeof` dentro de la tabla) y al `switch` de `play()`,
-que ahora solo lee `EFFECTS[effect]`.
+Las 12 secuencias `SEQ_*` son **miembros estáticos privados** declarados en `Sound.h`
+y definidos en `Sound.cpp` (los tonos), y se indexan con una **única tabla
+`EFFECTS[]` de `{const Note* notes, uint8_t len}`** (orden igual al enum `Sfx`,
+`SFX_NONE` incluido, con secuencia vacía): reemplaza a las 12 constantes `LEN_*` (el
+largo de cada secuencia se deriva con `sizeof` dentro de la tabla) y al `switch` de
+`play()`, que ahora solo lee `EFFECTS[effect]`. Son detalle de la implementación: la
+API pública de `Sound` no expone `Note`, `Seq` ni las tablas.
 
 ### Constructor
 

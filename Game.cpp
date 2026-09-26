@@ -132,7 +132,7 @@ void Game::update() {
       // agotarse el conteo (COUNTDOWN_MS). Al arrancar la partida
       // (después del "1") suena el jingle GO! (SFX_START).
       handleTurn();
-      if (buttons.actionRightPressed()) {
+      if (buttons.pressed(Buttons::ACTION_RIGHT)) {
         sound.play(Sound::SFX_START);
         startPlay();
       } else if (nowMs() - _startMs >= COUNTDOWN_MS) {
@@ -147,7 +147,7 @@ void Game::update() {
       // Btn2 (ACTION_RIGHT) = Select / Pause: al presionar durante la
       // partida se congela el tablero y se muestra el panel "PAUSA".
       // En PAUSE se retoma con el mismo botón (o ACTION_LEFT).
-      if (buttons.actionRightPressed()) {
+      if (buttons.pressed(Buttons::ACTION_RIGHT)) {
         sound.play(Sound::SFX_PAUSE);
         _state = State::PAUSE;
         break;
@@ -171,8 +171,8 @@ void Game::update() {
 
     case State::GAME_OVER: {
       // Cualquier botón ACTION vuelve al menú
-      if (buttons.actionUpPressed() || buttons.actionRightPressed() ||
-          buttons.actionDownPressed() || buttons.actionLeftPressed()) {
+      if (buttons.pressed(Buttons::ACTION_UP) || buttons.pressed(Buttons::ACTION_RIGHT) ||
+          buttons.pressed(Buttons::ACTION_DOWN) || buttons.pressed(Buttons::ACTION_LEFT)) {
         _exit = true;
       }
       break;
@@ -184,7 +184,7 @@ void Game::update() {
   // Botón común "volver al menú" de todas las ventanas (ACTION_UP).
   // En GAME_OVER ya se manejó arriba. La partida NO se pierde:
   // "Continue" la reanuda en pausa.
-  if (_state != State::GAME_OVER && buttons.actionUpPressed()) {
+  if (_state != State::GAME_OVER && buttons.pressed(Buttons::ACTION_UP)) {
     _exit = true;
   }
 }
@@ -196,13 +196,13 @@ void Game::update() {
 // ========================================================
 
 void Game::handleTurn() {
-  if (buttons.moveUpPressed()) {
+  if (buttons.pressed(Buttons::MOVE_UP)) {
     if (_snake.turn(Snake::Dir::UP)) sound.play(Sound::SFX_TURN);
-  } else if (buttons.moveRightPressed()) {
+  } else if (buttons.pressed(Buttons::MOVE_RIGHT)) {
     if (_snake.turn(Snake::Dir::RIGHT)) sound.play(Sound::SFX_TURN);
-  } else if (buttons.moveDownPressed()) {
+  } else if (buttons.pressed(Buttons::MOVE_DOWN)) {
     if (_snake.turn(Snake::Dir::DOWN)) sound.play(Sound::SFX_TURN);
-  } else if (buttons.moveLeftPressed()) {
+  } else if (buttons.pressed(Buttons::MOVE_LEFT)) {
     if (_snake.turn(Snake::Dir::LEFT)) sound.play(Sound::SFX_TURN);
   }
 }
@@ -285,8 +285,8 @@ void Game::drawSprite(Sprite::Part part, uint8_t x, uint8_t y) {
 
   for (uint8_t i = 0; i < Sprite::SIZE; i++) {
     for (uint8_t j = 0; j < Sprite::SIZE; j++) {
-      if (Sprite::SPRITES[part][i][j])
-        s.fillRect(baseX + 2 * j, baseY + 2 * i, 2, 2, SSD1306_WHITE);
+      if (Sprite::pixel(part, j, i))
+        s.fillRect(baseX + 2*(int16_t)j, baseY + 2*(int16_t)i, 2, 2, SSD1306_WHITE);
     }
   }
 }
