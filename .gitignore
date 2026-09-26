@@ -1,6 +1,0 @@
-# Arduino IDE build output
-build/
-
-# arduino-cli binaries left in the sketch folder
-*.ino.bin
-*.ino.merged.bin
