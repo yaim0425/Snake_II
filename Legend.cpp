@@ -2,10 +2,11 @@
 #include "Globals.h"
 
 #include <Adafruit_GFX.h>
+#include <stdio.h>
 #include <string.h>
 
 // ========================================================
-// Textos del pie ("BtnN: función") de cada rombo
+// Textos del pie (identificador y función de cada rombo)
 // ========================================================
 
 const char* const Legend::BTN[4] = {
@@ -13,6 +14,11 @@ const char* const Legend::BTN[4] = {
   "Btn2: Select / Pause",
   "Btn3: None",
   "Btn4: None"
+};
+
+const char* const Legend::BTN_NAME[4] = { "Btn1", "Btn2", "Btn3", "Btn4" };
+const char* const Legend::BTN_FUNC[4] = {
+  "Back", "Select / Pause", "None", "None"
 };
 
 // ========================================================
@@ -26,6 +32,7 @@ Legend::Legend()
     _timer(),
     _visible(true),
     _redraw(true),
+    _lastActive(0),
     _lastText(-1) {}
 
 // ========================================================
@@ -39,6 +46,7 @@ void Legend::begin() {
   _timer.start();
   _visible = true;
   _redraw = true;
+  _lastActive = 0;
   _lastText = -1;
 }
 
@@ -98,27 +106,21 @@ void Legend::print() {
     display.clear();
     firstPrint();
     _redraw = false;
-    // firstPrint() ya dejó el pie de Btn1 en pantalla: el estado arranca
-    // sincronizado con lo pintado, o el bloque de abajo lo trataría como cambio
-    _lastText = 0;
-    _timer.start();
-    return;
   }
 
   if (_lastText != _step) {
-    // El rombo que deja de ser activo tiene que quedar completo. Si el cambio lo
+    // El rombo que dejó de ser activo debe quedar completo. Si el cambio lo
     // pilló en su fase oculta del parpadeo, su zona quedó borrada y nadie la
-    // volvería a dibujar: se restaura el rombo completo como estático. El nuevo
-    // rombo activo ya está en pantalla como estático desde el primer frame.
-    int16_t pcx, pcy;
-    diamondCenter(_lastText, pcx, pcy);
-    drawDiamond(pcx, pcy);
+    // volvería a dibujar: se restaura el rombo completo como estático.
+    int16_t acx, acy;
+    diamondCenter(_step, acx, acy);
+    drawDiamond(acx, acy);
 
     // Texto del pie: función del rombo activo
-    display.fillRect(0, Config::Screen::FOOT_TOP, w, Config::Screen::FOOT_H, true);
+    display.fillRect(0, Config::Screen::FOOT_TOP, w, 8, true);
     display.drawText(BTN[_step], (Config::Screen::WIDTH - strlen(BTN[_step]) * 6) / 2, Config::Screen::FOOT_TOP, TEXT_6x8);
     _lastText = _step;
-    _timer.start();  // reinicia el hold y el parpadeo del rombo activo
+    _timer.start();  // reinicia el ciclo de parpadeo del rombo activo
   }
 
   // Rombo activo: se borra solo su zona y se redibuja según el parpadeo;
@@ -148,12 +150,16 @@ void Legend::print() {
 
 void Legend::firstPrint() {
   const int16_t w = display.getWidth();
-  const int16_t middleX = Config::Screen::WIDTH / 2;
-  const char* title = "Move";
+  int16_t middleX = Config::Screen::WIDTH / 2;
+  char* title = "Move";
 
   // Rótulo y pad MOVE (izquierda)
+  title = "Move";
   display.drawText(title, (middleX - strlen(title) * 6) / 2, SIGN_Y, TEXT_6x8);
-  drawPad(PAD_MOVE_X);
+  drawArrow(0, PAD_MOVE_X, CY - R);  // ↑
+  drawArrow(1, PAD_MOVE_X + R, CY);  // →
+  drawArrow(2, PAD_MOVE_X, CY + R);  // ↓
+  drawArrow(3, PAD_MOVE_X - R, CY);  // ←
 
   // Rótulo y rombos de ACTION (derecha): las posiciones de un pad
   title = "Action";
@@ -164,7 +170,6 @@ void Legend::firstPrint() {
     drawDiamond(cx, cy);
   }
 
-  // Pie: línea separadora y el texto de Btn1 (el primer rombo activo)
   display.fillRect(0, Config::Screen::FOOT_LINE, w, 1, false);
   display.drawText(BTN[0], (Config::Screen::WIDTH - strlen(BTN[0]) * 6) / 2, Config::Screen::FOOT_TOP, TEXT_6x8);
 }
@@ -238,6 +243,19 @@ void Legend::drawDiamond(int16_t cx, int16_t cy) {
 
   display.fillTriangle(cx, cy - h, cx + h, cy, cx, cy + h, false);
   display.fillTriangle(cx, cy - h, cx - h, cy, cx, cy + h, false);
+}
+
+// ========================================================
+// ¿El rombo activo está visible? (fijo HOLD_MS, luego parpadeo MUY rápido)
+// ========================================================
+
+bool Legend::blinkVisible() const {
+  // Fijo (visible) mientras se mantiene el rombo: primero HOLD_MS
+  if (!_timer.expired(HOLD_MS)) return true;
+
+  // Luego parpadea MUY rápido: oculto durante el OFF_PCT inicial de cada
+  // BLINK_PERIOD (anclado al _timer: sin salto de fase con el reloj 64 bits)
+  return _timer.blinkOn(BLINK_PERIOD, BLINK_OFF_PCT);
 }
 
 // ========================================================

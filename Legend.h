@@ -14,11 +14,11 @@
 //     las posiciones de un pad direccional (↑ → ↓ ←), que
 //     parpadean MUY rápido uno a la vez recorriéndolos en
 //     ciclo lento y automático. El texto del pie indica la
-//     función del rombo activo (array BTN[]):
-//       Btn1 (↑ = ACTION_UP):    "Btn1: Back"
-//       Btn2 (→ = ACTION_RIGHT): "Btn2: Select / Pause"
-//       Btn3 (↓ = ACTION_DOWN):  "Btn3: None"
-//       Btn4 (← = ACTION_LEFT):  "Btn4: None"
+//     función del rombo activo:
+//       Btn1 (↑ = ACTION_UP):    "Back"
+//       Btn2 (→ = ACTION_RIGHT): "Select / Pause"
+//       Btn3 (↓ = ACTION_DOWN):  "None"
+//       Btn4 (← = ACTION_LEFT):  "None"
 //
 // Se muestra al arranque (después de la animación Boot) y al
 // volver al menú desde cualquier ventana. Cualquier botón la
@@ -54,6 +54,7 @@ public:
   // ========================================================
 
   void print();
+  void firstPrint();
 
   // ========================================================
   // Salida (true = se pidió ir al menú)
@@ -66,8 +67,8 @@ private:
   // Geometría del pad MOVE (rombo de 4 flechas)
   // ========================================================
 
-  static constexpr int16_t CY = 32;                                    // centro vertical de ambos pads
-  static constexpr int16_t R = 12;                                     // radio del rombo (centro-flecha)
+  static constexpr int16_t CY = 32;                    // centro vertical de ambos pads
+  static constexpr int16_t R = 12;                     // radio del rombo (centro-flecha)
   static constexpr int16_t PAD_MOVE_X = Config::Screen::WIDTH * 0.25;  // centro del pad MOVE
 
   // Rótulo sobre el pad MOVE
@@ -77,12 +78,15 @@ private:
   // Rombos de posición del pad ACTION (mitad derecha)
   // ========================================================
 
-  static constexpr uint8_t DIA_SIZE = 8;                              // rombo completo (SIEMPRE rombo)
+  static constexpr uint8_t DIA_SIZE = 8;              // rombo completo (SIEMPRE rombo)
   static constexpr int16_t DIA_PAD_X = Config::Screen::WIDTH * 0.75;  // centro del pad de rombos
-  static constexpr int16_t DIA_R = 12;                                // radio del pad (centro-rombo)
+  static constexpr int16_t DIA_R = 12;                // radio del pad (centro-rombo)
 
-  // Texto del pie de cada rombo activo, "BtnN: función" (Btn1..Btn4)
+  // Textos del pie: identificador y función de cada rombo (Btn1..Btn4)
   static const char* const BTN[4];
+
+  static const char* const BTN_NAME[4];
+  static const char* const BTN_FUNC[4];
 
   // ========================================================
   // Animación del rombo activo (ciclo lento + parpadeo rápido)
@@ -94,25 +98,29 @@ private:
   static constexpr uint8_t BLINK_OFF_PCT = 50;   // % del período en que está oculto
 
   // ========================================================
+  // Pie del Body (mismo diseño que el menú)
+  // ========================================================
+
+  static constexpr int16_t PIE_LINE_ROW = 54;  // línea separadora
+  static constexpr int16_t PIE_TOP = 57;       // texto centrado (función del rombo activo)
+
+  // ========================================================
   // Estado
   // ========================================================
 
   bool _done;
-  uint8_t _step;     // rombo activo (0..3): recorre Btn1 → Btn4
-  Ticker _ticker;    // avance de 1 paso cada DWELL_MS
-  Stopwatch _timer;  // desde que se fijó el rombo activo (hold + parpadeo)
-  bool _visible;     // rombo activo visible (parpadeo)
-  bool _redraw;      // primer frame tras begin(): clear() completo + estáticos
-  int8_t _lastText;  // paso cuyo texto del pie está en pantalla (-1 = ninguno);
-                     // al cambiar es además el paso anterior, cuyo rombo hay
-                     // que dejar completo (puede haber quedado borrado)
+  uint8_t _step;  // rombo activo (0..3): recorre Btn1 → Btn4
+  uint8_t _prevStep;
+  Ticker _ticker;      // avance de 1 px cada ANIM_TICK ms (acumulador por tiempo)
+  Stopwatch _timer;    // desde que se fijó el rombo activo (ciclo y parpadeo)
+  bool _visible;        // rombo activo visible (parpadeo)
+  bool _redraw;        // primer frame tras begin(): clear() completo + estáticos
+  int8_t _lastActive;  // último rombo cuya zona se gestionó (para restaurar el que deja de ser activo)
+  int8_t _lastText;    // texto del pie que se dibujó (para borrar/redibujar solo al cambiar)
 
   // ========================================================
   // Helpers de dibujo
   // ========================================================
-
-  // Estáticos del primer frame (rótulos, pad MOVE, 4 rombos y pie); lo llama print()
-  void firstPrint();
 
   // Flecha sólida (0 = ↑, 1 = →, 2 = ↓, 3 = ←), centrada en (cx, cy)
   void drawArrow(uint8_t dir, int16_t cx, int16_t cy);
@@ -123,8 +131,11 @@ private:
   // Posición del rombo i (0 = ↑, 1 = →, 2 = ↓, 3 = ←)
   void diamondCenter(uint8_t i, int16_t& cx, int16_t& cy) const;
 
-  // Rombo completo de DIA_SIZE centrado en (cx, cy)
+  // Rombo completo de DIA_SIZE centrado en (cx, cy); si show es false no se dibuja
   void drawDiamond(int16_t cx, int16_t cy);
+
+  // ¿El rombo activo está visible? (fijo durante HOLD_MS, luego parpadeo rápido)
+  bool blinkVisible() const;
 };
 
 #endif
