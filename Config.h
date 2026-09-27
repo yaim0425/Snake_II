@@ -21,55 +21,57 @@
 
 namespace Config {
 
-  // ========================================================
-  // Pines
-  // ========================================================
+// ========================================================
+// Pines
+// ========================================================
 
-  namespace Pin {
+namespace Pin {
 
-    // Botones (orden del enum Buttons::Button: MOVE_UP..ACTION_LEFT)
-    constexpr int8_t BUTTONS[8] = {
-       2,  1, 42, 41,  // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
-      38, 40, 39, 47   // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
-    };
+// Botones (orden del enum Buttons::Button: MOVE_UP..ACTION_LEFT)
+constexpr int8_t BUTTONS[8] = {
+  2, 1, 42, 41,   // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
+  38, 40, 39, 47  // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
+};
 
-    constexpr uint8_t BUZZER   = 14;  // zumbador
-    constexpr uint8_t OLED_SDA = 8;   // I2C: datos
-    constexpr uint8_t OLED_SCL = 9;   // I2C: reloj
-  }
+constexpr uint8_t BUZZER = 14;   // zumbador
+constexpr uint8_t OLED_SDA = 8;  // I2C: datos
+constexpr uint8_t OLED_SCL = 9;  // I2C: reloj
+}
 
-  // ========================================================
-  // Pantalla OLED (SSD1306)
-  // ========================================================
+// ========================================================
+// Pantalla OLED (SSD1306)
+// ========================================================
 
-  namespace Screen {
+namespace Screen {
 
-    constexpr uint8_t WIDTH   = 128;  // px de ancho
-    constexpr uint8_t HEIGHT  = 64;   // px de alto
-    constexpr uint8_t CELL    = 8;    // px por celda de la rejilla
-    constexpr uint8_t ADDRESS = 0x3C; // dirección I2C
+constexpr uint8_t WIDTH = 128;     // px de ancho
+constexpr uint8_t HEIGHT = 64;     // px de alto
+constexpr uint8_t CELL = 8;        // px por celda de la rejilla
+constexpr uint8_t ADDRESS = 0x3C;  // dirección I2C
 
-    // Regiones: Header (0..15) y Body (16..63)
-    constexpr uint8_t HEADER_TOP = 0;
-    constexpr uint8_t HEADER_H   = 16;
+// Regiones: Header (0..15) y Body (16..63)
+constexpr uint8_t HEADER_TOP = 0;
+constexpr uint8_t HEADER_H = 16;
 
-    constexpr uint8_t BODY_TOP   = 16;
-    constexpr uint8_t BODY_H     = 48;
+constexpr uint8_t BODY_TOP = 16;
+constexpr uint8_t BODY_H = 48;
 
-    constexpr uint8_t FOOT_TOP   = HEIGHT - 9;
-    constexpr uint8_t FOOT_H     = 7;
-  }
+constexpr uint8_t FOOT_LINE = HEIGHT - (8 + 2 + 1);  // línea separadora del pie + 2 px de margen;
+constexpr uint8_t FOOT_TOP = HEIGHT - 8; // Punto Y del texto del pie
+constexpr uint8_t FOOT_H = 8;
 
-  // ========================================================
-  // Dificultad (nivel 1..10), compartida por Menu y Game
-  // ========================================================
+}
 
-  namespace Difficulty {
+// ========================================================
+// Dificultad (nivel 1..10), compartida por Menu y Game
+// ========================================================
 
-    constexpr uint8_t MIN_LEVEL     = 1;
-    constexpr uint8_t MAX_LEVEL     = 10;
-    constexpr uint8_t DEFAULT_LEVEL = 5;
-  }
+namespace Difficulty {
+
+constexpr uint8_t MIN_LEVEL = 1;
+constexpr uint8_t MAX_LEVEL = 10;
+constexpr uint8_t DEFAULT_LEVEL = 5;
+}
 }
 
 // ====================================================================================

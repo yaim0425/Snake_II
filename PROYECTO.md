@@ -1490,25 +1490,32 @@ como `static constexpr` dentro de ella (p. ej. `ANIM_TICK` en `Scroller`,
 
 ```cpp
 namespace Config {
-  namespace Pin {
-    constexpr int8_t  BUTTONS[8] = { 2, 1, 42, 41, 38, 40, 39, 47 }; // orden Buttons::Button
-    constexpr uint8_t BUZZER   = 14;   // zumbador
-    constexpr uint8_t OLED_SDA = 8;
-    constexpr uint8_t OLED_SCL = 9;
-  }
-  namespace Screen {
-    constexpr uint8_t WIDTH = 128, HEIGHT = 64, CELL = 8, ADDRESS = 0x3C;
-    constexpr uint8_t HEADER_TOP = 0, HEADER_H = 16;  // Header 0..15
-    constexpr uint8_t BODY_TOP = 16, BODY_H = 48;     // Body 16..63
-    constexpr uint8_t FOOT_TOP = HEIGHT - 9, FOOT_H = 7;  // banda del pie
-  }
-  namespace Difficulty {
-    constexpr uint8_t MIN_LEVEL     = 1;
-    constexpr uint8_t MAX_LEVEL     = 10;
-    constexpr uint8_t DEFAULT_LEVEL = 5;
-  }
+
+namespace Pin {
+  constexpr int8_t BUTTONS[8] = { 2, 1, 42, 41, 38, 40, 39, 47 }; // orden Buttons::Button
+  constexpr uint8_t BUZZER   = 14;  // zumbador
+  constexpr uint8_t OLED_SDA = 8;   // I2C: datos
+  constexpr uint8_t OLED_SCL = 9;   // I2C: reloj
+}
+
+namespace Screen {
+  constexpr uint8_t WIDTH = 128, HEIGHT = 64, CELL = 8, ADDRESS = 0x3C;
+  constexpr uint8_t HEADER_TOP = 0, HEADER_H = 16;  // Header 0..15
+  constexpr uint8_t BODY_TOP = 16, BODY_H = 48;     // Body 16..63
+  constexpr uint8_t FOOT_LINE = HEIGHT - (8 + 2 + 1);   // línea separadora del pie (53)
+  constexpr uint8_t FOOT_TOP = HEIGHT - 8, FOOT_H = 8;  // texto del pie (56..63)
+}
+
+namespace Difficulty {
+  constexpr uint8_t MIN_LEVEL     = 1;
+  constexpr uint8_t MAX_LEVEL     = 10;
+  constexpr uint8_t DEFAULT_LEVEL = 5;
+}
 }
 ```
+
+Estilo del archivo: los namespaces internos (`Pin`, `Screen`, `Difficulty`) van en
+columna 0, sin indentar respecto de `namespace Config {`.
 
 ### Qué contiene y quién lo usa
 
@@ -1524,10 +1531,12 @@ Los `static constexpr` de esas clases se eliminaron; solo `Boot` conserva sus
 constantes propias (`BAR_W`, `BAR_SPACING`, `ANIM_TICK`, `TOTAL_MS`), que son de
 su animación.
 
-La banda del pie tiene su geometría en `Config::Screen` (`FOOT_TOP` = 55 y
-`FOOT_H` = 7, derivadas de `HEIGHT` igual que `HEADER_TOP/H` y `BODY_TOP/H`),
-pero todavía no las usa ninguna ventana: el pie de `Menu` y `Legend` se sigue
-pintando sobre su propia banda (54..63).
+La banda del pie tiene su geometría en `Config::Screen`: `FOOT_LINE` = 53 para la
+línea separadora, y `FOOT_TOP` = 56 con `FOOT_H` = 8 para el texto, todo derivado
+de `HEIGHT` igual que `HEADER_TOP/H` y `BODY_TOP/H`. Antes eran `FOOT_TOP` =
+`HEIGHT - 9` y `FOOT_H` = 7. En el estado actual del repo **todavía no las usa
+ninguna ventana**: el pie de `Menu` sigue pintado sobre su propia banda (54..63) y
+el `Legend` que ya las consume (línea y texto con `drawText`) sigue sin commitear.
 
 `CELL` sigue la misma regla: es la **única** medida de px por celda. Reemplaza al
 `static constexpr uint8_t CELL = 8` que `Food` declaraba por su cuenta y a los `8`
