@@ -81,7 +81,7 @@ Menu::Menu(uint16_t bestScore, const char* version)
     _editBlink(),
     _repeat(),
     _repeatTick(),
-    _scroller(1, nullptr) {}
+    _scroller() {}
 
 // ========================================================
 // Inicialización
@@ -89,7 +89,7 @@ Menu::Menu(uint16_t bestScore, const char* version)
 
 void Menu::begin() {
   _scroller.begin();
-  _scroller.compose(0, optionText(_selected), TEXT_12x16);
+  _scroller.setTexto(optionText(_selected), 16, TEXT_12x16);
   _hold.start();
   _redraw = true;
   _editingSound = false;
@@ -113,7 +113,7 @@ void Menu::setOptions(const char* const* texts, uint8_t count) {
 
   _scroller.begin();
   _hold.start();
-  _scroller.compose(0, optionText(_selected), TEXT_12x16);
+  _scroller.setTexto(optionText(_selected), 16, TEXT_12x16);
   _redraw = true;
 }
 
@@ -160,7 +160,7 @@ void Menu::setSelected(Menu::Option option) {
   _selected = index;
   _scroller.begin();
   _hold.start();
-  _scroller.compose(0, optionText(_selected), TEXT_12x16);
+  _scroller.setTexto(optionText(_selected), 16, TEXT_12x16);
   _redraw = true;
   _editingSound = false;
   _editingDifficulty = false;
@@ -257,7 +257,7 @@ void Menu::navigate() {
 
   if (moved) {
     sound.play(Sound::SFX_CLICK);
-    _scroller.compose(0, optionText(_selected), TEXT_12x16);
+    _scroller.setTexto(optionText(_selected), 16, TEXT_12x16);
     _scroller.startSlide((_selected > before) ? 1 : -1);
     _hold.start();
     Serial.printf("Menu: opcion %d -> %d\n", before, _selected);
@@ -534,7 +534,7 @@ void Menu::print() {
     // El clear se ha llevado por delante la banda de la opción que el
     // scroller tenía volcada: hay que volver a pintarla (aunque la tira
     // esté centrada y no se mueva).
-    _scroller.invalidate();
+    _scroller.redraw();
   }
 
   // Dinámicos (cada frame): la banda de la opción deslizante y los rombos.
@@ -544,7 +544,7 @@ void Menu::print() {
   // El scroller se salta este volcado cuando está en reposo (nada nuevo que
   // pintar: la banda ya está en la pantalla) y solo vuelca al navegar, al
   // recomponer la opción o tras el clear de arriba.
-  _scroller.blit(0, TEXT_SEL_TOP, SSD1306_BLACK, SSD1306_WHITE);
+  _scroller.blit(TEXT_SEL_TOP);
 
   if (_editingSound) {
     // Modo edición de sonido: la banda del selector (45..53) se borra y se

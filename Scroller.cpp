@@ -1,100 +1,83 @@
 #include "Scroller.h"
 #include "Globals.h"
 
+#include <string.h>
+
 // ========================================================
-// Constructor: reserva las tiras y los canvas de cada banda y
-// los de tira/compositor (usa la Display global)
+// Constructor (usa la Display global)
 // ========================================================
 
-Scroller::Scroller(uint8_t bands, const uint8_t* bandHeights)
-  : _bands((bands == 0) ? 1 : bands),
-    _bandHeights(new uint8_t[bands == 0 ? 1 : bands]),
-    _chipBox(new GFXcanvas8*[bands == 0 ? 1 : bands]),
-    _strips(new uint8_t[(bands == 0 ? 1 : bands) * STRIP_BYTES]),
-    _composer(display.getWidth(), STRIP_H),
+Scroller::Scroller()
+  : _height(16),
     _dir(1),
     _slideX(0),
     _ticker(ANIM_TICK),
-    _dirty(true),
-    _blitted(0) {
-
-  for (uint8_t i = 0; i < _bands; i++) {
-    _bandHeights[i] = (bandHeights != nullptr) ? bandHeights[i] : STRIP_H;
-    _chipBox[i] = new GFXcanvas8(display.getWidth(), _bandHeights[i]);
-  }
+    _dirty(true) {
 }
 
 // ========================================================
-// Destructor: libera las tiras y los canvas de las bandas
-// ========================================================
-
-Scroller::~Scroller() {
-  for (uint8_t i = 0; i < _bands; i++) delete _chipBox[i];
-  delete[] _chipBox;
-  delete[] _bandHeights;
-  delete[] _strips;
-}
-
-// ========================================================
-// Inicialización (al entrar en la ventana: tira centrada,
+// Inicialización (al entrar en la ventana: franja centrada,
 // sin desplazamiento)
-//
-// La banda queda marcada para volcar: la ventana acaba de
-// limpiar la pantalla, así que hay que pintarla aunque la tira
-// no se mueva.
 // ========================================================
 
 void Scroller::begin() {
   _slideX = 0;
   _ticker.start();
   _dirty = true;
-  _blitted = 0;
 }
 
 // ========================================================
-// Tira de 1 bit de una banda (las N tiras van seguidas en
-// _strips, una STRIP_BYTES cada una)
+// Componer el texto en la franja (texto centrado)
+//
+// Calcula el límite de caracteres según el tamaño
+// (ancho / (6 * size)) y trunca silenciosamente si el
+// texto excede el límite. El texto se compone en un
+// canvas auxiliar y luego se extraen las columnas.
 // ========================================================
 
-uint8_t* Scroller::strip(uint8_t band) {
-  return _strips + (uint16_t)band * STRIP_BYTES;
-}
+void Scroller::setTexto(const char* text, uint8_t height, uint8_t size) {
+  if (height > STRIP_H) height = STRIP_H;
+  if (size < 1) size = 1;
+  if (size > 3) size = 3;
 
-// ========================================================
-// Composición de la tira de una banda: texto centrado en la
-// matriz de 1 bit (se compone en el canvas auxiliar sin tocar
-// las otras bandas ni los canvas persistentes). La tira queda
-// en memoria: se compone una sola vez por cambio de texto y
-// blit() la reutiliza tantas veces como haga falta.
-// ========================================================
+  _height = height;
 
-void Scroller::compose(uint8_t band, const char* text, uint8_t size) {
-  if (band >= _bands) return;
+  uint8_t maxChars = (uint8_t)(display.getWidth() / (6 * size));
 
-  uint8_t* dst = strip(band);
-  int16_t x0 = (int16_t)((display.getWidth() -
-                          display.getTextWidth(text, size)) / 2);
+  char buffer[64];
+  strncpy(buffer, text, maxChars);
+  buffer[maxChars] = '\0';
 
-  _composer.fillScreen(CHIP_BG);
-  _composer.setTextSize(size);
-  _composer.setTextColor(CHIP_TEXT, CHIP_BG);
-  _composer.setCursor(x0, 0);
-  _composer.print(text);
+  GFXcanvas8 canvas((uint16_t)display.getWidth(), height);
 
-  // Copiar a la matriz de 1 bit: 1 = glifo, 0 = fondo
-  for (uint8_t r = 0; r < STRIP_H; r++) {
-    for (uint8_t c = 0; c < STRIP_W; c++) {
-      uint8_t bit = (uint8_t)(1 << (c % 8));
-      if (_composer.getPixel(c, r) == CHIP_TEXT)
-        dst[r * (STRIP_W / 8) + c / 8] |= bit;
-      else
-        dst[r * (STRIP_W / 8) + c / 8] &= (uint8_t)~bit;
+  int16_t textW = display.getTextWidth(buffer, size);
+  int16_t x0 = ((int16_t)display.getWidth() - textW) / 2;
+
+  canvas.fillScreen(0);
+  canvas.setTextSize(size);
+  canvas.setTextColor(1);
+  canvas.setCursor(x0, 0);
+  canvas.print(buffer);
+
+  uint8_t heightBytes = height / 8;
+  for (uint8_t row = 0; row < heightBytes; row++) {
+    for (uint16_t col = 0; col < display.getWidth(); col++) {
+      uint8_t byte = 0;
+      for (uint8_t bit = 0; bit < 8; bit++) {
+        uint8_t y = row * 8 + bit;
+        if (y < height && canvas.getPixel(col, y) != 0) {
+          byte |= (uint8_t)(1 << bit);
+        }
+      }
+      _strip[row][col] = (int8_t)byte;
     }
   }
+
+  _dirty = true;
 }
 
 // ========================================================
-// Inicio de la transición lateral: la tira arranca
+// Inicio de la transición lateral: la franja arranca
 // completamente fuera de pantalla y entra desde un lado
 // ========================================================
 
@@ -103,18 +86,17 @@ void Scroller::startSlide(int8_t dir) {
   _slideX = (_dir > 0) ? (int16_t)display.getWidth()
                        : -(int16_t)display.getWidth();
   _ticker.start();
-  _dirty = true;    // entra una tira nueva: hay que volcar las bandas
-  _blitted = 0;
+  _dirty = true;
 }
 
 // ========================================================
-// Animación: la tira avanza 1 px por cada ANIM_TICK ms
+// Animación: la franja avanza 1 px por cada ANIM_TICK ms
 // (Ticker acumula por tiempo, constante aunque el loop sea lento)
 //
-// Mientras la tira está fuera del centro hay algo nuevo que
+// Mientras la franja está fuera del centro hay algo nuevo que
 // pintar en cada frame (aunque en este frame no haya ticks), así
 // que `_dirty` se pone a 1: al terminar el vuelo (|_slideX| = 0)
-// queda un último volcado que asienta la banda y, del frame
+// queda un último volcado que asienta la franja y, del frame
 // siguiente en adelante, blit() ya no hace nada.
 // ========================================================
 
@@ -124,9 +106,9 @@ void Scroller::animate() {
 
   uint32_t steps = _ticker.consume();
   for (uint32_t i = 0; i < steps; i++) {
-    if (_dir > 0) {              // entra por la derecha: se mueve hacia la izquierda
+    if (_dir > 0) {
       if (_slideX > 0) _slideX--;
-    } else {                     // entra por la izquierda: se mueve hacia la derecha
+    } else {
       if (_slideX < 0) _slideX++;
     }
   }
@@ -137,68 +119,39 @@ void Scroller::animate() {
 // que se lleva por delante lo ya volcado)
 // ========================================================
 
-void Scroller::invalidate() {
+void Scroller::redraw() {
   _dirty = true;
-  _blitted = 0;
 }
 
 // ========================================================
-// Pintar las columnas visibles de la tira de una banda sobre
-// su canvas persistente: cada columna de la tira (incluidos
-// sus espacios de fondo) sobrescribe lo que había, así la
-// opción anterior se mantiene hasta ser borrada por la nueva
+// Volcar la franja a la pantalla en la fila y (fondo
+// blanco, texto negro). Es un no-op si no hay nada nuevo
+// que volcar (dirty flag a 0): en reposo la franja ya está
+// en pantalla y no hace falta repintarla en cada frame.
 // ========================================================
 
-void Scroller::slideStrip(uint8_t band, GFXcanvas8& chipBox, uint8_t h) {
-  const uint8_t* src = strip(band);
-
-  for (uint8_t r = 0; r < h; r++) {
-    for (uint16_t sx = 0; sx < (uint16_t)display.getWidth(); sx++) {
-      int16_t sc = (int16_t)sx - _slideX;   // columna de la matriz (borde izq. = _slideX)
-      if (sc < 0 || sc >= (int16_t)STRIP_W) continue;
-
-      bool glyph = src[r * (STRIP_W / 8) + sc / 8] & (uint8_t)(1 << (sc % 8));
-      chipBox.drawPixel(sx, r, glyph ? CHIP_TEXT : CHIP_BG);
-    }
-  }
-}
-
-// ========================================================
-// Volcado de una banda: sin borrado, la vieja queda hasta que
-// la nueva la cubre. Todas las bandas usan el mismo _slideX y
-// deslizan sincronizadas.
-//
-// Si no hay nada nuevo que volcar (`_dirty` a 0) se sale sin
-// hacer nada: la banda persistente ya está en pantalla y sus
-// 2048 px no hay que repintarlos en cada frame. La bandera se
-// limpia recién cuando TODAS las bandas se han volcado en este
-// frame (`_blitted` llega a `_bands`), porque blit() se llama una
-// vez por banda y con varias (Créditos) un volcado no basta para
-// darla por hecha.
-// ========================================================
-
-void Scroller::blit(uint8_t band, int16_t y, uint16_t fgColor,
-                    uint16_t bgColor) {
-  if (band >= _bands) return;
-  if (!_dirty) return;   // en reposo: la banda ya está en pantalla
-
-  GFXcanvas8& chipBox = *_chipBox[band];
-  uint8_t h = _bandHeights[band];
-
-  slideStrip(band, chipBox, h);
+void Scroller::blit(int16_t y) {
+  if (!_dirty) return;
 
   Adafruit_SSD1306& s = display.screen();
-  for (uint8_t r = 0; r < h; r++) {
-    for (uint16_t c = 0; c < (uint16_t)display.getWidth(); c++) {
-      uint8_t v = chipBox.getPixel(c, r);
-      s.drawPixel(c, y + r, (v == CHIP_TEXT) ? fgColor : bgColor);
+  uint8_t heightBytes = _height / 8;
+
+  for (uint16_t sx = 0; sx < display.getWidth(); sx++) {
+    int16_t sc = (int16_t)sx - _slideX;
+    if (sc < 0 || sc >= (int16_t)STRIP_W) continue;
+
+    for (uint8_t row = 0; row < heightBytes; row++) {
+      int8_t byte = _strip[row][sc];
+      for (uint8_t bit = 0; bit < 8; bit++) {
+        uint8_t py = y + row * 8 + bit;
+        if (py >= display.getHeight()) break;
+        bool pixel = byte & (1 << bit);
+        s.drawPixel(sx, py, pixel ? SSD1306_BLACK : SSD1306_WHITE);
+      }
     }
   }
 
-  if (++_blitted >= _bands) {
-    _dirty = false;
-    _blitted = 0;
-  }
+  _dirty = false;
 }
 
 // ====================================================================================

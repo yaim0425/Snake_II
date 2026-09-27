@@ -101,7 +101,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
 | `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: Back, Select / Pause, None, None; cualquier botón la cierra con un sonido según el botón pulsado: MOVE = CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM). Completa. |
-| `Scroller.h` / `Scroller.cpp` | Clase `Scroller` (scroller de 1 bit compartido: compone una tira 128x16 y desliza lateralmente N bandas sincronizadas con el mismo desplazamiento; cada banda tiene su canvas persistente y sus colores de frente/fondo; usada por `Menu` con 1 banda y por `Credits` con 2). Completa. |
+| `Scroller.h` / `Scroller.cpp` | Clase `Scroller` (scroller de 1 bit: una sola banda, texto como array de `int8_t` donde cada byte = 1 columna de 8 px; fondo siempre blanco y texto negro; `setTexto()` calcula el límite de caracteres según el tamaño y trunca silenciosamente; usada por `Menu` con 1 instancia y por `Credits` con 2 instancias sincronizadas). Completa. |
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit —1 banda del `Scroller` compartido— y rombos de posición). Completa. **Incluye la edición inline de la opción "Sound"** (selector On/Off en la banda de los rombos) **y de la opción "Dificultad"** (selector `< N >`, nivel 1..10, con repetición al mantener presionado; al mantener, solo queda fija la flecha del botón activo). |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral —2 bandas sincronizadas del `Scroller` compartido— y `SFX_CLICK` al navegar, vuelve al menú con `ACTION_UP`). Completa. |
 | `Game.h` / `Game.cpp` | Clase `Game` (ventana del juego de la serpiente: estados NEW/CONTINUE del `Engine`). **Coordina**: dificultad/velocidad, lectura de botones (MOVE → `Snake::turn`), `snake.step()` con manejo del resultado, alimento (`Food`), puntaje, sonidos, overlays y volcado del tablero con los segmentos de `Snake` (celda de `Config::Screen::CELL`, sprites escalados con `SPRITE_SCALE`). Completa. |
@@ -126,7 +126,7 @@ directamente vía `Globals.h` (que se incluye solo en los `.cpp`, no en los
 ya no quedan `Buzzer buzzer;` global ni el bind `Sound(Buzzer&)`. Se mantienen
 constructor los
 parámetros de configuración: `Menu(bestScore, version)`, `Credits()`,
-`Scroller(bands, bandHeights)`, `Food(cols, rows, top)` y `Sound(pin)`
+`Food(cols, rows, top)` y `Sound(pin)`
 (y `Game()`/`Boot()`/
 `Legend()` quedan sin parámetros). El constructor propio de cada ventana está
 documentado en su sección.
@@ -468,18 +468,15 @@ sin "Continue". Cantidad real máxima `MAX_OPTIONS = 8`.
   en la `45`: quedan **2 filas libres** (`44..43`) sobre el rombo y el cuadro
   arranca en la **fila 3** desde la punta (`42`) hacia arriba. **No se mueve**;
   el tamaño del texto (tamaño 2) tampoco cambia.
-- **Animación (scroller de 1 bit):** en la clase compartida **`Scroller`** (ver
-  sección 14, "Clase `Scroller`"), que `Menu` instancia con **1 banda** (rol único
-  128×16, texto 12x16) y `Credits` con **2 bandas sincronizadas**. Cada opción se
-  compone **antes** de mostrarse en una **matriz de 128×16 de 1 bit**
-  (`_strip[16][16]`, `1` = glifo, `0` = fondo) **centrada**, mediante el canvas
-  auxiliar `_composer` (128×16) que dibuja el texto (`compose`). La **banda del
-  cuadro** es un **canvas persistente** (`_chipBox[band]`, 128×alto): conserva lo
-  que está en pantalla entre frames, así la opción anterior **se mantiene hasta
-  ser borrada** por la nueva (`slideStrip` sobrescribe columna a columna la banda
-  con la tira entrante, incluidos sus fondos; `blit` la vuelca a la pantalla con
-  sus colores). Al navegar   `MOVE_RIGHT` la tira entra por la **derecha** (se
-  mueve a la izquierda); con `MOVE_LEFT` por la **izquierda**. Arranca **fuera
+- **Animación (scroller de 1 bit):** en la clase **`Scroller`** (ver
+  sección 14, "Clase `Scroller`"), que `Menu` instancia con **1 instancia**
+  (texto 12x16) y `Credits` con **2 instancias sincronizadas** (rol 12x16 +
+  nombre 6x8). Cada opción se compone **antes** de mostrarse en un **array de
+  `int8_t`** (cada byte = 1 columna de 8 px, `1` = glifo, `0` = fondo)
+  **centrada**, mediante `setTexto()` que dibuja el texto en un canvas
+  auxiliar y extrae las columnas. La franja es siempre **fondo blanco y texto
+  negro**. Al navegar `MOVE_RIGHT` la tira entra por la **derecha** (se mueve
+  hacia la izquierda); con `MOVE_LEFT` por la **izquierda**. Arranca **fuera
   de pantalla** y avanza **una columna por cada `ANIM_TICK` ms** (`animate`,
   acumulado por tiempo; vuelo total ≈ `128 × 4 ms ≈ 0,5 s`). Si se navega a
   mitad de la animación, la banda conserva lo que había y la nueva tira se
@@ -941,69 +938,51 @@ llama a `display.clear()`, lo decide cada ventana.
 
 ---
 
-## 14. Clase `Scroller` — API (scroller de 1 bit compartido)
+## 14. Clase `Scroller` — API (scroller de 1 bit)
 
-Extraída de la lógica duplicada de `Menu` y `Credits` (tarea 4). Encapsula la
-animación "scroller de 1 bit": compone un texto en una **tira de 128×16 de 1
-bit** y la desliza lateralmente sobre **N bandas sincronizadas** (todas usan el
-**mismo `_slideX`** → aparecen a la vez, mismo offset). Cada banda tiene su
-**canvas persistente** (`GFXcanvas8`), su **alto** (`bandHeights[i]`, por defecto
-`STRIP_H = 16`) y sus **colores** de frente/fondo aplicados al volcar.
+Encapsula la animación "scroller de 1 bit": compone un texto en un **array de
+`int8_t`** donde cada byte representa **1 columna de 8 píxeles** (bit 0 = fila 0,
+bit 7 = fila 7) y lo desliza lateralmente. **Una sola banda** por instancia.
+La franja es siempre **fondo blanco y texto negro** (sin parámetros de color).
 
-- **Constantes:** `STRIP_W = 128` (ancho de pantalla), `STRIP_H = 16` (máx.
-  altura de texto 12x16), `ANIM_TICK = 4` ms por píxel (vuelo ≈ 0,5 s),
-  `CHIP_TEXT = 1` / `CHIP_BG = 255`.
-- **Constructor:** `Scroller(uint8_t bands = 1,
-  const uint8_t* bandHeights = nullptr)`. Usa la `Display` global (sección 20);
-  asigna en heap los arrays de altos y
-  de canvas de banda (**NOTA:** no hay constructor por defecto de `GFXcanvas8`
-  en Adafruit_GFX, y la copia implícita es peligrosa; por eso `_chipBox` es
-  `GFXcanvas8**`). Como reserva memoria con `new`, la copia está **bloqueada**
-  (`Scroller(const Scroller&) = delete` y `Scroller& operator=(const Scroller&)`
-  `= delete`) para evitar un doble `delete` por accidente. `~Scroller()` libera
-  los canvas y los arrays. La lista de
-  inicialización respeta el **orden de declaración** (regla de la tarea 3).
+- **Constantes:** `STRIP_W = Config::Screen::WIDTH` (128), `STRIP_H = 24` (máx.
+  altura de texto 18x24), `ANIM_TICK = 4` ms por píxel (vuelo ≈ 0,5 s).
+- **Constructor:** `Scroller()` — sin parámetros. No reserva memoria dinámica
+  (el array `_strip` es un miembro por valor), así que la copia está permitida
+  aunque se mantiene bloqueada por coherencia con el resto del proyecto.
 - **API:**
-  - `begin()` — reposiciona el deslizamiento (objetivo 0, sin borrar bandas) y
-    marca las bandas para volcar (`_dirty`).
-  - `compose(uint8_t band, const char* text, uint8_t size)` — dibuja el texto centrado en 128 px y lo guarda en la **tira propia de esa banda** (`_strips[band * STRIP_BYTES]`); la tira queda en memoria: se compone una sola vez por cambio de texto y `blit()` la reutiliza sin recomponer.
-    tira (canvas auxiliar `_composer` 128×16 → matriz `_strip[16][16]`). **No**
-    marca nada: sola no cambia lo que hay en pantalla (la tira solo se aplica a
-    las bandas cuando desliza o cuando se fuerza el volcado).
+  - `begin()` — reposiciona el deslizamiento (objetivo 0) y marca `_dirty`.
+  - `setTexto(const char* text, uint8_t height, uint8_t size)` — compone el
+    texto centrado en un array de `int8_t` (cada byte = 1 columna de 8 px).
+    Calcula el **límite de caracteres** según el tamaño (`ancho / (6 * size)`)
+    y **trunca silenciosamente** si el texto excede el límite. El texto se
+    compone en un canvas auxiliar (`GFXcanvas8`) y luego se extraen las
+    columnas. Marca `_dirty`.
   - `startSlide(int8_t dir)` — `+1` entra por la derecha, `-1` por la izquierda;
     arranca desde el borde (`_slideX = ±ancho`) y marca `_dirty`.
-  - `animate()` — avanza 1 px por `ANIM_TICK` ms (acumulador por tiempo, llama a
-    `slideStrip` según `_slideX`); a llamar en `update()`. Mientras `_slideX != 0`
-    pone `_dirty`: en cada frame hay algo nuevo que pintar, y al llegar a 0 queda
-    un **último volcado** que asienta la banda (del frame siguiente en adelante
-    `blit()` no hace nada).
-  - `invalidate()` — fuerza el volcado de las bandas en el próximo frame: la
-    ventana la llama **después de su `display.clear()`**, que se lleva por
-    delante lo ya volcado (menú y créditos, en su primer frame).
-  - `blit(uint8_t band, int16_t y, uint16_t fgColor, uint16_t bgColor)` —
-    sobrescribe la banda persistente con la tira entrante (columna a columna,
-    fondos incluidos) y la vuelca a la pantalla en la fila `y`, con `fgColor`
-    para los glifos y `bgColor` para el fondo. A llamar en `print()`. **Es un
-    no-op si no hay nada nuevo que volcar** (`_dirty` a 0).
+  - `animate()` — avanza 1 px por `ANIM_TICK` ms (acumulador por tiempo); a
+    llamar en `update()`. Mientras `_slideX != 0` pone `_dirty`: en cada frame
+    hay algo nuevo que pintar, y al llegar a 0 queda un **último volcado** que
+    asienta la banda (del frame siguiente en adelante `blit()` no hace nada).
+  - `redraw()` — fuerza el volcado en el próximo frame: la ventana la llama
+    **después de su `display.clear()`**, que se lleva por delante lo ya volcado.
+  - `blit(int16_t y)` — vuelca la franja a la pantalla en la fila `y`, con
+    **fondo blanco y texto negro** (sin parámetros de color). A llamar en
+    `print()`. **Es un no-op si no hay nada nuevo que volcar** (`_dirty` a 0).
 - **Dirty flag (reposo):** con el flag `_dirty` el `blit()` se salta cuando la
-  tira está en reposo, que es el caso normal: antes volcaba en cada frame los
-  2048 px de la tira sobre el canvas persistente y los 2048 del canvas a la
-  pantalla para dejar exactamente lo mismo. Lo ponen `begin()`, `startSlide()`,
-  `animate()` (mientras haya desplazamiento) e `invalidate()`; lo limpia `blit()`
-  cuando **todas** las bandas se han volcado en el frame (`_blitted` llega a
-  `_bands`), porque `blit()` se llama una vez por banda y con varias (Créditos)
-  un solo volcado no basta para darla por hecha. El frame en que el vuelo termina
-  (`_slideX` llega a 0) sigue volcando, así que la banda queda asentada antes de
-  dejar de repintarse.
-- **Usos:** `Menu` = 1 banda (16 px, `blit(0, TEXT_SEL_TOP, NEGRO, BLANCO)`);
-  `Credits` = 2 bandas (`BAND_HEIGHTS = {16, 8}`, rol 12x16 / nombre 6x8, cada
-  `drawBand(slot, y, fg, bg)` solo vuelca su banda (ya compuesta en `loadEntry`). En reposo `blit()` es un no-op (dirty flag de `Scroller`).
-- **Detalle de diseño:** `compose` usa `_display.getTextWidth()` (ya no se
-  duplica la lógica de centrado); `blit` recibe el índice de banda y los
-  colores (el sketch original pedía `blit(Display&, int16_t y, uint8_t h)` pero
-  hacía falta la banda y los colores). `Boot` conserva su propia animación
-  (`ANIM_TICK = 30`, bandas **completas** que avanzan solas por borde) — **no**
-  usa `Scroller`.
+  franja está en reposo, que es el caso normal. Lo ponen `begin()`, `setTexto()`,
+  `startSlide()`, `animate()` (mientras haya desplazamiento) y `redraw()`; lo
+  limpia `blit()` al volcar.
+- **Usos:** `Menu` = 1 instancia (16 px, `blit(TEXT_SEL_TOP)`); `Credits` = 2
+  instancias sincronizadas (`_scrollerRol` 16 px + `_scrollerNombre` 8 px,
+  ambas reciben `startSlide()` y `animate()` en el mismo frame). En reposo
+  `blit()` es un no-op (dirty flag de `Scroller`).
+- **Detalle de diseño:** `setTexto()` usa `display.getTextWidth()` para el
+  centrado y `display.getWidth()` para el límite de caracteres. El array
+  `_strip[STRIP_H / 8][STRIP_W]` almacena las columnas: `_strip[row][col]` es
+  un byte con los 8 píxeles de esa columna en ese grupo de filas. `Boot`
+  conserva su propia animación (`ANIM_TICK = 30`, bandas **completas** que
+  avanzan solas por borde) — **no** usa `Scroller`.
 
 ---
 
