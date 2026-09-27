@@ -33,12 +33,31 @@ void Boot::begin() {
 // ========================================================
 
 void Boot::update() {
-  // Cualquier botón termina la animación
-  for (uint8_t i = 0; i < Buttons::MAX_BUTTONS; i++) {
-    if (buttons.pressed(i)) {
-      _done = true;
-      return;
-    }
+  // Cualquier botón cierra la leyenda. El sonido depende del
+  // botón presionado (prioridad si se pulsan varios a la vez):
+  // MOVE = SFX_CLICK, ACTION_UP (Back) = SFX_BACK,
+  // ACTION_RIGHT (Select / Pause) = SFX_CONFIRM,
+  // ACTION_DOWN/ACTION_LEFT (None) = SFX_CLICK
+  bool exit = false;
+
+  if (buttons.pressed(Buttons::MOVE_UP) || buttons.pressed(Buttons::MOVE_RIGHT) ||
+      buttons.pressed(Buttons::MOVE_DOWN) || buttons.pressed(Buttons::MOVE_LEFT)) {
+    sound.play(Sound::SFX_CLICK);
+    exit = true;
+  } else if (buttons.pressed(Buttons::ACTION_UP)) {
+    sound.play(Sound::SFX_BACK);
+    exit = true;
+  } else if (buttons.pressed(Buttons::ACTION_RIGHT)) {
+    sound.play(Sound::SFX_CONFIRM);
+    exit = true;
+  } else if (buttons.pressed(Buttons::ACTION_DOWN) || buttons.pressed(Buttons::ACTION_LEFT)) {
+    sound.play(Sound::SFX_CLICK);
+    exit = true;
+  }
+
+  if (exit) {
+    _done = true;
+    return;
   }
 
   // Duración total
@@ -77,9 +96,13 @@ void Boot::print() {
     display.clear();
     drawFirstBars();
     _redraw = false;
-  } else if (_shift == _prevShift) {
+  }
+  
+  if (_shift == _prevShift) {
     return;  // nada cambió: el resto de la pantalla se mantiene
-  } else if ((_shift + BAR_SPACING - _prevShift) % BAR_SPACING != 1) {
+  } 
+  
+  if ((_shift + BAR_SPACING - _prevShift) % BAR_SPACING != 1) {
     // Salto de más de 1 px (frame perdido): el borrado incremental de
     // drawBars() solo vale para un avance de 1 px, así que redibujo todo
     display.clear();
