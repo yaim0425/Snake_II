@@ -56,8 +56,8 @@ namespace Config {
     constexpr uint8_t BODY_TOP   = 16;
     constexpr uint8_t BODY_H     = 48;
 
-    constexpr uint8_t FOOT_TOP   = WIDTH - 15;
-    constexpr uint8_t FOOT_H     = 48;
+    constexpr uint8_t FOOT_TOP   = HEIGHT - 9;
+    constexpr uint8_t FOOT_H     = 7;
   }
 
   // ========================================================

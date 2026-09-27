@@ -1458,6 +1458,7 @@ namespace Config {
     constexpr uint8_t WIDTH = 128, HEIGHT = 64, CELL = 8, ADDRESS = 0x3C;
     constexpr uint8_t HEADER_TOP = 0, HEADER_H = 16;  // Header 0..15
     constexpr uint8_t BODY_TOP = 16, BODY_H = 48;     // Body 16..63
+    constexpr uint8_t FOOT_TOP = HEIGHT - 9, FOOT_H = 7;  // banda del pie
   }
   namespace Difficulty {
     constexpr uint8_t MIN_LEVEL     = 1;
@@ -1472,7 +1473,7 @@ namespace Config {
 | Namespace | Constantes | Las usan |
 |-----------|------------|----------|
 | `Config::Pin` | `BUTTONS`, `BUZZER`, `OLED_SDA`, `OLED_SCL` | `Snake_II.ino` (pasa `Config::Pin::BUTTONS` a `Buttons` y `Config::Pin::BUZZER` a `Sound`, que construye su `Buzzer`), `Buzzer` (pin por defecto), `Display` (pines I2C por defecto) |
-| `Config::Screen` | `WIDTH`/`HEIGHT`/`CELL`/`ADDRESS` y regiones `HEADER_*`/`BODY_*` | `Display` (defaults del constructor y `regionBounds`), `Boot` (bandas TITULO=Header/CUERPO=Body), `Game` (tablero en el Body, celda de los sprites y `BODY_TOP` al volcar el tablero), `Food` (celda del alimento: centro del rombo y sprite especial), `Credits` (rol del Body) |
+| `Config::Screen` | `WIDTH`/`HEIGHT`/`CELL`/`ADDRESS` y regiones `HEADER_*`/`BODY_*`/`FOOT_*` | `Display` (defaults del constructor y `regionBounds`), `Boot` (bandas TITULO=Header/CUERPO=Body), `Game` (tablero en el Body, celda de los sprites y `BODY_TOP` al volcar el tablero), `Food` (celda del alimento: centro del rombo y sprite especial), `Credits` (rol del Body) |
 | `Config::Difficulty` | `MIN_LEVEL`/`MAX_LEVEL`/`DEFAULT_LEVEL` | `Menu` (selector de dificultad inline) y `Game` (`setDifficulty`/velocidad): antes duplicadas en ambas clases. El sufijo `_LEVEL` y `DEFAULT_LEVEL` evitan la macro `DEFAULT` del core ESP32 (`Arduino.h`). |
 
 Las regiones `HEADER_TOP/H` y `BODY_TOP/H` reemplazan las constantes repetidas
@@ -1480,6 +1481,11 @@ Las regiones `HEADER_TOP/H` y `BODY_TOP/H` reemplazan las constantes repetidas
 Los `static constexpr` de esas clases se eliminaron; solo `Boot` conserva sus
 constantes propias (`BAR_W`, `BAR_SPACING`, `ANIM_TICK`, `TOTAL_MS`), que son de
 su animación.
+
+La banda del pie tiene su geometría en `Config::Screen` (`FOOT_TOP` = 55 y
+`FOOT_H` = 7, derivadas de `HEIGHT` igual que `HEADER_TOP/H` y `BODY_TOP/H`),
+pero todavía no las usa ninguna ventana: el pie de `Menu` y `Legend` se sigue
+pintando sobre su propia banda (54..63).
 
 `CELL` sigue la misma regla: es la **única** medida de px por celda. Reemplaza al
 `static constexpr uint8_t CELL = 8` que `Food` declaraba por su cuenta y a los `8`
