@@ -59,11 +59,6 @@ constantes compartidas viven en `Config.h` (pines, geometría, dificultad, versi
 - `Timer.h` — reloj de 64 bits (`esp_timer_get_time`), `Stopwatch` y `Ticker`.
   Migración completa desde `millis()`.
 
-**Componente nuevo (aún sin usar por ninguna ventana):**
-- `TextMatrix` — banda de 128x16 con un texto (ASCII 32..126) de la fuente
-  integrada de Adafruit a tamaño 2 (celda 12x16) convertido a una matriz de
-  1 bit de 256 B, con caché del texto y recorte a 10 caracteres. Sección 22.
-
 **Características del juego:**
 - Dificultad en caliente: `setDifficulty` recalcula `_moveDelay` al instante.
 - Puntaje = nivel de dificultad (`uint16_t` para evitar overflow).
@@ -118,7 +113,6 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Sound.h` / `Sound.cpp` | Classe `Sound` (secuencias de los efectos del juego sobre su `Buzzer` interno —miembro por valor, inicializado en `begin()`—, con `setEnabled` para silenciar). Completa. |
 | `Sprite.h` | Namespace `Sprite` (tabla de sprites de la serpiente, estilo Nokia: cola, cuerpo, curvas, cabeza cerrada/abierta y panza; sprites de 4×4 px + sprite de la comida especial de 8×4 px). Solo datos (header-only, sin `.cpp`). Adaptada al estilo del proyecto. |
 | `Timer.h` | Reloj de 64 bits y cronómetros compartidos (`nowMs()`, `Stopwatch`, `Ticker`), basados en `esp_timer_get_time()` (sección 21). Solo reloj (header-only, sin `.cpp`). |
-| `TextMatrix.h` / `TextMatrix.cpp` | Clase `TextMatrix` (banda de 128x16 con un texto convertido a matriz de 1 bit). Completa (sección 22). **Todavía no la usa ninguna ventana.** |
 | `PROYECTO.md` | Este documento. |
 
 Nota: Arduino solo compila el `.ino` del sketch. El respaldo quedó como `.txt`
@@ -1578,70 +1572,4 @@ class Ticker {
 
 `Sound` no tiene reloj propio: delega las duraciones en `Buzzer`. `Snake` sigue
 siendo lógica pura (solo `Arduino.h`: `delay`/`random`) y no usa el reloj.
----
 
-## 22. Clase `TextMatrix` — texto a matriz de 1 bit
-
-Ubicación: `TextMatrix.h` / `TextMatrix.cpp`. Banda de 128x16 con un texto
-(ASCII 32..126) compuesto con la **fuente integrada de Adafruit a tamaño 2**
-(celda 12x16) y pasado a una **matriz de 1 bit** de 256 B (1 = glifo,
-0 = fondo). Es un componente, no una ventana: no tiene `begin()`/`update()`
-propios; lo usa quien quiera pintar una banda de texto (sección 3: aún ninguna
-ventana lo usa).
-
-### Constantes
-
-```cpp
-static constexpr uint8_t W            = 128;                          // px de ancho
-static constexpr uint8_t H            = 16;                           // px de alto (8 * TEXT_SIZE)
-static constexpr uint8_t BYTES_PER_ROW= W / 8;                        // 16 B por fila
-static constexpr uint8_t SIZE         = H * BYTES_PER_ROW;            // 256 B
-static constexpr uint8_t TEXT_SIZE    = 2;                            // celda 12x16
-static constexpr uint8_t CHAR_W       = 6;                            // celda de la fuente integrada
-static constexpr uint8_t CHAR_H       = 8;
-static constexpr uint8_t MAX_CHARS    = W / (CHAR_W * TEXT_SIZE);     // 10
-static constexpr uint8_t CACHE_LEN    = MAX_CHARS + 2;                // 12 (11 chars + NUL)
-```
-
-### Métodos
-
-| Método | Descripción |
-|--------|-------------|
-| `TextMatrix()` | Canvas de composición (128x16, 2048 B) + matriz a cero, sin texto cacheado. No copiable: el canvas reserva RAM. |
-| `uint8_t setText(const char*)` | Compone el texto **centrado** en la matriz y devuelve cuántos caracteres se han puesto (0..`MAX_CHARS`). `nullptr` se trata como texto vacío. |
-| `bool truncated() const` | `true` si el texto no cabía entero (se ha recortado). |
-| `bool changed()` | `true` si la última `setText()` recompuso la matriz. **Limpia la bandera**: se lee una vez por repintado (mismo patrón que el `_dirty` del `Scroller`). |
-| `bool at(x, y) const` | Píxel de la matriz (`x` = 0..127 de izquierda a derecha, `y` = 0..15 de arriba abajo). |
-| `void blit(int16_t y) const` | Pinta la matriz en la fila `y` de la pantalla con la `Display` global (sección 20), solo los píxeles a 1. Son 2048 `drawPixel`, así que solo se llama cuando el texto ha cambiado. |
-
-### Cómo convierte el texto
-
-1. **Ancho por aritmética:** la fuente integrada es de anchura fija (5 px de
-   glifo + 1 de separación = 6), así que el ancho es `caracteres * 6 * 2`, lo
-   mismo que devuelve `display.getTextWidth()` (no hace falta `textWidth()`).
-2. **Composición:** el texto se pinta con `setTextSize(2)`, `setTextColor(1, 0)`
-   y `setCursor((W - ancho) / 2, 0)` en un `GFXcanvas8` de 128x16 (8 bits por
-   píxel), que es el mismo recurso que usa el `Scroller` para sus tiras.
-3. **Empaquetado:** se recorre el canvas píxel a píxel y se guarda 1 bit por
-   píxel: **1 byte cada 8 columnas, LSB primero** (bit 0 = columna de la
-   izquierda del byte), que es el orden de la página del SSD1306 y de las tiras
-   del `Scroller` (`1 << (x & 7)`, byte `x >> 3`).
-
-### Reglas
-
-1. **ASCII 32..126.** La fuente integrada cubre mayúsculas, minúsculas,
-   dígitos y puntuación, pero **no** tiene `ñ`, tildes ni símbolos: un carácter
-   fuera de ese rango se dibuja como un hueco (su glifo está a cero). No hay
-   traducción a mayúsculas automática.
-2. **Recorte, no desbordamiento.** Caben 10 caracteres (120 px de 128); el
-   siguiente se descarta. `setText()` devuelve cuántos se han puesto y
-   `truncated()` avisa, para que la ventana decida (avisar, deslizar con el
-   `Scroller`...).
-3. **La caché mira 11 caracteres, no 10:** se cachean los `MAX_CHARS + 1`
-   primeros, porque el último es el que distingue "cabe justo" de "se recorta".
-   Así un texto largo se sigue detectando como recortado sin releerlo entero, y
-   lo que no se cachea es justo lo que no se ve en la matriz. Con el texto
-   cacheado, `setText()` no recompone y devuelve el mismo valor.
-4. **`blit()` no pinta el fondo**, solo los 1: al cambiar de texto la ventana
-   tiene que limpiar su región antes (o el texto anterior se queda), y llamar a
-   `blit()` solo cuando `changed()` es `true`.
