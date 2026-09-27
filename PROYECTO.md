@@ -290,7 +290,8 @@ y con cualquier tamaño (`TEXT_6x8`, `TEXT_12x16`, `TEXT_18x24`).
 | `void clear()` | Limpia el buffer de la pantalla. |
 | `void show()` | Envía el buffer al OLED. |
 | `void drawPixel(x, y, black=false)` | Dibuja 1 píxel (blanco o negro). |
-| `void fillRect(x, y, w, h, color)` | Rectángulo relleno. Misma firma que `Adafruit_SSD1306::fillRect` (`int16_t, int16_t, uint16_t, uint16_t, uint16_t`); es un reenvío directo a la pantalla (con el guard de `_screen == nullptr` del resto de métodos). |
+| `void fillRect(x, y, w, h, black)` | Rectángulo relleno. Reenvío directo a `Adafruit_SSD1306::fillRect` (`int16_t, int16_t, uint16_t, uint16_t, uint16_t`), con el guard de `_screen == nullptr` del resto de métodos, pero el color ya no se propaga como `uint16_t` de la pantalla: la API de `Display` lo expresa como `bool black` (`true` = `SSD1306_BLACK`, `false` = `SSD1306_WHITE`), igual que `drawPixel`, para que las ventanas no manejen las constantes de color. |
+| `void fillTriangle(x0, y0, x1, y1, x2, y2, black)` | Triángulo relleno por sus tres vértices (en cualquier orden). Reenvío directo a `Adafruit_GFX::fillTriangle` con el mismo `bool black` que `fillRect`. Quedan en `Display.cpp` los helpers estáticos `sortByY()`/`edgeAt()` de una versión anterior que rasterizaba el triángulo por filas (ordenar los vértices por `y` y cortar los dos lados activos en cada fila): ya no los usa nadie y están pendientes de borrar. |
 | `TextPos getTextPos(texto, align, size=1, region=FULL)` | Devuelve x,y (esquina sup-izq) según alineación y región. |
 | `void drawText(texto, x, y, size=1)` | Imprime texto en posición píxel exacta. |
 | `void drawTextInverted(texto, x, y, size=1)` | Imprime texto en negro (sobre cualquier fondo) en posición exacta. |

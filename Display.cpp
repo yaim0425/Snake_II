@@ -24,7 +24,7 @@ Display::Display(uint8_t sda, uint8_t scl, uint8_t address,
 // ========================================================
 
 void Display::begin() {
-  if (_screen != nullptr) return;   // idempotente: ya inicializado (evita filtrar memoria)
+  if (_screen != nullptr) return;  // idempotente: ya inicializado (evita filtrar memoria)
 
   Wire.begin(_sda, _scl);
   _screen = new Adafruit_SSD1306(_width, _height, &Wire, _address, -1);
@@ -56,15 +56,51 @@ void Display::show() {
 
 void Display::drawPixel(uint8_t x, uint8_t y, bool black) {
   if (_screen == nullptr) return;
-  if (black)
-    _screen->drawPixel(x, y, SSD1306_BLACK);
-  else
-    _screen->drawPixel(x, y, SSD1306_WHITE);
+  _screen->drawPixel(x, y, black ? SSD1306_BLACK : SSD1306_WHITE);
 }
 
-void Display::fillRect(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t color) {
+void Display::fillRect(int16_t x, int16_t y, uint16_t w, uint16_t h, bool black) {
   if (_screen == nullptr) return;
-  _screen->fillRect(x, y, w, h, color);
+  _screen->fillRect(x, y, w, h, black ? SSD1306_BLACK : SSD1306_WHITE);
+}
+
+void Display::fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, bool black) {
+  if (_screen == nullptr) return;
+  _screen->fillTriangle(x0, y0, x1, y1, x2, y2, black ? SSD1306_BLACK : SSD1306_WHITE);
+}
+
+// ========================================================
+// Triángulo relleno
+// ========================================================
+
+// Ordena dos vértices de arriba (menor y) a abajo (mayor y) sin perder
+// el otro eje: es el paso previo a recorrer el triángulo por filas
+static void sortByY(int16_t* xa, int16_t* ya, int16_t* xb, int16_t* yb) {
+  if (*ya <= *yb) return;
+  int16_t t;
+
+  t = *xa;
+  *xa = *xb;
+  *xb = t;
+  t = *ya;
+  *ya = *yb;
+  *yb = t;
+}
+
+// x del corte del lado (xa,ya)-(xb,yb) con la fila y. Solo se llama
+// con y dentro del intervalo del lado, así que la división no puede
+// ser por cero (si el lado es horizontal, y == ya == yb y devuelve xa).
+// Redondea al entero más cercano para que el error no caiga siempre
+// hacia el mismo lado: con truncar, el borde izquierdo se queda corto
+// 1 px mientras el derecho se pasa.
+static int16_t edgeAt(int16_t xa, int16_t ya, int16_t xb, int16_t yb, int16_t y) {
+  if (y == yb) return xb;
+
+  int32_t num = (int32_t)(xb - xa) * (y - ya);
+  int32_t den = yb - ya;  // > 0: los vertices van ordenados de arriba abajo
+
+  if (num >= 0) return (int16_t)(xa + (num + den / 2) / den);
+  return (int16_t)(xa - (-num + den / 2) / den);
 }
 
 

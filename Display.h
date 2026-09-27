@@ -76,7 +76,15 @@ public:
 
   // Rectángulo relleno: misma firma que Adafruit_SSD1306::fillRect
   // (reenvío directo a la pantalla)
-  void fillRect(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t color);
+  void fillRect(int16_t x, int16_t y, uint16_t w, uint16_t h, bool black);
+
+  // Triángulo relleno por sus tres vértices. No existe en
+  // Adafruit_GFX (solo el contorno, drawTriangle), así que se
+  // rasteriza aquí: recorre las filas de y entre el vértice más
+  // alto y el más bajo y pinta en cada una la línea horizontal
+  // entre los dos puntos donde esa altura corta los lados
+  void fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
+                    int16_t x2, int16_t y2, bool black);
 
   // ========================================================
   // Texto
