@@ -56,11 +56,20 @@ void Boot::update() {
 // ========================================================
 // Dibujar (bandas de líneas verticales)
 //
-// Solo se limpia lo necesario: en el primer frame se hace un
-// clear() completo; luego únicamente se borran las columnas de
-// las franjas anteriores que NO coinciden con las nuevas (las
-// coincidentes se mantienen) y se dibujan las franjas nuevas.
-// Si el desplazamiento no cambió, no se toca nada.
+// Cada franja (BAR_W px) se pinta repartida en dos pasos: aquí
+// sus BAR_W-1 columnas de la cola y en drawBars() la de cabeza
+// (la primera de la franja según la dirección en la que se
+// mueve), que es la única columna nueva en cada avance de 1 px.
+// drawBars() borra además, en negro, la columna que cada franja
+// deja libre por la cola.
+//
+// Solo se limpia lo necesario: en el primer frame (y cuando el
+// salto es de más de 1 px) se hace un clear() completo; si el
+// desplazamiento no cambió, no se toca nada. Todas las columnas
+// se pintan con el módulo normalizado a 0..ancho-1 porque
+// fillRect() recorta en vez de envolver: la franja que rebalsa
+// por el borde se parte en dos tramos (derecho + izquierdo) en
+// lugar de cortarse en seco.
 // ========================================================
 
 void Boot::print() {
@@ -70,8 +79,11 @@ void Boot::print() {
     _redraw = false;
   } else if (_shift == _prevShift) {
     return;  // nada cambió: el resto de la pantalla se mantiene
-  } else {
-    // eraseOldBars();
+  } else if ((_shift + BAR_SPACING - _prevShift) % BAR_SPACING != 1) {
+    // Salto de más de 1 px (frame perdido): el borrado incremental de
+    // drawBars() solo vale para un avance de 1 px, así que redibujo todo
+    display.clear();
+    drawFirstBars();
   }
 
   drawBars();
@@ -80,45 +92,65 @@ void Boot::print() {
 
 // ========================================================
 // Dibujar las franjas iniciales
+//
+// Cada franja se pinta aquí con sus BAR_W-1 columnas de la cola;
+// la de cabeza (la primera según su dirección) la pone
+// drawBars(), que es la única que entra al desplazar 1 px. Con el
+// desplazamiento 0 (el primer frame) ninguna base cae en la
+// última columna, así que el fillRect de BAR_W-1 columnas nunca
+// se corta por el borde derecho.
 // ========================================================
 
 void Boot::drawFirstBars() {
   const int16_t w = display.getWidth();
 
-  // TITULO: las líneas se mueven de izquierda a derecha
+  // TITULO: las líneas se mueven de izquierda a derecha, así que la
+  // cabeza es su extremo derecho (y la cola, su extremo izquierdo)
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
     int16_t px = (x + _shift) % w;
-    drawBar(px, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, (int16_t)SSD1306_WHITE);
+    display.fillRect(px, Config::Screen::HEADER_TOP, BAR_W - 1, Config::Screen::HEADER_H, SSD1306_WHITE);
   }
 
-  // CUERPO: las líneas se mueven de derecha a izquierda
+  // CUERPO: las líneas se mueven de derecha a izquierda, así que la
+  // cabeza es su extremo izquierdo (y la cola, su extremo derecho)
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
-    int16_t px = ((x - _shift) % w + w) % w;
-    drawBar(px, Config::Screen::BODY_TOP, Config::Screen::BODY_H, (int16_t)SSD1306_WHITE);
+    int16_t px = ((w - x - _shift - (BAR_W - 1)) % w + w) % w;
+    display.fillRect(px, Config::Screen::BODY_TOP, BAR_W - 1, Config::Screen::BODY_H, SSD1306_WHITE);
   }
 }
 
 // ========================================================
 // Dibujar todas las franjas en el desplazamiento actual
+//
+// Por cada franja: se imprime su columna de cabeza (la primera
+// según la dirección) y se borra en negro la que deja libre por
+// la cola; el resto de la franja no cambia, así que no se toca.
+// La base de cada franja es la misma que en drawFirstBars().
 // ========================================================
 
 void Boot::drawBars() {
   const int16_t w = display.getWidth();
 
-  // TITULO: las líneas se mueven de izquierda a derecha
+  // TITULO: de izquierda a derecha (cabeza a la derecha, se borra la izquierda)
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
-    int16_t px = (x + _shift + w + BAR_W - 1) % w;
-    drawBar(px, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, (int16_t)SSD1306_WHITE);
-    px = ((px - BAR_W) % w + w) % w;
-    drawBar(px, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, (int16_t)SSD1306_BLACK);
+    int16_t px = (x + _shift) % w;
+
+    int16_t deleteBar = px - 1;
+    int16_t createBar = px + BAR_W - 1;
+
+    drawBar(deleteBar, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, SSD1306_BLACK);
+    drawBar(createBar, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, SSD1306_WHITE);
   }
 
-  // CUERPO: las líneas se mueven de derecha a izquierda
+  // CUERPO: de derecha a izquierda (cabeza a la izquierda, se borra la derecha)
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
-    int16_t px = ((x - _shift) % w + w - BAR_W + 1) % w;
-    drawBar(px, Config::Screen::BODY_TOP, Config::Screen::BODY_H, (int16_t)SSD1306_WHITE);
-    px = (px + BAR_W) % w;
-    drawBar(px, Config::Screen::BODY_TOP, Config::Screen::BODY_H, (int16_t)SSD1306_BLACK);
+    int16_t px = ((w - x - _shift - (BAR_W - 1)) % w + w) % w;
+
+    int16_t deleteBar = px + BAR_W - 1;
+    int16_t createBar = px - 1;
+
+    drawBar(deleteBar, Config::Screen::BODY_TOP, Config::Screen::BODY_H, SSD1306_BLACK);
+    drawBar(createBar, Config::Screen::BODY_TOP, Config::Screen::BODY_H, SSD1306_WHITE);
   }
 }
 
@@ -166,19 +198,17 @@ void Boot::eraseBarDiff(int16_t oldX, int16_t newX, uint8_t top,
 }
 
 // ========================================================
-// Dibujar una línea vertical de BAR_W px (con rebalse)
+// Dibujar una columna vertical de 1 px con el módulo normalizado
+// a 0..ancho-1: fillRect() recorta en vez de envolver, así que la
+// columna que rebalsa por el borde se pinta en el tramo que le
+// toca (la parte de la franja que se va de la pantalla la repone
+// el borrado de la columna que queda libre)
 // ========================================================
 
 void Boot::drawBar(int16_t x, uint8_t y, uint8_t height, int16_t color) {
   const int16_t w = display.getWidth();
 
-  if (x + BAR_W <= w) {
-    display.fillRect(x, y, BAR_W, height, color);
-  } else {
-    // Rebalsa por el borde derecho: se dibuja en dos partes
-    display.fillRect(x, y, w - x, height, color);
-    display.fillRect(0, y, BAR_W - (w - x), height, color);
-  }
+  display.fillRect(((x % w) + w) % w, y, 1, height, color);
 }
 
 // ========================================================

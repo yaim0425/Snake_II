@@ -95,12 +95,18 @@ private:
   // Helpers
   // ========================================================
 
-  // Dibuja una línea vertical de BAR_W px (con rebalse por el borde derecho)
-  void drawBar(int16_t x, uint8_t top, uint8_t height, int16_t width);
+  // Dibuja una columna vertical de 1 px con el módulo normalizado a
+  // 0..ancho-1 (fillRect recorta en vez de envolver)
+  void drawBar(int16_t x, uint8_t y, uint8_t height, int16_t color);
 
+  // Dibuja las franjas iniciales: las BAR_W-1 columnas de la cola de cada
+  // franja (la de cabeza la pone drawBars, que es la única columna nueva
+  // en cada avance de 1 px)
   void drawFirstBars();
 
-  // Dibuja todas las franjas (TITULO y CUERPO) en el desplazamiento actual
+  // Dibuja todas las franjas (TITULO y CUERPO) en el desplazamiento actual:
+  // imprime la columna de cabeza de cada franja y borra en negro la que
+  // deja libre por la cola
   void drawBars();
 
   // Borra SOLO las columnas de las franjas anteriores que no coinciden con
