@@ -29,7 +29,7 @@ public:
   // ========================================================
 
   Menu(uint16_t bestScore = 0,
-       const char* version = "v0.1");
+       const char* version = Config::Version::VERSION);
 
   // ========================================================
   // Inicialización

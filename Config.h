@@ -12,6 +12,9 @@
 //   - Screen    : geometría del OLED y sus regiones.
 //   - Difficulty: límites de la dificultad (compartidos por
 //                 Menu y Game).
+//   - Version   : versión y fecha de release del firmware
+//                 (compartidas por las ventanas que las
+//                 muestren).
 //
 // Al usar constantes con tipo, ámbito (namespace) y constexpr
 // no chocan con nombres de librerías ni del core ESP32; por
@@ -57,7 +60,7 @@ constexpr uint8_t BODY_TOP = 16;
 constexpr uint8_t BODY_H = 48;
 
 constexpr uint8_t FOOT_LINE = HEIGHT - (8 + 2 + 1);  // línea separadora del pie + 2 px de margen;
-constexpr uint8_t FOOT_TOP = HEIGHT - 8; // Punto Y del texto del pie
+constexpr uint8_t FOOT_TOP = HEIGHT - 8;             // Punto Y del texto del pie
 constexpr uint8_t FOOT_H = 8;
 
 }
@@ -71,6 +74,11 @@ namespace Difficulty {
 constexpr uint8_t MIN_LEVEL = 1;
 constexpr uint8_t MAX_LEVEL = 10;
 constexpr uint8_t DEFAULT_LEVEL = 5;
+}
+
+namespace Version {
+constexpr char* VERSION = "v1.0.0";
+constexpr char* RELEASE_DATE = "2026/12/31";
 }
 }
 

@@ -39,7 +39,7 @@ D:\Documents\ESP32S3\Snake_II.
 En desarrollo. `Snake_II.ino` es el **wiring**: define los servicios globales
 (`Display`, `Buttons`, `Sound` — `Globals.h`) y crea el `Engine`, que **posee las
 ventanas** (`Boot`, `Legend`, `Menu`, `Credits`, `Game`) como miembros. Las
-constantes compartidas viven en `Config.h` (pines, geometría, dificultad).
+constantes compartidas viven en `Config.h` (pines, geometría, dificultad, versión).
 
 **Arquitectura:**
 - `Engine` es el despachador: posee las ventanas (no globales, no anidadas) y
@@ -58,6 +58,11 @@ constantes compartidas viven en `Config.h` (pines, geometría, dificultad).
 - `Sprite.h` — tabla de sprites (header-only).
 - `Timer.h` — reloj de 64 bits (`esp_timer_get_time`), `Stopwatch` y `Ticker`.
   Migración completa desde `millis()`.
+
+**Componente nuevo (aún sin usar por ninguna ventana):**
+- `TextMatrix` — banda de 128x16 con un texto (ASCII 32..126) de la fuente
+  integrada de Adafruit a tamaño 2 (celda 12x16) convertido a una matriz de
+  1 bit de 256 B, con caché del texto y recorte a 10 caracteres. Sección 22.
 
 **Características del juego:**
 - Dificultad en caliente: `setDifficulty` recalcula `_moveDelay` al instante.
@@ -96,7 +101,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | Archivo | Contenido |
 |---------|-----------|
 | `Display.h` / `Display.cpp` | Clase `Display` (control del OLED). Completa. |
-| `Config.h` | Constantes compartidas del proyecto (namespace `Config`, sección 19): pines (`Config::Pin`: botones, buzzer, SDA/SCL), geometría y regiones de la pantalla (`Config::Screen`: 128×64, celda 8, dirección I2C, Header/Body) y límites de la dificultad (`Config::Difficulty`: MIN_LEVEL/MAX_LEVEL/DEFAULT_LEVEL). Solo lo verdaderamente compartido; el resto es `static constexpr` en su clase. Sin `#define` para valores (constantes con tipo y ámbito). |
+| `Config.h` | Constantes compartidas del proyecto (namespace `Config`, sección 19): pines (`Config::Pin`: botones, buzzer, SDA/SCL), geometría y regiones de la pantalla (`Config::Screen`: 128×64, celda 8, dirección I2C, Header/Body) y límites de la dificultad (`Config::Difficulty`: MIN_LEVEL/MAX_LEVEL/DEFAULT_LEVEL) y la versión del firmware (`Config::Version`: VERSION/RELEASE_DATE, la usa el pie del menú). Solo lo verdaderamente compartido; el resto es `static constexpr` en su clase. Sin `#define` para valores (constantes con tipo y ámbito). |
 | `Globals.h` | Declara `extern` los **servicios globales**: `Display display;`, `Buttons buttons;` y `Sound sound;` (definidos en `Snake_II.ino`, sección 20). **No** declara el `Buzzer` (es interno de `Sound`). No define las ventanas: esas viven dentro de `Engine`. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
@@ -113,6 +118,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Sound.h` / `Sound.cpp` | Classe `Sound` (secuencias de los efectos del juego sobre su `Buzzer` interno —miembro por valor, inicializado en `begin()`—, con `setEnabled` para silenciar). Completa. |
 | `Sprite.h` | Namespace `Sprite` (tabla de sprites de la serpiente, estilo Nokia: cola, cuerpo, curvas, cabeza cerrada/abierta y panza; sprites de 4×4 px + sprite de la comida especial de 8×4 px). Solo datos (header-only, sin `.cpp`). Adaptada al estilo del proyecto. |
 | `Timer.h` | Reloj de 64 bits y cronómetros compartidos (`nowMs()`, `Stopwatch`, `Ticker`), basados en `esp_timer_get_time()` (sección 21). Solo reloj (header-only, sin `.cpp`). |
+| `TextMatrix.h` / `TextMatrix.cpp` | Clase `TextMatrix` (banda de 128x16 con un texto convertido a matriz de 1 bit). Completa (sección 22). **Todavía no la usa ninguna ventana.** |
 | `PROYECTO.md` | Este documento. |
 
 Nota: Arduino solo compila el `.ino` del sketch. El respaldo quedó como `.txt`
@@ -340,12 +346,14 @@ Ubicación: `Menu.h` / `Menu.cpp`.
 ### Constructor
 
 ```cpp
-Menu(uint16_t bestScore = 0, const char* version = "v0.1");
+Menu(uint16_t bestScore = 0, const char* version = Config::Version::VERSION);
 ```
 
 Los servicios `Display`, `Buttons` y `Sound` son globales (sección 20); quedan
 como parámetros solo los datos de configuración. El `Scroller` interno se
-construye con `_scroller(1, nullptr)` en la lista de inicialización.
+construye con `_scroller(1, nullptr)` en la lista de inicialización. El texto del
+pie sale de `Config::Version::VERSION` (sección 19), así que la versión ya no es
+un literal en la firma.
 
 ### Métodos
 
@@ -1428,11 +1436,16 @@ namespace Difficulty {
   constexpr uint8_t MAX_LEVEL     = 10;
   constexpr uint8_t DEFAULT_LEVEL = 5;
 }
+
+namespace Version {
+  constexpr char* VERSION      = "v1.0.0";
+  constexpr char* RELEASE_DATE = "2026/12/31";
+}
 }
 ```
 
-Estilo del archivo: los namespaces internos (`Pin`, `Screen`, `Difficulty`) van en
-columna 0, sin indentar respecto de `namespace Config {`.
+Estilo del archivo: los namespaces internos (`Pin`, `Screen`, `Difficulty`,
+`Version`) van en columna 0, sin indentar respecto de `namespace Config {`.
 
 ### Qué contiene y quién lo usa
 
@@ -1441,6 +1454,7 @@ columna 0, sin indentar respecto de `namespace Config {`.
 | `Config::Pin` | `BUTTONS`, `BUZZER`, `OLED_SDA`, `OLED_SCL` | `Snake_II.ino` (pasa `Config::Pin::BUTTONS` a `Buttons` y `Config::Pin::BUZZER` a `Sound`, que construye su `Buzzer`), `Buzzer` (pin por defecto), `Display` (pines I2C por defecto) |
 | `Config::Screen` | `WIDTH`/`HEIGHT`/`CELL`/`ADDRESS` y regiones `HEADER_*`/`BODY_*`/`FOOT_*` | `Display` (defaults del constructor y `regionBounds`), `Boot` (bandas TITULO=Header/CUERPO=Body), `Game` (tablero en el Body, celda de los sprites y `BODY_TOP` al volcar el tablero), `Food` (celda del alimento: centro del rombo y sprite especial), `Credits` (rol del Body) |
 | `Config::Difficulty` | `MIN_LEVEL`/`MAX_LEVEL`/`DEFAULT_LEVEL` | `Menu` (selector de dificultad inline) y `Game` (`setDifficulty`/velocidad): antes duplicadas en ambas clases. El sufijo `_LEVEL` y `DEFAULT_LEVEL` evitan la macro `DEFAULT` del core ESP32 (`Arduino.h`). |
+| `Config::Version` | `VERSION`/`RELEASE_DATE` | `Menu` (valor por defecto del parámetro `version` de su constructor, que es el texto del pie; antes el literal `"v0.1"` estaba en la firma). `RELEASE_DATE` todavía no lo usa nadie: queda para la pantalla de créditos o el pie. |
 
 Las regiones `HEADER_TOP/H` y `BODY_TOP/H` reemplazan las constantes repetidas
 `BODY_TOP`/`BODY_H`/`TITLE_TOP`/`TITLE_H` de `Menu`, `Game`, `Boot` y `Credits`.
@@ -1564,3 +1578,70 @@ class Ticker {
 
 `Sound` no tiene reloj propio: delega las duraciones en `Buzzer`. `Snake` sigue
 siendo lógica pura (solo `Arduino.h`: `delay`/`random`) y no usa el reloj.
+---
+
+## 22. Clase `TextMatrix` — texto a matriz de 1 bit
+
+Ubicación: `TextMatrix.h` / `TextMatrix.cpp`. Banda de 128x16 con un texto
+(ASCII 32..126) compuesto con la **fuente integrada de Adafruit a tamaño 2**
+(celda 12x16) y pasado a una **matriz de 1 bit** de 256 B (1 = glifo,
+0 = fondo). Es un componente, no una ventana: no tiene `begin()`/`update()`
+propios; lo usa quien quiera pintar una banda de texto (sección 3: aún ninguna
+ventana lo usa).
+
+### Constantes
+
+```cpp
+static constexpr uint8_t W            = 128;                          // px de ancho
+static constexpr uint8_t H            = 16;                           // px de alto (8 * TEXT_SIZE)
+static constexpr uint8_t BYTES_PER_ROW= W / 8;                        // 16 B por fila
+static constexpr uint8_t SIZE         = H * BYTES_PER_ROW;            // 256 B
+static constexpr uint8_t TEXT_SIZE    = 2;                            // celda 12x16
+static constexpr uint8_t CHAR_W       = 6;                            // celda de la fuente integrada
+static constexpr uint8_t CHAR_H       = 8;
+static constexpr uint8_t MAX_CHARS    = W / (CHAR_W * TEXT_SIZE);     // 10
+static constexpr uint8_t CACHE_LEN    = MAX_CHARS + 2;                // 12 (11 chars + NUL)
+```
+
+### Métodos
+
+| Método | Descripción |
+|--------|-------------|
+| `TextMatrix()` | Canvas de composición (128x16, 2048 B) + matriz a cero, sin texto cacheado. No copiable: el canvas reserva RAM. |
+| `uint8_t setText(const char*)` | Compone el texto **centrado** en la matriz y devuelve cuántos caracteres se han puesto (0..`MAX_CHARS`). `nullptr` se trata como texto vacío. |
+| `bool truncated() const` | `true` si el texto no cabía entero (se ha recortado). |
+| `bool changed()` | `true` si la última `setText()` recompuso la matriz. **Limpia la bandera**: se lee una vez por repintado (mismo patrón que el `_dirty` del `Scroller`). |
+| `bool at(x, y) const` | Píxel de la matriz (`x` = 0..127 de izquierda a derecha, `y` = 0..15 de arriba abajo). |
+| `void blit(int16_t y) const` | Pinta la matriz en la fila `y` de la pantalla con la `Display` global (sección 20), solo los píxeles a 1. Son 2048 `drawPixel`, así que solo se llama cuando el texto ha cambiado. |
+
+### Cómo convierte el texto
+
+1. **Ancho por aritmética:** la fuente integrada es de anchura fija (5 px de
+   glifo + 1 de separación = 6), así que el ancho es `caracteres * 6 * 2`, lo
+   mismo que devuelve `display.getTextWidth()` (no hace falta `textWidth()`).
+2. **Composición:** el texto se pinta con `setTextSize(2)`, `setTextColor(1, 0)`
+   y `setCursor((W - ancho) / 2, 0)` en un `GFXcanvas8` de 128x16 (8 bits por
+   píxel), que es el mismo recurso que usa el `Scroller` para sus tiras.
+3. **Empaquetado:** se recorre el canvas píxel a píxel y se guarda 1 bit por
+   píxel: **1 byte cada 8 columnas, LSB primero** (bit 0 = columna de la
+   izquierda del byte), que es el orden de la página del SSD1306 y de las tiras
+   del `Scroller` (`1 << (x & 7)`, byte `x >> 3`).
+
+### Reglas
+
+1. **ASCII 32..126.** La fuente integrada cubre mayúsculas, minúsculas,
+   dígitos y puntuación, pero **no** tiene `ñ`, tildes ni símbolos: un carácter
+   fuera de ese rango se dibuja como un hueco (su glifo está a cero). No hay
+   traducción a mayúsculas automática.
+2. **Recorte, no desbordamiento.** Caben 10 caracteres (120 px de 128); el
+   siguiente se descarta. `setText()` devuelve cuántos se han puesto y
+   `truncated()` avisa, para que la ventana decida (avisar, deslizar con el
+   `Scroller`...).
+3. **La caché mira 11 caracteres, no 10:** se cachean los `MAX_CHARS + 1`
+   primeros, porque el último es el que distingue "cabe justo" de "se recorta".
+   Así un texto largo se sigue detectando como recortado sin releerlo entero, y
+   lo que no se cachea es justo lo que no se ve en la matriz. Con el texto
+   cacheado, `setText()` no recompone y devuelve el mismo valor.
+4. **`blit()` no pinta el fondo**, solo los 1: al cambiar de texto la ventana
+   tiene que limpiar su región antes (o el texto anterior se queda), y llamar a
+   `blit()` solo cuando `changed()` es `true`.
