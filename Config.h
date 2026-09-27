@@ -52,8 +52,12 @@ namespace Config {
     // Regiones: Header (0..15) y Body (16..63)
     constexpr uint8_t HEADER_TOP = 0;
     constexpr uint8_t HEADER_H   = 16;
+
     constexpr uint8_t BODY_TOP   = 16;
     constexpr uint8_t BODY_H     = 48;
+
+    constexpr uint8_t FOOT_TOP   = WIDTH - 15;
+    constexpr uint8_t FOOT_H     = 48;
   }
 
   // ========================================================
