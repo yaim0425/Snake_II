@@ -36,117 +36,34 @@ D:\Documents\ESP32S3\Snake_II.
 
 ## 1. Estado actual del proyecto
 
-En desarrollo por partes. La clase `Display` está completa. `Snake_II.ino` es el
-**enlace de dependencias (wiring)**: define los **servicios globales** (`Display`,
-`Buttons`, `Sound`; declarados `extern` en `Globals.h`, sección 20) y
-crea el `Engine`, que **posee las ventanas como miembros** (`Boot`, `Legend`,
-`Menu`, `Credits`, `Game` — no son globales). Todos los `begin()` se inician en
-`setup()`.
+En desarrollo. `Snake_II.ino` es el **wiring**: define los servicios globales
+(`Display`, `Buttons`, `Sound` — `Globals.h`) y crea el `Engine`, que **posee las
+ventanas** (`Boot`, `Legend`, `Menu`, `Credits`, `Game`) como miembros. Las
+constantes compartidas viven en `Config.h` (pines, geometría, dificultad).
 
-Las **constantes verdaderamente compartidas** viven en un solo `Config.h`
-(sección 19): pines de la placa (botones, buzzer, SDA/SCL), geometría del OLED
-y sus regiones (Header 0..15 / Body 16..63) y los límites de la dificultad
-(`Config::Difficulty`). No es un cajón de sastre: cada clase conserva sus
-constantes propias como `static constexpr` (p. ej. `ANIM_TICK` en `Scroller`,
-`NEW_BEST_SIGN_MS` en `Game`, `ARROW_BLINK_PERIOD` en `Menu`).
+**Arquitectura:**
+- `Engine` es el despachador: posee las ventanas (no globales, no anidadas) y
+  llama al `begin()` de la entrante al cambiar de estado. `loop()` hace la única
+  lectura de botones del frame.
+- Renderizado sin `clear()` global: cada ventana limpia solo en su primer frame y
+  luego redibuja solo zonas dinámicas.
+- Flujo de arranque: `Boot` → `Legend` → `Menu`. La `Legend` solo aparece al
+  arrancar; al volver al menú se pasa directo a `Menu`.
 
-Arquitectura:
-- **Ventanas dentro de `Engine` (no globales):** `Boot`, `Legend`, `Menu`,
-  `Credits` y `Game` son clases independientes (hermanas, no anidadas entre sí)
-  pero **miembros del `Engine`**: ninguna otra clase puede llamarlas, y la regla
-  "una ventana nunca conoce a las demás" queda garantizada por el compilador.
-  Solo los **servicios de hardware** (`Display`, `Buttons` y `Sound`)
-  son globales (`Globals.h`). El `Buzzer` **no** es un servicio global: es
-  propiedad exclusiva de `Sound` (miembro por valor). Sus valores persisten
-  entre transiciones (los
-  `begin()` solo reinician lo necesario).
-- **`Engine` = despachador puro:** posee las ventanas como miembros (no las
-  anida). Su estado interno decide qué ventana se ve; al cambiar de estado llama
-  al `begin()` de la ventana entrante. `setup()` llama `display.begin()`,
-  `buttons.begin()`, `sound.begin()` (que inicializa su `Buzzer` interno) y `engine.begin()`;
-  `loop()` hace la **única lectura de botones del frame** (`buttons.read()`, antes
-  de `engine.update()`) y luego llama `engine.update()`, `engine.print()`,
-  `sound.update()` y `display.show()`.
-- **Renderizado sin `clear()` global:** `Engine::print()` ya **no** limpia la
-  pantalla. Cada ventana hace `display.clear()` **solo en su primer frame** tras
-  su `begin()` y luego no vuelve a borrar lo estático: dibuja su fondo una sola
-  vez y por frame solo borra/redibuja sus zonas dinámicas (ver sección 13).
-- Al iniciar se muestra la animación de arranque (`Boot`, franjas verticales),
-  luego el panel de botones (`Legend`, pad MOVE con flechas + 4 rombos de ACTION
-  que parpadean uno a la vez) y
-  después el menú inicial con las opciones `New`, `Continue` (**se oculta si no hay
-  partida en curso o si la partida no tiene puntos**: al arrancar, tras un
-  `GAME OVER` o al volver del juego sin haber comido la lista queda en 4 opciones
-  — New, Dificultad, Sound, Créditos —; al volver del juego con la partida en curso
-  y puntos vuelve a 5 y la selección queda en `Continue`, si terminó en `GAME OVER`
-  o salió sin puntos la
-  selección queda en `New` y `Continue` no aparece), `Sound`
-  y `Dificultad` (**se editan inline en el propio `Menu`**:
-  al confirmar con `ACTION_RIGHT` aparece un selector en la banda de los rombos —
-  On/Off para `Sound`, nivel 1..10 para `Dificultad`—, se navega con
-  `MOVE_LEFT`/`MOVE_RIGHT` y se aplica
-  con `ACTION_RIGHT`; `ACTION_UP` cancela) y los créditos. La `Legend` solo se muestra al arranque;
-  al volver al menú desde cualquier ventana se pasa directo a `Menu` (ya no se
-  repite la leyenda). El código del juego original no se mantiene como archivos de
-  respaldo en el repo: queda en el historial de Git (`git show <commit>:Snake_II.ino`,
-  `git show <commit>:GameBuzzer.h`).
+**Clases extraídas de `Game`:**
+- `Food` — alimento (normal/especial): estado, spawn en celdas libres, dibujo,
+  temporizador.
+- `Snake` — lógica pura (sin `Display`/`Sound`/`Food`): buffer circular, giro
+  pendiente, wrap, colisión, sprites. `Game` coordina ritmo, input y dibujo.
+- `Sprite.h` — tabla de sprites (header-only).
+- `Timer.h` — reloj de 64 bits (`esp_timer_get_time`), `Stopwatch` y `Ticker`.
+  Migración completa desde `millis()`.
 
-La clase `Engine` (despachador de ventanas, antes `App`) está separada del `.ino`
-en `Engine.h` / `Engine.cpp`, y **posee las ventanas** (miembros, no globales,
-sin anidarlas).
-
-También se incorporó `Sprite.h` (antes `SnakeSprites.h`, adaptada al estilo del
-proyecto, sección
-15): la tabla de sprites de la serpiente del juego original, lista para que la
-lógica del juego la consuma cuando exista.
-
-El alimento del tablero (normal + especial) se extrajo de `Game` a una clase
-propia `Food` (`Food.h`/`Food.cpp`, sección 17): estado (posición, presencia,
-tipo), generación en celdas libres (`spawn`, consulta la ocupación al tablero
-vía `Game::occupied`), dibujo (rombo / sprite especial) y el temporizador de la
-comida especial. `Game` ahora usa el objeto `_food` donde antes guardaba
-`_food`/`_hasFood`/`_specialTime` y tenía `spawnFood()`/`drawFood()`.
-
-La lógica de la serpiente se extrajo de `Game` a una clase propia `Snake`
-(`Snake.h`/`Snake.cpp`, sección 18): buffer circular de segmentos, dirección
-commitida + giro pendiente (sin reversa directa), paso con wrap, colisión,
-comer/crecer y la elección de sprites de las partes (cola, cuerpo, curvas,
-panza y cabeza). `Snake` es **solo lógica**: no toca `Display`, `Sound` ni
-`Food` (pensada para poder probarse en el PC sin el resto, como se validó el
-núcleo antes de escribir `Game`). `Game` ahora **coordina**: decide el ritmo
-(dificultad), lee los botones y traduce MOVE a `Snake::Dir`, llama
-`snake.step()` y maneja el resultado (`Result` MOVED/ATE/DIED) con puntaje,
-sonidos y regeneración del alimento, y dibuja el tablero volcando los
-segmentos que `Snake` expone (`length`/`segment`/`headPart`).
-
-Fases pendientes: la lógica de la serpiente ya está integrada en la ventana
-`Juego` (estados `NEW`/`CONTINUE` del `Engine`): movimiento con wrap,
-sprites del contenido, comida, colisiones, dificultad (velocidad), pausa y
-game over. La dificultad se aplica **en caliente**: `Game::setDifficulty` ya no
-solo guarda el nivel sino que recalcula la velocidad (`_moveDelay`) al instante,
-de modo que cambiar el nivel desde el menú afecta también a la partida en curso
-(PLAY o PAUSE), no solo a las nuevas. **Cada comida vale el nivel de dificultad
-actual** (`_score += _difficulty` en `step()`, no +1 fijo); por eso el puntaje y
-el récord pasaron a `uint16_t` (`Game::score/bestScore`, `Menu::setBestScore` y
-`Engine::setBestScore`): con la dificultad máxima (10) y ~96 comidas el máximo
-teórico (~960) ya desbordaba `uint8_t`.
-También se agregó el **festejo de nuevo récord**: al morir superando el "Best"
-(ej. se pasa de `_bestScore`), en vez del letrero estático "GAME OVER" la ventana
-muestra en ciclo los letreros "GAME OVER" → "BUT" → "YOU ARE" → "THE BEST"
-(`NEW_BEST_SIGN_MS = 1500` ms cada uno, banda blanca de lado a lado) hasta que se
-presiona un botón; la fanfarria de victoria (`SFX_NEW_BEST`) suena solo la
-**primera** vez que aparece el letrero "THE BEST" (YOU ARE ya no la dispara).
-
-También se incorporó `Timer.h` (sección 21): un **reloj de 64 bits** basado en
-`esp_timer_get_time()` del core ESP32 (microsegundos desde el arranque; no envuelve
-en ~292.000 años) con los cronómetros `Stopwatch` (plazos) y `Ticker` (pasos
-periódicos). Todos los relojes del proyecto migraron de `millis()` (32 bits, da la
-vuelta cada ~49,7 días) a `nowMs()`. Los parpadeos del `Menu` (rombo, flechas de los
-selectores) y de la `Legend` que usaban `millis() % período` absoluto quedaron
-**anclados a un `Stopwatch`** iniciado al entrar en la ventana/modo (sin salto de
-fase cada 49,7 días); `Boot` y `Scroller` acumulan su avance con `Ticker`
-(`consume()` devuelve los pasos de una vez, ya no hay `while`); `Game`, `Buzzer` y
-`Buttons` miden con restas `ahora - inicio` sobre el reloj de 64 bits.
+**Características del juego:**
+- Dificultad en caliente: `setDifficulty` recalcula `_moveDelay` al instante.
+- Puntaje = nivel de dificultad (`uint16_t` para evitar overflow).
+- Festejo de nuevo récord: ciclo "GAME OVER" → "BUT" → "YOU ARE" → "THE BEST"
+  con fanfarria solo en "THE BEST".
 
 ---
 
