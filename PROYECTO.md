@@ -183,7 +183,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Globals.h` | Declara `extern` los **servicios globales**: `Display display;`, `Buttons buttons;` y `Sound sound;` (definidos en `Snake_II.ino`, sección 20). **No** declara el `Buzzer` (es interno de `Sound`). No define las ventanas: esas viven dentro de `Engine`. |
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
-| `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: Back, Select / Pause, None, None; cualquier botón la cierra con un sonido según el botón pulsado: MOVE = CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM). Completa. |
+| `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: "Btn1: Back", "Btn2: Select / Pause", "Btn3: None", "Btn4: None"; cualquier botón la cierra con un sonido según el botón pulsado: MOVE = CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM). Completa. |
 | `Scroller.h` / `Scroller.cpp` | Clase `Scroller` (scroller de 1 bit compartido: compone una tira 128x16 y desliza lateralmente N bandas sincronizadas con el mismo desplazamiento; cada banda tiene su canvas persistente y sus colores de frente/fondo; usada por `Menu` con 1 banda y por `Credits` con 2). Completa. |
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit —1 banda del `Scroller` compartido— y rombos de posición). Completa. **Incluye la edición inline de la opción "Sound"** (selector On/Off en la banda de los rombos) **y de la opción "Dificultad"** (selector `< N >`, nivel 1..10, con repetición al mantener presionado; al mantener, solo queda fija la flecha del botón activo). |
 | `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral —2 bandas sincronizadas del `Scroller` compartido— y `SFX_CLICK` al navegar, vuelve al menú con `ACTION_UP`). Completa. |
@@ -659,7 +659,7 @@ Sin parámetros: usa los servicios globales `Display`, `Buttons` y `Sound`
 |--------|-------------|
 | `void begin()` | Reinicia la ventana: apaga el flag de salida, rombo activo = `Btn1`. |
 | `void update()` | Lee botones y avanza el ciclo. **El sonido depende del botón presionado** (`done() = true`): `MOVE_*` (navegación) = `SFX_CLICK`, `ACTION_UP` (Back) = `SFX_BACK`, `ACTION_RIGHT` (Select / Pause) = `SFX_CONFIRM`, `ACTION_DOWN`/`ACTION_LEFT` (None) = `SFX_CLICK`. El rombo activo cambia cada `DWELL_MS`. |
-| `void print()` | Dibuja el pad MOVE, los 4 rombos de ACTION y el texto centrado del pie. |
+| `void print()` | Dibuja el pad MOVE, los 4 rombos de ACTION y el texto centrado del pie. Solo redibuja lo que cambia (ver "Renderizado"). `firstPrint()` es su helper privado del primer frame. |
 | `bool done()` | `true` cuando se pidió ir al menú. `Engine` solo cambia de estado; **la Legend ya reprodujo su sonido** (Engine no toca `SFX_BACK` en esta transición). |
 
 ### Dibujo (leyenda de botones)
@@ -676,22 +676,30 @@ Sin parámetros: usa los servicios globales `Display`, `Buttons` y `Sound`
   y luego parpadea a alta frecuencia (`BLINK_PERIOD=100` ms, oculto el
   `BLINK_OFF_PCT=50%` inicial de cada período: ~10 Hz). Los rombos inactivos se
   quedan fijos y completos.
-- **Texto del pie (centrado, mismo diseño que el menú):** línea en
-  `PIE_LINE_ROW=54` y texto en `PIE_TOP=57` con la función del rombo activo:
-  `Btn1` (↑ = `ACTION_UP`): **"Back"**, `Btn2` (→ = `ACTION_RIGHT`):
-  **"Select / Pause"**, `Btn3` (↓ = `ACTION_DOWN`): **"None"**, `Btn4` (← =
-  `ACTION_LEFT`): **"None"**.
+- **Texto del pie (centrado, mismo diseño que el menú):** la línea separadora sale de
+  `Config::Screen::FOOT_LINE` (53) y el texto de `FOOT_TOP` (56) con `FOOT_H` (8),
+  igual que el resto de ventanas; los textos están en el array `BTN[]` con el formato
+  `"BtnN: función"` (identificador y función en una sola cadena): `Btn1` (↑ =
+  `ACTION_UP`): **"Btn1: Back"**, `Btn2` (→ = `ACTION_RIGHT`): **"Btn2: Select /
+  Pause"**, `Btn3` (↓ = `ACTION_DOWN`): **"Btn3: None"**, `Btn4` (← = `ACTION_LEFT`):
+  **"Btn4: None"**.
 - **Salida:** cualquier botón cierra la leyenda (`done()`) con su sonido según el
   botón. `Engine` solo la muestra al arranque (después del `Boot`); ya no se repite
   al volver al menú.
-- **Renderizado (sin `clear()` por frame):** rótulos, pad MOVE y los 4 rombos de
-  ACTION son **estáticos** (se dibujan una sola vez al entrar, tras el `clear()`
-  completo). Por frame solo se borra/redibuja la **zona del rombo activo**
-  (cuadro 9x9 alrededor de su centro, para el parpadeo) y el **texto del pie**
-  (banda `54..63`) únicamente cuando cambia el rombo activo. Al cambiar el rombo
-  activo, el que **deja de serlo** se restaura completo (`drawDiamond(..., true)`):
-  si el cambio lo pilla en su **fase oculta de parpadeo**, su zona quedó borrada y
-  nadie la volvería a dibujar (evita rombos desaparecidos).
+- **Renderizado (sin `clear()` por frame):** el primer frame hace un `clear()` completo
+  y llama a `firstPrint()` (privado), que dibuja rótulos, pad MOVE, los 4 rombos y el
+  pie de `Btn1`; después quedan **estáticos**. Por frame solo se borra/redibuja la
+  **zona del rombo activo** (cuadro `DIA_SIZE+1` alrededor de su centro, para el
+  parpadeo) y el **texto del pie** (banda `FOOT_TOP..FOOT_TOP+FOOT_H`) únicamente
+  cuando cambia el rombo activo, controlado por `_lastText`. Al cambiar, el rombo que
+  **deja de ser activo** se restaura completo (`drawDiamond`): si el cambio lo pilla en
+  su **fase oculta de parpadeo**, su zona quedó borrada y nadie la volvería a dibujar
+  (evita rombos desaparecidos). El nuevo rombo activo ya está en pantalla como
+  estático desde el primer frame, así que no hay que redibujarlo.
+- **Estado:** `_step` (rombo activo), `_lastText` (paso cuyo texto del pie está en
+  pantalla; `-1` = todavía ninguno, y al ser distinto de `_step` es además el paso
+  anterior, cuyo rombo hay que restaurar), `_visible` (si el rombo activo está
+  visible), `_redraw` (pendiente el primer frame) y `_done`.
 
 ---
 
@@ -1010,7 +1018,7 @@ llama a `display.clear()`, lo decide cada ventana.
    | `Boot` | — (primer frame: clear completo + `firstPrint()`, la línea completa de `BAR_W` columnas de cada franja) | Por franja: su columna de cabeza en blanco y, en negro, la que deja libre por la cola (`drawBars()`, con el módulo normalizado en `drawBar` para el rebalse); si no cambió el desplazamiento (`_step == _prevStep`) no se dibuja nada |
     | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` —**solo cuando el scroller tiene algo nuevo que volcar** (navegar, recomponer o tras el `clear`; en reposo se salta, sección 14)— + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria; al llegar al límite se procesa igual que haber soltado el botón, volviendo el parpadeo normal) |
     | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas; se vuelcan juntas en el mismo frame y solo si hay algo nuevo que pintar, sección 14) |
-   | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
+   | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos (`firstPrint()`) | Zona del rombo activo (cuadro `DIA_SIZE+1`, parpadeo) + texto del pie (banda `FOOT_TOP..FOOT_TOP+FOOT_H`) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
    | `Game` | Primer frame: clear completo + Header (puntaje 12x16 izq., segundos restantes de la comida especial 12x16 der.) y alimento y serpiente | Header solo si cambia el puntaje o `_food.specialTime()` (banda 0..15); tablero (Body 16..63) solo si `_dirtyBoard` (movimiento, comida nueva, transición de estado): borra el Body, redibuja alimento + serpiente; overlay "3-2-1"/"PAUSA"/"GAME OVER"/festejo de récord (texto invertido sobre banda blanca: cuadro centrado para el conteo, de lado a lado para PAUSA, GAME OVER y los letreros del festejo "BUT"/"YOU ARE"/"THE BEST") en cada frame según el estado —en el conteo, al final de cada dígito el número y su cuadro se ocultan (`COUNT_HIDE_MS`), marcando `_dirtyBoard` una sola vez para restaurar el tablero —; al morir superando el récord, el "GAME OVER" es un ciclo "GAME OVER" → "BUT" → "YOU ARE" → "THE BEST" (`NEW_BEST_SIGN_MS` cada uno) que se repite hasta que se presiona un botón, y el `SFX_NEW_BEST` suena solo la primera vez que aparece el letrero "THE BEST" |
 
 4. Los modos de edición del `Menu` ("Sound" y "Dificultad") comparten la banda
@@ -1522,7 +1530,7 @@ columna 0, sin indentar respecto de `namespace Config {`.
 | Namespace | Constantes | Las usan |
 |-----------|------------|----------|
 | `Config::Pin` | `BUTTONS`, `BUZZER`, `OLED_SDA`, `OLED_SCL` | `Snake_II.ino` (pasa `Config::Pin::BUTTONS` a `Buttons` y `Config::Pin::BUZZER` a `Sound`, que construye su `Buzzer`), `Buzzer` (pin por defecto), `Display` (pines I2C por defecto) |
-| `Config::Screen` | `WIDTH`/`HEIGHT`/`CELL`/`ADDRESS` y regiones `HEADER_*`/`BODY_*`/`FOOT_*` | `Display` (defaults del constructor y `regionBounds`), `Boot` (bandas TITULO=Header/CUERPO=Body), `Game` (tablero en el Body, celda de los sprites y `BODY_TOP` al volcar el tablero), `Food` (celda del alimento: centro del rombo y sprite especial), `Credits` (rol del Body) |
+| `Config::Screen` | `WIDTH`/`HEIGHT`/`CELL`/`ADDRESS` y regiones `HEADER_*`/`BODY_*`/`FOOT_*` | `Display` (defaults del constructor y `regionBounds`), `Boot` (bandas TITULO=Header/CUERPO=Body), `Game` (tablero en el Body, celda de los sprites y `BODY_TOP` al volcar el tablero), `Food` (celda del alimento: centro del rombo y sprite especial), `Credits` (rol del Body), `Legend` (`WIDTH` para colocar los pads y `FOOT_LINE`/`FOOT_TOP`/`FOOT_H` para el pie) |
 | `Config::Difficulty` | `MIN_LEVEL`/`MAX_LEVEL`/`DEFAULT_LEVEL` | `Menu` (selector de dificultad inline) y `Game` (`setDifficulty`/velocidad): antes duplicadas en ambas clases. El sufijo `_LEVEL` y `DEFAULT_LEVEL` evitan la macro `DEFAULT` del core ESP32 (`Arduino.h`). |
 
 Las regiones `HEADER_TOP/H` y `BODY_TOP/H` reemplazan las constantes repetidas
@@ -1534,9 +1542,10 @@ su animación.
 La banda del pie tiene su geometría en `Config::Screen`: `FOOT_LINE` = 53 para la
 línea separadora, y `FOOT_TOP` = 56 con `FOOT_H` = 8 para el texto, todo derivado
 de `HEIGHT` igual que `HEADER_TOP/H` y `BODY_TOP/H`. Antes eran `FOOT_TOP` =
-`HEIGHT - 9` y `FOOT_H` = 7. En el estado actual del repo **todavía no las usa
-ninguna ventana**: el pie de `Menu` sigue pintado sobre su propia banda (54..63) y
-el `Legend` que ya las consume (línea y texto con `drawText`) sigue sin commitear.
+`HEIGHT - 9` y `FOOT_H` = 7. **Ya las usa `Legend`** (línea con `fillRect` y texto
+centrado con `drawText`), que además es la primera ventana que no declara sus
+propias `PIE_*`: las delega en `Config::Screen` como el resto. `Menu` y `Credits`
+siguen con las suyas (`PIE_LINE_ROW` / `PIE_TOP`), pendientes de migrar.
 
 `CELL` sigue la misma regla: es la **única** medida de px por celda. Reemplaza al
 `static constexpr uint8_t CELL = 8` que `Food` declaraba por su cuenta y a los `8`
