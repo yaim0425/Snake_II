@@ -8,6 +8,14 @@
 // Opciones por defecto
 // ========================================================
 
+const char* const Menu::OPTION_TEXT[OPT_COUNT] = {
+  "New",
+  "Continue",
+  "Difficulty",
+  "Sound",
+  "Credits"
+};
+
 const char* const Menu::DEFAULT_OPTION_TEXT[Menu::DEFAULT_OPTIONS] = {
   "New",
   "Continue",
@@ -38,23 +46,23 @@ const char* Menu::optionText(int8_t index) const {
 // ========================================================
 
 Menu::Option Menu::optionAt(int8_t index) const {
-  if (_continueAvailable) return (Option)index;
+  if (_visibleContinue) return (Option)index;
   switch (index) {
-    case 0:   return OPT_NEW;
-    case 1:   return OPT_DIFFICULTY;
-    case 2:   return OPT_SOUND;
-    default:  return OPT_CREDITS;
+    case 0: return OPT_NEW;
+    case 1: return OPT_DIFFICULTY;
+    case 2: return OPT_SOUND;
+    default: return OPT_CREDITS;
   }
 }
 
 int8_t Menu::indexOfOption(Option option) const {
-  if (_continueAvailable) return (int8_t)option;
+  if (_visibleContinue) return (int8_t)option;
   switch (option) {
-    case OPT_NEW:      return 0;
+    case OPT_NEW: return 0;
     case OPT_DIFFICULTY: return 1;
-    case OPT_SOUND:     return 2;
-    case OPT_CREDITS:   return 3;
-    default:             return -1;  // OPT_CONTINUE sin partida en curso
+    case OPT_SOUND: return 2;
+    case OPT_CREDITS: return 3;
+    default: return -1;  // OPT_CONTINUE sin partida en curso
   }
 }
 
@@ -64,23 +72,24 @@ int8_t Menu::indexOfOption(Option option) const {
 
 Menu::Menu(uint16_t bestScore, const char* version)
   : _bestScore(bestScore),
-    _version(version),
-    _title("Snake II"),
-    _showFooter(true),
-    _optionCount(DEFAULT_OPTIONS - 1),  // sin "Continue" al arrancar (no hay partida)
-    _optionTexts(NO_CONTINUE_OPTIONS),
-    _continueAvailable(false),
+    // _version(version),
+    // _title("Snake II"),
+    // _showFooter(true),
+    // _optionCount(DEFAULT_OPTIONS - 1),  // sin "Continue" al arrancar (no hay partida)
+    // _optionTexts(NO_CONTINUE_OPTIONS),
+    _visibleContinue(false),
+    _visibleDiamond(true),
     _selected(OPT_NEW),
-    _hold(),
+    _timer(),
     _redraw(true),
-    _editingSound(false),
-    _soundEnabled(true),
-    _editingDifficulty(false),
-    _difficulty(Config::Difficulty::DEFAULT_LEVEL),
-    _editDifficulty(Config::Difficulty::DEFAULT_LEVEL),
-    _editBlink(),
-    _repeat(),
-    _repeatTick(),
+    // _editingSound(false),
+    // _soundEnabled(true),
+    // _editingDifficulty(false),
+    // _difficulty(Config::Difficulty::DEFAULT_LEVEL),
+    // _editDifficulty(Config::Difficulty::DEFAULT_LEVEL),
+    // _editBlink(),
+    // _repeat(),
+    // _repeatTick(),
     _scroller() {}
 
 // ========================================================
@@ -89,11 +98,11 @@ Menu::Menu(uint16_t bestScore, const char* version)
 
 void Menu::begin() {
   _scroller.begin();
-  _scroller.setTexto(optionText(_selected), 16, TEXT_12x16);
-  _hold.start();
+  _scroller.setTexto(OPTION_TEXT[_selected], 16, TEXT_12x16);
+  _timer.start();
   _redraw = true;
-  _editingSound = false;
-  _editingDifficulty = false;
+  // _editingSound = false;
+  // _editingDifficulty = false;
 }
 
 // ========================================================
@@ -104,7 +113,7 @@ void Menu::setOptions(const char* const* texts, uint8_t count) {
   if (texts == nullptr) return;
 
   if (count < 1) count = 1;
-  if (count > MAX_OPTIONS) count = MAX_OPTIONS;
+  if (count > OPT_COUNT) count = OPT_COUNT;
 
   _optionTexts = texts;
   _optionCount = count;
@@ -112,7 +121,7 @@ void Menu::setOptions(const char* const* texts, uint8_t count) {
   if (_selected >= (int8_t)count) _selected = count - 1;
 
   _scroller.begin();
-  _hold.start();
+  _timer.start();
   _scroller.setTexto(optionText(_selected), 16, TEXT_12x16);
   _redraw = true;
 }
@@ -129,9 +138,9 @@ void Menu::setOptions(const char* const* texts, uint8_t count) {
 // ========================================================
 
 void Menu::setContinueAvailable(bool available) {
-  if (available == _continueAvailable) return;
+  if (available == _visibleContinue) return;
 
-  _continueAvailable = available;
+  _visibleContinue = available;
   setOptions(available ? DEFAULT_OPTION_TEXT : NO_CONTINUE_OPTIONS,
              available ? DEFAULT_OPTIONS : DEFAULT_OPTIONS - 1);
 }
@@ -159,7 +168,7 @@ void Menu::setSelected(Menu::Option option) {
 
   _selected = index;
   _scroller.begin();
-  _hold.start();
+  _timer.start();
   _scroller.setTexto(optionText(_selected), 16, TEXT_12x16);
   _redraw = true;
   _editingSound = false;
@@ -171,6 +180,8 @@ void Menu::setSelected(Menu::Option option) {
 // ========================================================
 
 void Menu::update() {
+  if (true) return;  // IGNORE: no se actualiza el menú en esta versión
+
   if (_editingSound) {
     // En modo edición de sonido: la tecla indicada por la flecha (la del
     // destino) cambia el valor mostrado (ON/OFF) sin aplicarlo; solo se
@@ -259,7 +270,7 @@ void Menu::navigate() {
     sound.play(Sound::SFX_CLICK);
     _scroller.setTexto(optionText(_selected), 16, TEXT_12x16);
     _scroller.startSlide((_selected > before) ? 1 : -1);
-    _hold.start();
+    _timer.start();
     Serial.printf("Menu: opcion %d -> %d\n", before, _selected);
   }
 }
@@ -325,9 +336,7 @@ bool Menu::holdRepeat(uint8_t button) {
     return true;
   }
 
-  if (buttons.state(button) &&
-      _repeat.expired(HOLD_REPEAT_DELAY) &&
-      _repeatTick.expired(HOLD_REPEAT_TICK)) {
+  if (buttons.state(button) && _repeat.expired(HOLD_REPEAT_DELAY) && _repeatTick.expired(HOLD_REPEAT_TICK)) {
     _repeatTick.start();
     return true;
   }
@@ -361,19 +370,19 @@ void Menu::drawSoundSelector() {
   int16_t labelW = display.getTextWidth(label, TEXT_6x8);
   int16_t labelX = (display.getWidth() - labelW) / 2;
 
-  const int16_t yTop = DIA_TOP + 1;           // 46
-  const int16_t yMid = DIA_TOP + DIA_SIZE / 2; // 49
-  const int16_t yBot = DIA_TOP + DIA_SIZE;     // 53
+  const int16_t yTop = DIA_TOP + 1;             // 46
+  const int16_t yMid = DIA_TOP + DIA_SIZE / 2;  // 49
+  const int16_t yBot = DIA_TOP + DIA_SIZE;      // 53
 
   // Parpadeo de la flecha: visible el 75% del período, oculta el primer 25%
   // (anclado al beginSoundEdit: sin salto de fase con el reloj de 64 bits)
   bool arrowVisible =
-      _editBlink.blinkOn(ARROW_BLINK_PERIOD, ARROW_BLINK_OFF_PCT);
+    _editBlink.blinkOn(ARROW_BLINK_PERIOD, ARROW_BLINK_OFF_PCT);
 
   if (arrowVisible) {
     if (_soundEnabled) {
       // ON: flecha a la izquierda, punta hacia la izquierda ("< ON")
-      int16_t base = labelX - ARROW_GAP;      // lado plano, pegado al texto
+      int16_t base = labelX - ARROW_GAP;  // lado plano, pegado al texto
       s.fillTriangle(base - ARROW_W, yMid, base, yTop, base, yBot,
                      SSD1306_WHITE);
     } else {
@@ -413,14 +422,14 @@ void Menu::drawDifficultySelector() {
   // Número centrado con ancho constante ("13" / " 5" = 12 px)
   char buf[8];
   if (_editDifficulty < 10) sprintf(buf, " %u", _editDifficulty);
-  else                      sprintf(buf, "%u", _editDifficulty);
+  else sprintf(buf, "%u", _editDifficulty);
 
   int16_t labelW = display.getTextWidth(buf, TEXT_6x8);
   int16_t labelX = (display.getWidth() - labelW) / 2;
 
-  const int16_t yTop = DIA_TOP + 1;            // 46
-  const int16_t yMid = DIA_TOP + DIA_SIZE / 2; // 49
-  const int16_t yBot = DIA_TOP + DIA_SIZE;     // 53
+  const int16_t yTop = DIA_TOP + 1;             // 46
+  const int16_t yMid = DIA_TOP + DIA_SIZE / 2;  // 49
+  const int16_t yBot = DIA_TOP + DIA_SIZE;      // 53
 
   // Al mantener presionado MOVE_LEFT (-1) o MOVE_RIGHT (+1) la repetición
   // continua queda marcada en pantalla: el parpadeo se detiene y SOLO la
@@ -429,14 +438,11 @@ void Menu::drawDifficultySelector() {
   // 25% de ARROW_BLINK_PERIOD ms) como siempre. Al llegar al límite (1 o
   // 25) el botón de ese lado ya no puede avanzar y se procesa igual que si
   // se hubiera soltado (vuelve el parpadeo normal, con el límite oculto).
-  bool leftHeld  = buttons.state(Buttons::MOVE_LEFT) &&
-                   _editDifficulty > Config::Difficulty::MIN_LEVEL;
-  bool rightHeld = buttons.state(Buttons::MOVE_RIGHT) &&
-                   _editDifficulty < Config::Difficulty::MAX_LEVEL;
+  bool leftHeld = buttons.state(Buttons::MOVE_LEFT) && _editDifficulty > Config::Difficulty::MIN_LEVEL;
+  bool rightHeld = buttons.state(Buttons::MOVE_RIGHT) && _editDifficulty < Config::Difficulty::MAX_LEVEL;
 
   bool arrowsVisible =
-      leftHeld || rightHeld ||
-      _editBlink.blinkOn(ARROW_BLINK_PERIOD, ARROW_BLINK_OFF_PCT);
+    leftHeld || rightHeld || _editBlink.blinkOn(ARROW_BLINK_PERIOD, ARROW_BLINK_OFF_PCT);
 
   if (arrowsVisible) {
     // Flecha izquierda (-1): fija al mantener MOVE_LEFT; oculta mientras se
@@ -463,34 +469,17 @@ void Menu::drawDifficultySelector() {
 // ========================================================
 
 void Menu::drawDiamonds() {
-  uint8_t n = _optionCount;
+  if (_timer.expired(BLINK_HOLD)) {
+    bool visibleDiamond = _timer.blinkOn(BLINK_PERIOD, BLINK_OFF_PCT);
+    if ((visibleDiamond && !_visibleDiamond) || (!visibleDiamond && _visibleDiamond)) {
 
-  for (uint8_t i = 0; i < n; i++) {
-    int16_t cx = (int16_t)((i + 1) * display.getWidth()) / (n + 1);
-    int16_t x = cx - DIA_SIZE / 2;
+      uint8_t n = OPT_COUNT;
+      if (!_visibleContinue) n--;
+      int16_t x = (((_selected + 1) * display.getWidth()) / (n + 1)) - DIA_SIZE / 2;
 
-    if (i == _selected) {
-      // Parpadeo: visible 75% del período, oculto 25%. Anclado al
-      // _hold (última selección): la fase depende solo del tiempo
-      // desde la selección, no del instante absoluto del reloj.
-      if (_hold.expired(BLINK_HOLD) &&
-          !_hold.blinkOn(BLINK_PERIOD, BLINK_OFF_PCT))
-        continue;  // fase oculta (25%): no se dibuja
-
-      // Rombo simétrico de 9 filas (45..53), como el alimento del juego:
-      // punta superior 45, hombros 49, punta inferior 53 (visible)
-      Adafruit_SSD1306& s = display.screen();
-      s.fillTriangle(x + 4, DIA_TOP, x + 8, DIA_TOP + DIA_SIZE / 2,
-                     x + 4, DIA_TOP + DIA_SIZE, SSD1306_WHITE);
-      s.fillTriangle(x + 4, DIA_TOP, x, DIA_TOP + DIA_SIZE / 2,
-                     x + 4, DIA_TOP + DIA_SIZE, SSD1306_WHITE);
-    } else {
-      // Solo la punta (triángulo superior), apoyada sobre la línea separadora:
-      // base en la 53 (sobre la línea de la 54), vértice en la 50
-      int16_t baseY = DIA_TOP + DIA_SIZE;  // 53
-      int16_t y = baseY - 3;               // 50
-      display.screen().fillTriangle(x + 4, y, x, baseY, x + 8, baseY,
-                                     SSD1306_WHITE);
+      display.fillTriangle(x + 4, DIA_TOP, x + 8, DIA_TOP + DIA_SIZE / 2, x + 4, DIA_TOP + DIA_SIZE, _visibleDiamond);
+      display.fillTriangle(x + 4, DIA_TOP, x, DIA_TOP + DIA_SIZE / 2, x + 4, DIA_TOP + DIA_SIZE, _visibleDiamond);
+      _visibleDiamond = !_visibleDiamond;
     }
   }
 }
@@ -506,36 +495,12 @@ void Menu::print() {
   // UNA sola vez; ya no se borran ni se redibujan en cada frame.
   if (_redraw) {
     display.clear();
-
-    // Cuadro de selección: fijo, de ancho completo
-    display.screen().fillRect(0, BOX_TOP, display.getWidth(), BOX_HEIGHT,
-                               SSD1306_WHITE);
-
-    // Header: título
-    display.drawTextAligned(_title, CENTER, TEXT_12x16, REGION_HEADER);
-
-    // Pie del Body: línea separadora + texto (Best/versión), opcional
-    // (cuando se oculta solo queda la línea que sostiene los rombos)
-    display.screen().drawFastHLine(0, PIE_LINE_ROW, display.getWidth(),
-                                    SSD1306_WHITE);
-    if (_showFooter) {
-      char buf[16];
-      sprintf(buf, "Best: %u", (unsigned)_bestScore);
-
-      TextPos tPos = display.getTextPos(buf, LEFT_DOWN, TEXT_6x8, REGION_BODY);
-      display.drawText(buf, tPos.x, PIE_TOP, TEXT_6x8);
-
-      TextPos vPos = display.getTextPos(_version, RIGHT_DOWN, TEXT_6x8, REGION_BODY);
-      display.drawText(_version, vPos.x, PIE_TOP, TEXT_6x8);
-    }
-
+    firstPrint();
     _redraw = false;
-
-    // El clear se ha llevado por delante la banda de la opción que el
-    // scroller tenía volcada: hay que volver a pintarla (aunque la tira
-    // esté centrada y no se mueva).
-    _scroller.redraw();
   }
+
+  drawDiamonds();
+  if (true) return;  // IGNORE: no se actualiza el menú en esta versión
 
   // Dinámicos (cada frame): la banda de la opción deslizante y los rombos.
   // La banda persistente (lo que ya está en pantalla) se mantiene intacta;
@@ -550,19 +515,52 @@ void Menu::print() {
     // Modo edición de sonido: la banda del selector (45..53) se borra y se
     // vuelve a dibujar en cada frame (la flecha parpadea; la palabra no).
     display.screen().fillRect(0, DIA_TOP, display.getWidth(),
-                               DIA_SIZE + 1, SSD1306_BLACK);
+                              DIA_SIZE + 1, SSD1306_BLACK);
     drawSoundSelector();
   } else if (_editingDifficulty) {
     // Modo edición de dificultad: la banda del selector (45..53) se borra y
     // se vuelve a dibujar en cada frame (las flechas parpadean; el número no).
     display.screen().fillRect(0, DIA_TOP, display.getWidth(),
-                               DIA_SIZE + 1, SSD1306_BLACK);
+                              DIA_SIZE + 1, SSD1306_BLACK);
     drawDifficultySelector();
   } else {
     // Solo se borra la banda de rombos (45..53), la única zona dinámica restante
     display.screen().fillRect(0, DIA_TOP, display.getWidth(),
-                               DIA_SIZE + 1, SSD1306_BLACK);
-    drawDiamonds();
+                              DIA_SIZE + 1, SSD1306_BLACK);
+  }
+}
+
+void Menu::firstPrint() {
+  display.drawText(Config::Version::NAME, (Config::Screen::WIDTH - strlen(Config::Version::NAME) * 12) / 2, Config::Screen::HEADER_TOP, TEXT_12x16);
+
+  display.fillRect(0, BOX_TOP, display.getWidth(), BOX_HEIGHT, false);
+  display.drawTextInverted(OPTION_TEXT[_selected], (Config::Screen::WIDTH - strlen(OPTION_TEXT[_selected]) * 12) / 2, BOX_TOP + 1, TEXT_12x16);
+
+  display.fillRect(0, Config::Screen::FOOT_LINE, Config::Screen::WIDTH, 1, false);
+
+  const char* label = "Best:";
+  display.drawText(label, 0, Config::Screen::FOOT_TOP, TEXT_6x8);
+  char buf[6];
+  sprintf(buf, "%u", (unsigned)_bestScore);
+  display.drawText(buf, strlen(label) * 6, Config::Screen::FOOT_TOP, TEXT_6x8);
+
+  display.drawText(Config::Version::VERSION, Config::Screen::WIDTH - strlen(Config::Version::VERSION) * 6, Config::Screen::FOOT_TOP, TEXT_6x8);
+
+
+  uint8_t n = OPT_COUNT;
+  if (!_visibleContinue) n--;
+  for (uint8_t i = 0; i < n; i++) {
+    int16_t cx = (int16_t)((i + 1) * display.getWidth()) / (n + 1);
+    int16_t x = cx - DIA_SIZE / 2;
+
+    if (i == _selected) {
+      display.fillTriangle(x + 4, DIA_TOP, x + 8, DIA_TOP + DIA_SIZE / 2, x + 4, DIA_TOP + DIA_SIZE, false);
+      display.fillTriangle(x + 4, DIA_TOP, x, DIA_TOP + DIA_SIZE / 2, x + 4, DIA_TOP + DIA_SIZE, false);
+    } else {
+      int16_t baseY = DIA_TOP + DIA_SIZE;
+      int16_t y = baseY - 3;
+      display.fillTriangle(x + 4, y, x, baseY, x + 8, baseY, false);
+    }
   }
 }
 
@@ -581,9 +579,7 @@ int8_t Menu::confirm() const {
   // Option): con "Continue" oculto la lista es 4 opciones y los índices
   // ya no coinciden con el enum, así el Engine compara con los mismos
   // valores (OPT_NEW/OPT_CONTINUE/OPT_CREDITS).
-  if (buttons.pressed(Buttons::ACTION_RIGHT) &&
-      optionAt(_selected) != OPT_SOUND &&
-      optionAt(_selected) != OPT_DIFFICULTY)
+  if (buttons.pressed(Buttons::ACTION_RIGHT) && optionAt(_selected) != OPT_SOUND && optionAt(_selected) != OPT_DIFFICULTY)
     return (int8_t)optionAt(_selected);
   return -1;
 }

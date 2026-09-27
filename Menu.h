@@ -13,14 +13,14 @@ public:
   // Configuración
   // ========================================================
 
-  static constexpr uint8_t MAX_OPTIONS = 8;
-
   enum Option : uint8_t {
     OPT_NEW = 0,
     OPT_CONTINUE,
     OPT_DIFFICULTY,
     OPT_SOUND,
-    OPT_CREDITS
+    OPT_CREDITS,
+
+    OPT_COUNT
   };
 
   // ========================================================
@@ -28,8 +28,7 @@ public:
   // Display, Buttons y Sound — Globals.h)
   // ========================================================
 
-  Menu(uint16_t bestScore = 0,
-       const char* version = Config::Version::VERSION);
+  Menu(uint16_t bestScore = 0, const char* version = Config::Version::VERSION);
 
   // ========================================================
   // Inicialización
@@ -83,6 +82,7 @@ public:
   // ========================================================
 
   void print();
+void firstPrint();
 
   // ========================================================
   // Accesos
@@ -116,6 +116,8 @@ private:
   // ========================================================
   // Opciones por defecto
   // ========================================================
+  
+  static const char* const OPTION_TEXT[OPT_COUNT];
 
   // La lista que se muestra depende de si hay partida en curso:
   //   - con "Continue": DEFAULT_OPTIONS (5) opciones
@@ -213,10 +215,11 @@ private:
 
   uint8_t _optionCount;
   const char* const* _optionTexts;
-  bool _continueAvailable;   // muestra/oculta la opción "Continue" (default: oculta)
+  bool _visibleContinue;   // muestra/oculta la opción "Continue" (default: oculta)
+  bool _visibleDiamond;        // rombo activo visible (parpadeo)
 
   int8_t _selected;   // opción actual (objetivo central)
-  Stopwatch _hold;    // desde la última selección (parpadeo del rombo)
+  Stopwatch _timer;    // desde la última selección (parpadeo del rombo)
   bool _redraw;         // primer frame tras begin(): clear() completo + estáticos
 
   // Edición inline de sonido

@@ -59,9 +59,9 @@ constexpr uint8_t HEADER_H = 16;
 constexpr uint8_t BODY_TOP = 16;
 constexpr uint8_t BODY_H = 48;
 
-constexpr uint8_t FOOT_LINE = HEIGHT - (8 + 2 + 1);  // línea separadora del pie + 2 px de margen;
-constexpr uint8_t FOOT_TOP = HEIGHT - 8;             // Punto Y del texto del pie
-constexpr uint8_t FOOT_H = 8;
+constexpr uint8_t FOOT_H = 7;
+constexpr uint8_t FOOT_TOP = HEIGHT - FOOT_H;             // Punto Y del texto del pie
+constexpr uint8_t FOOT_LINE = HEIGHT - (FOOT_H + 1 + 1);  // línea separadora del pie + 2 px de margen;
 
 }
 
@@ -77,6 +77,7 @@ constexpr uint8_t DEFAULT_LEVEL = 5;
 }
 
 namespace Version {
+constexpr char* NAME = "Snake II";
 constexpr char* VERSION = "v1.0.0";
 constexpr char* RELEASE_DATE = "2026/12/31";
 }

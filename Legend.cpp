@@ -10,10 +10,10 @@
 // ========================================================
 
 const char* const Legend::BTN[4] = {
-  "Btn1: Back",
-  "Btn2: Select / Pause",
-  "Btn3: None",
-  "Btn4: None"
+  "Btn1 / Back",
+  "Btn2 / Select / Pause",
+  "Btn3 / None",
+  "Btn4 / None"
 };
 
 const char* const Legend::BTN_NAME[4] = { "Btn1", "Btn2", "Btn3", "Btn4" };
@@ -30,7 +30,7 @@ Legend::Legend()
     _step(0),
     _ticker(DWELL_MS),
     _timer(),
-    _visible(true),
+    _visibleDiamond(true),
     _redraw(true),
     _lastActive(0),
     _lastText(-1) {}
@@ -44,7 +44,7 @@ void Legend::begin() {
   _step = 0;
   _ticker.start();
   _timer.start();
-  _visible = true;
+  _visibleDiamond = true;
   _redraw = true;
   _lastActive = 0;
   _lastText = -1;
@@ -114,7 +114,7 @@ void Legend::print() {
     // volvería a dibujar: se restaura el rombo completo como estático.
     int16_t acx, acy;
     diamondCenter(_step, acx, acy);
-    drawDiamond(acx, acy);
+    drawDiamond(acx, acy, false);
 
     // Texto del pie: función del rombo activo
     display.fillRect(0, Config::Screen::FOOT_TOP, w, 8, true);
@@ -126,20 +126,12 @@ void Legend::print() {
   // Rombo activo: se borra solo su zona y se redibuja según el parpadeo;
   // los inactivos ya están fijos en pantalla
   if (_timer.expired(HOLD_MS)) {
-    if (_timer.blinkOn(BLINK_PERIOD, BLINK_OFF_PCT)) {
-      if (!_visible) {
+    bool visibleDiamond = _timer.blinkOn(BLINK_PERIOD, BLINK_OFF_PCT);
+    if ((visibleDiamond && !_visibleDiamond) || (!visibleDiamond && _visibleDiamond)) {
         int16_t acx, acy;
         diamondCenter(_step, acx, acy);
-        drawDiamond(acx, acy);
-        _visible = !_visible;
-      }
-    } else {
-      if (_visible) {
-        int16_t acx, acy;
-        diamondCenter(_step, acx, acy);
-        display.fillRect(acx - DIA_SIZE / 2, acy - DIA_SIZE / 2, DIA_SIZE + 1, DIA_SIZE + 1, true);
-        _visible = !_visible;
-      }
+        drawDiamond(acx, acy, _visibleDiamond);
+        _visibleDiamond = !_visibleDiamond;
     }
   }
 }
@@ -167,7 +159,7 @@ void Legend::firstPrint() {
   for (uint8_t step = 0; step < 4; step++) {
     int16_t cx, cy;
     diamondCenter(step, cx, cy);
-    drawDiamond(cx, cy);
+    drawDiamond(cx, cy, false);
   }
 
   display.fillRect(0, Config::Screen::FOOT_LINE, w, 1, false);
@@ -238,11 +230,11 @@ void Legend::drawArrow(uint8_t dir, int16_t cx, int16_t cy) {
 // Rombo completo de DIA_SIZE centrado en (cx, cy)
 // ========================================================
 
-void Legend::drawDiamond(int16_t cx, int16_t cy) {
+void Legend::drawDiamond(int16_t cx, int16_t cy, bool black) {
   const int16_t h = DIA_SIZE / 2;  // media altura / ancho medio
 
-  display.fillTriangle(cx, cy - h, cx + h, cy, cx, cy + h, false);
-  display.fillTriangle(cx, cy - h, cx - h, cy, cx, cy + h, false);
+  display.fillTriangle(cx, cy - h, cx + h, cy, cx, cy + h, black);
+  display.fillTriangle(cx, cy - h, cx - h, cy, cx, cy + h, black);
 }
 
 // ========================================================

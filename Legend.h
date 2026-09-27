@@ -113,7 +113,7 @@ private:
   uint8_t _prevStep;
   Ticker _ticker;      // avance de 1 px cada ANIM_TICK ms (acumulador por tiempo)
   Stopwatch _timer;    // desde que se fijó el rombo activo (ciclo y parpadeo)
-  bool _visible;        // rombo activo visible (parpadeo)
+  bool _visibleDiamond;        // rombo activo visible (parpadeo)
   bool _redraw;        // primer frame tras begin(): clear() completo + estáticos
   int8_t _lastActive;  // último rombo cuya zona se gestionó (para restaurar el que deja de ser activo)
   int8_t _lastText;    // texto del pie que se dibujó (para borrar/redibujar solo al cambiar)
@@ -131,8 +131,8 @@ private:
   // Posición del rombo i (0 = ↑, 1 = →, 2 = ↓, 3 = ←)
   void diamondCenter(uint8_t i, int16_t& cx, int16_t& cy) const;
 
-  // Rombo completo de DIA_SIZE centrado en (cx, cy); si show es false no se dibuja
-  void drawDiamond(int16_t cx, int16_t cy);
+  // Rombo completo de DIA_SIZE centrado en (cx, cy); si black es true no se dibuja
+  void drawDiamond(int16_t cx, int16_t cy, bool black);
 
   // ¿El rombo activo está visible? (fijo durante HOLD_MS, luego parpadeo rápido)
   bool blinkVisible() const;
