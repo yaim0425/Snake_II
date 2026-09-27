@@ -916,10 +916,22 @@ Toda ventana implementa:
 
 - IDE: Arduino IDE, placa `ESP32-S3 (Dev Module)` (verificar puerto).
 - Librerías: Adafruit GFX + Adafruit_SSD1306.
-- **IntelliSense en VS Code** (el proyecto se abre como carpeta, no como sketch, y
-  solo está instalada la extensión Microsoft C/C++): el `<Arduino.h>` que marca
-  error lo resuelve `.vscode/c_cpp_properties.json` con una única configuración
-  `ESP32-S3 Dev Module (arduino-esp32 3.3.12)`:
+- **IntelliSense en VS Code** (solo está instalada la extensión Microsoft C/C++, sin
+  extensión de Arduino ni PlatformIO): el `<Arduino.h>` marcado como error lo
+  resuelven las rutas del core, y **dónde van depende de cómo se abra el
+  proyecto**:
+  - El proyecto se abre con el workspace **`D:\Documents\ESP32S3\ESP32S3.code-workspace`**
+    (carpeta raíz `.`, es decir `D:\Documents\ESP32S3`, que contiene `Snake_II` y
+    `blink`). En un `.code-workspace` **no** se lee el `c_cpp_properties.json` de
+    una subcarpeta: la configuración va en el bloque `settings` del propio
+    `.code-workspace` con claves `C_Cpp.default.*`
+    (`compilerPath`, `includePath`, `defines`, `cppStandard`, `cStandard`,
+    `intelliSenseMode`). Ese archivo está **fuera del repo**, así que no se versiona.
+  - Si se abre la carpeta `Snake_II` sola (File > Open Folder), entonces sí manda
+    `.vscode/c_cpp_properties.json` (una configuración con nombre,
+    `ESP32-S3 Dev Module (arduino-esp32 3.3.12)`, equivalente a las
+    `C_Cpp.default.*` del workspace). Es la copia que sí queda en el repo.
+  - Contenido de las rutas:
   - `compilerPath` al toolchain real del core
     (`packages/esp32/tools/esp-x32/2601/bin/xtensa-esp-elf-g++.exe`); de ahí la
     extensión saca sola los includes del sistema (libstdc++, newlib, xtensa).
@@ -935,14 +947,16 @@ Toda ventana implementa:
   - `cppStandard: c++20` (el core compila con `-std=gnu++2a`) y los `-D` del
     recipe: `F_CPU`, `ARDUINO`, `ARDUINO_ARCH_ESP32`, `ARDUINO_ESP32S3_DEV`,
     `ARDUINO_BOARD`, `ARDUINO_VARIANT`, `ARDUINO_USB_CDC_ON_BOOT=0`, `ESP_PLATFORM`...
-    **Falta `ESP32=ESP32` es lo que rompe:** viene de `build.extra_flags` del
+    **Sin `ESP32=ESP32` no arranca:** viene de `build.extra_flags` del
     `platform.txt` y es el que hace que `Adafruit_SPIDevice.h` tome su rama de
     ESP32; sin él cae en el `typedef BitOrder BusIOBitOrder` y el core 3.3.12 ya
     no define ese tipo (ahora usa `SPI_MSBFIRST`).
-  - `.vscode/settings.json` deja el `.aider-venv` (y su caché) fuera de la
-    indexación y de las búsquedas; sin eso el workspace se indexa entero.
+  - En el workspace, `${workspaceFolder}` es `D:\Documents\ESP32S3`, así que la
+    raíz del proyecto va como `${workspaceFolder}/Snake_II`.
+  - `Snake_II/.vscode/settings.json` deja el `.aider-venv` (y su caché) fuera de
+    la indexación y de las búsquedas; sin eso el workspace se indexa entero.
   - Rutas absolutas: al actualizar el core (o el toolchain) hay que revisar los
-    `3.3.12` y `2601` del archivo.
+    `3.3.12` y `2601`, y hay que tocarlas **en los dos sitios**.
 - **Warnings de compilación C++ activados** en la máquina de desarrollo vía
   `platform.local.txt` del core ESP32 (`compiler.cpp.extra_flags=-Wall -Wreorder`)
   para que desajustes como el orden de inicialización de miembros salten a la vista
