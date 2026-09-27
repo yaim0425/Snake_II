@@ -916,6 +916,33 @@ Toda ventana implementa:
 
 - IDE: Arduino IDE, placa `ESP32-S3 (Dev Module)` (verificar puerto).
 - Librerías: Adafruit GFX + Adafruit_SSD1306.
+- **IntelliSense en VS Code** (el proyecto se abre como carpeta, no como sketch, y
+  solo está instalada la extensión Microsoft C/C++): el `<Arduino.h>` que marca
+  error lo resuelve `.vscode/c_cpp_properties.json` con una única configuración
+  `ESP32-S3 Dev Module (arduino-esp32 3.3.12)`:
+  - `compilerPath` al toolchain real del core
+    (`packages/esp32/tools/esp-x32/2601/bin/xtensa-esp-elf-g++.exe`); de ahí la
+    extensión saca sola los includes del sistema (libstdc++, newlib, xtensa).
+  - Rutas del core: `cores/esp32` (Arduino.h), `variants/esp32s3` (pins_arduino.h),
+    `libraries/Wire/src` y `libraries/SPI/src` (los incluye `Adafruit_SSD1306.h`).
+  - SDK de ESP-IDF: `tools/esp32s3-libs/3.3.12/qio_qspi/include` (el `sdkconfig.h`
+    que define `CONFIG_XTAL_FREQ`, `CONFIG_MMU_PAGE_SIZE`...) y
+    `tools/esp32s3-libs/3.3.12/include/**` recursivo, que es la forma de
+    reproducir en VS Code los ~200 `-iwithprefixbefore` que pasa el core.
+  - Librerías del sketchbook `D:\Documents\Arduino\libraries`: `Adafruit_GFX_Library`,
+    `Adafruit_SSD1306` y `Adafruit_BusIO` (esta última la necesita
+    `Adafruit_GFX.h`, no `Adafruit_SSD1306.h`).
+  - `cppStandard: c++20` (el core compila con `-std=gnu++2a`) y los `-D` del
+    recipe: `F_CPU`, `ARDUINO`, `ARDUINO_ARCH_ESP32`, `ARDUINO_ESP32S3_DEV`,
+    `ARDUINO_BOARD`, `ARDUINO_VARIANT`, `ARDUINO_USB_CDC_ON_BOOT=0`, `ESP_PLATFORM`...
+    **Falta `ESP32=ESP32` es lo que rompe:** viene de `build.extra_flags` del
+    `platform.txt` y es el que hace que `Adafruit_SPIDevice.h` tome su rama de
+    ESP32; sin él cae en el `typedef BitOrder BusIOBitOrder` y el core 3.3.12 ya
+    no define ese tipo (ahora usa `SPI_MSBFIRST`).
+  - `.vscode/settings.json` deja el `.aider-venv` (y su caché) fuera de la
+    indexación y de las búsquedas; sin eso el workspace se indexa entero.
+  - Rutas absolutas: al actualizar el core (o el toolchain) hay que revisar los
+    `3.3.12` y `2601` del archivo.
 - **Warnings de compilación C++ activados** en la máquina de desarrollo vía
   `platform.local.txt` del core ESP32 (`compiler.cpp.extra_flags=-Wall -Wreorder`)
   para que desajustes como el orden de inicialización de miembros salten a la vista

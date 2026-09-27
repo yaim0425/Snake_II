@@ -1,0 +1,16 @@
+{
+  "C_Cpp.default.cppStandard": "c++20",
+  "C_Cpp.default.cStandard": "c17",
+  "search.exclude": {
+    "**/.aider-venv": true,
+    "**/.aider.tags.cache.v4": true,
+    "**/build": true
+  },
+  "files.exclude": {
+    "**/.aider-venv": true
+  },
+  "files.watcherExclude": {
+    "**/.aider-venv/**": true,
+    "**/.aider.tags.cache.v4/**": true
+  }
+}

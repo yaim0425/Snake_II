@@ -1,0 +1,46 @@
+{
+  "configurations": [
+    {
+      "name": "ESP32-S3 Dev Module (arduino-esp32 3.3.12)",
+      "compilerPath": "C:/Users/Usuario/AppData/Local/Arduino15/packages/esp32/tools/esp-x32/2601/bin/xtensa-esp-elf-g++.exe",
+      "includePath": [
+        "${workspaceFolder}",
+        "C:/Users/Usuario/AppData/Local/Arduino15/packages/esp32/hardware/esp32/3.3.12/cores/esp32",
+        "C:/Users/Usuario/AppData/Local/Arduino15/packages/esp32/hardware/esp32/3.3.12/variants/esp32s3",
+        "C:/Users/Usuario/AppData/Local/Arduino15/packages/esp32/hardware/esp32/3.3.12/libraries/Wire/src",
+        "C:/Users/Usuario/AppData/Local/Arduino15/packages/esp32/hardware/esp32/3.3.12/libraries/SPI/src",
+        "C:/Users/Usuario/AppData/Local/Arduino15/packages/esp32/tools/esp32s3-libs/3.3.12/qio_qspi/include",
+        "C:/Users/Usuario/AppData/Local/Arduino15/packages/esp32/tools/esp32s3-libs/3.3.12/include/**",
+        "D:/Documents/Arduino/libraries/Adafruit_GFX_Library",
+        "D:/Documents/Arduino/libraries/Adafruit_SSD1306",
+        "D:/Documents/Arduino/libraries/Adafruit_BusIO"
+      ],
+      "defines": [
+        "F_CPU=240000000L",
+        "ARDUINO=10819",
+        "ARDUINO_ARCH_ESP32",
+        "ARDUINO_ESP32S3_DEV",
+        "ARDUINO_BOARD=\"ESP32S3_DEV\"",
+        "ARDUINO_VARIANT=\"esp32s3\"",
+        "ARDUINO_USB_MODE=1",
+        "ARDUINO_USB_CDC_ON_BOOT=0",
+        "ARDUINO_FQBN=\"esp32:esp32:esp32s3\"",
+        "CORE_DEBUG_LEVEL=0",
+        "ESP32=ESP32",
+        "ESP32_ARDUINO_LIB_BUILDER",
+        "ESP_PLATFORM",
+        "IDF_VER=\"v5.5.5\"",
+        "MBEDTLS_CONFIG_FILE=\"mbedtls/esp_config.h\"",
+        "SOC_MMU_PAGE_SIZE=CONFIG_MMU_PAGE_SIZE",
+        "SOC_XTAL_FREQ_MHZ=CONFIG_XTAL_FREQ"
+      ],
+      "cStandard": "c17",
+      "cppStandard": "c++20",
+      "intelliSenseMode": "gcc-x64",
+      "browse": {
+        "limitSymbolsToIncludedHeaders": true
+      }
+    }
+  ],
+  "version": 4
+}
