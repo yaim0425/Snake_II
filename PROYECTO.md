@@ -612,8 +612,8 @@ Sin parámetros: usa los servicios globales `Display` y `Buttons` (sección 20).
   dibujadas con `Display::fillRect` (sección 7); ya no se accede a la pantalla cruda.
 - **Reparto de las 3 columnas de cada línea** (cola = extremo por el que la línea
   entra, cabeza = extremo por el que sale):
-  - `drawFirstBars()` pinta las `BAR_W-1` columnas de la **cola** de cada línea
-    (un solo `fillRect` de `BAR_W-1` de ancho).
+  - `firstPrint()` pinta la línea **completa** de cada franja (un solo `fillRect`
+    de `BAR_W` de ancho) con el desplazamiento 0 del primer frame.
   - `drawBars()` pinta la columna de **cabeza** (la primera de la línea según su
     dirección: la derecha en `TITULO`, la izquierda en `CUERPO`, que es la única
     columna nueva en cada avance) y borra en negro la columna que la línea deja
@@ -623,16 +623,16 @@ Sin parámetros: usa los servicios globales `Display` y `Buttons` (sección 20).
   envolver, `drawBar()` normaliza el módulo a `0..ancho-1` y pinta **una sola
   columna**, de modo que la columna que rebalsa va a su tramo sin duplicar el
   pintado de la columna 0.
-- **Movimiento:** `_shift` avanza 1 px cada `ANIM_TICK = 30 ms` (ciclo completo de
+- **Movimiento:** `_step` avanza 1 px cada `ANIM_TICK = 30 ms` (ciclo completo de
   8 px). En `TITULO` las líneas se mueven **de izquierda a derecha**; en `CUERPO`
   **de derecha a izquierda**.
 - **Limpieza incremental (sin `clear()` por frame):** el primer frame hace un `clear()`
-  completo y dibuja el patrón inicial (`drawFirstBars()` + la cabeza que añade
-  `drawBars()`); en cada avance de 1 px solo se pinta la columna de cabeza y se
-  borra la liberada por la cola. El resto de la pantalla no se toca. Si el
-  desplazamiento no cambió, no se dibuja nada, y si el salto es de **más de 1 px**
-  (frame perdido: `Ticker::consume()` devuelve varios pasos) el borrado incremental
-  no valdría, así que `print()` rehace el `clear()` completo. `eraseOldBars()`/
+  completo y dibuja el patrón inicial (`firstPrint()`, la línea completa de cada
+  franja); en cada avance de 1 px solo se pinta la columna de cabeza y se
+  borra la liberada por la cola. El resto de la pantalla no se toca. `print()`
+  encadena las etapas con `if` sueltos y `return` temprano: el `clear()` del
+  primer frame, el caso "no cambió el desplazamiento" (`_step == _prevStep`, no se
+  dibuja nada) y el avance (`drawBars()` + `_prevStep = _step`). `eraseOldBars()`/
   `eraseBarDiff()` ya no se usan (el borrado quedó dentro de `drawBars()`).
 - **Duración:** `TOTAL_MS = 4000 ms` o cualquier botón, lo que ocurra primero; luego
   `Engine` entra al menú.
@@ -965,7 +965,7 @@ llama a `display.clear()`, lo decide cada ventana.
 
    | Ventana | Estáticos (una vez) | Dinámicos por frame |
    |---------|---------------------|---------------------|
-   | `Boot` | — (primer frame: clear completo + `drawFirstBars()`, las `BAR_W-1` columnas de la cola) | Por franja: su columna de cabeza en blanco y, en negro, la que deja libre por la cola (`drawBars()`, con el módulo normalizado en `drawBar` para el rebalse); si no cambió el desplazamiento no se dibuja nada, y si el salto es de más de 1 px se rehace el clear completo |
+   | `Boot` | — (primer frame: clear completo + `firstPrint()`, la línea completa de `BAR_W` columnas de cada franja) | Por franja: su columna de cabeza en blanco y, en negro, la que deja libre por la cola (`drawBars()`, con el módulo normalizado en `drawBar` para el rebalse); si no cambió el desplazamiento (`_step == _prevStep`) no se dibuja nada |
     | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` —**solo cuando el scroller tiene algo nuevo que volcar** (navegar, recomponer o tras el `clear`; en reposo se salta, sección 14)— + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria; al llegar al límite se procesa igual que haber soltado el botón, volviendo el parpadeo normal) |
     | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas; se vuelcan juntas en el mismo frame y solo si hay algo nuevo que pintar, sección 14) |
    | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
@@ -1580,7 +1580,7 @@ class Ticker {
 
 | Clase | Reloj/cronómetro | Cambio |
 |-------|------------------|--------|
-| `Boot` | `Ticker _ticker` (`ANIM_TICK`) + `Stopwatch _total` (`TOTAL_MS`) | El avance de 1 px y el plazo total pasan de `millis()` a 64 bits; el acumulador `while` se reduce a `_shift = (_shift + _ticker.consume()) % BAR_SPACING`. |
+| `Boot` | `Ticker _ticker` (`ANIM_TICK`) + `Stopwatch _total` (`TOTAL_MS`) | El avance de 1 px y el plazo total pasan de `millis()` a 64 bits; el acumulador `while` se reduce a `_step = (_step + _ticker.consume()) % BAR_SPACING`. |
 | `Menu` | `Stopwatch _hold` (rombo), `Stopwatch _editBlink` (flechas de los selectores), `Stopwatch _repeat`/`_repeatTick` (repetición por mantensión) | Los parpadeos con `millis() % período` absoluto pasan a `blinkOn` anclado; `holdRepeat` usa `expired()` en vez de restas sobre `millis()`. |
 | `Legend` | `Stopwatch _timer` (`DWELL_MS`/`HOLD_MS`/`BLINK_PERIOD`) | El ciclo y el parpadeo del rombo activo usan `blinkOn` anclado al cambio de rombo. |
 | `Scroller` | `Ticker _ticker` (`ANIM_TICK`) | El acumulador `_colAcc`/`_animLast` pasa a `consume()` (misma cadencia, sin `while`). |

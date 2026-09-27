@@ -9,8 +9,8 @@
 // ========================================================
 
 Boot::Boot()
-  : _shift(0),
-    _prevShift(0),
+  : _step(0),
+    _prevStep(0),
     _ticker(ANIM_TICK),
     _total(),
     _done(false),
@@ -21,7 +21,7 @@ Boot::Boot()
 // ========================================================
 
 void Boot::begin() {
-  _shift = 0;
+  _step = 0;
   _ticker.start();
   _total.start();
   _done = false;
@@ -33,15 +33,14 @@ void Boot::begin() {
 // ========================================================
 
 void Boot::update() {
-  // Cualquier botón cierra la leyenda. El sonido depende del
+  // Cualquier botón cierra la ventana. El sonido depende del
   // botón presionado (prioridad si se pulsan varios a la vez):
   // MOVE = SFX_CLICK, ACTION_UP (Back) = SFX_BACK,
   // ACTION_RIGHT (Select / Pause) = SFX_CONFIRM,
   // ACTION_DOWN/ACTION_LEFT (None) = SFX_CLICK
   bool exit = false;
 
-  if (buttons.pressed(Buttons::MOVE_UP) || buttons.pressed(Buttons::MOVE_RIGHT) ||
-      buttons.pressed(Buttons::MOVE_DOWN) || buttons.pressed(Buttons::MOVE_LEFT)) {
+  if (buttons.pressed(Buttons::MOVE_UP) || buttons.pressed(Buttons::MOVE_RIGHT) || buttons.pressed(Buttons::MOVE_DOWN) || buttons.pressed(Buttons::MOVE_LEFT)) {
     sound.play(Sound::SFX_CLICK);
     exit = true;
   } else if (buttons.pressed(Buttons::ACTION_UP)) {
@@ -69,7 +68,11 @@ void Boot::update() {
   // Avance de 1 px cada ANIM_TICK ms (Ticker acumula por tiempo;
   // consume() devuelve los pasos completos de una vez)
   uint32_t steps = _ticker.consume();
-  if (steps) _shift = (uint8_t)((_shift + steps) % BAR_SPACING);
+  // for (uint8_t i = 0; i < steps - 1; ++i) {
+  //   _step = (_step + 1) % BAR_SPACING;
+  //   drawBars();
+  // }
+  if (steps) _step = (_step + steps) % BAR_SPACING;
 }
 
 // ========================================================
@@ -94,23 +97,14 @@ void Boot::update() {
 void Boot::print() {
   if (_redraw) {
     display.clear();
-    drawFirstBars();
+    firstPrint();
     _redraw = false;
   }
-  
-  if (_shift == _prevShift) {
-    return;  // nada cambió: el resto de la pantalla se mantiene
-  } 
-  
-  if ((_shift + BAR_SPACING - _prevShift) % BAR_SPACING != 1) {
-    // Salto de más de 1 px (frame perdido): el borrado incremental de
-    // drawBars() solo vale para un avance de 1 px, así que redibujo todo
-    display.clear();
-    drawFirstBars();
-  }
+
+  if (_step == _prevStep) return;
 
   drawBars();
-  _prevShift = _shift;
+  _prevStep = _step;
 }
 
 // ========================================================
@@ -124,21 +118,23 @@ void Boot::print() {
 // se corta por el borde derecho.
 // ========================================================
 
-void Boot::drawFirstBars() {
+void Boot::firstPrint() {
   const int16_t w = display.getWidth();
 
   // TITULO: las líneas se mueven de izquierda a derecha, así que la
   // cabeza es su extremo derecho (y la cola, su extremo izquierdo)
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
-    int16_t px = (x + _shift) % w;
-    display.fillRect(px, Config::Screen::HEADER_TOP, BAR_W - 1, Config::Screen::HEADER_H, SSD1306_WHITE);
+    int16_t px = (x + _step) % w;
+
+    display.fillRect(px, Config::Screen::HEADER_TOP, BAR_W, Config::Screen::HEADER_H, false);
   }
 
   // CUERPO: las líneas se mueven de derecha a izquierda, así que la
   // cabeza es su extremo izquierdo (y la cola, su extremo derecho)
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
-    int16_t px = ((w - x - _shift - (BAR_W - 1)) % w + w) % w;
-    display.fillRect(px, Config::Screen::BODY_TOP, BAR_W - 1, Config::Screen::BODY_H, SSD1306_WHITE);
+    int16_t px = ((w - x - _step - BAR_W - 1) % w + w) % w;
+
+    display.fillRect(px, Config::Screen::BODY_TOP, BAR_W, Config::Screen::BODY_H, false);
   }
 }
 
@@ -156,24 +152,24 @@ void Boot::drawBars() {
 
   // TITULO: de izquierda a derecha (cabeza a la derecha, se borra la izquierda)
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
-    int16_t px = (x + _shift) % w;
+    int16_t px = x + _step;
 
     int16_t deleteBar = px - 1;
     int16_t createBar = px + BAR_W - 1;
 
-    drawBar(deleteBar, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, SSD1306_BLACK);
-    drawBar(createBar, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, SSD1306_WHITE);
+    drawBar(deleteBar, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, true);
+    drawBar(createBar, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, false);
   }
 
   // CUERPO: de derecha a izquierda (cabeza a la izquierda, se borra la derecha)
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
-    int16_t px = ((w - x - _shift - (BAR_W - 1)) % w + w) % w;
+    int16_t px = w - x - _step - BAR_W;
 
     int16_t deleteBar = px + BAR_W - 1;
     int16_t createBar = px - 1;
 
-    drawBar(deleteBar, Config::Screen::BODY_TOP, Config::Screen::BODY_H, SSD1306_BLACK);
-    drawBar(createBar, Config::Screen::BODY_TOP, Config::Screen::BODY_H, SSD1306_WHITE);
+    drawBar(deleteBar, Config::Screen::BODY_TOP, Config::Screen::BODY_H, true);
+    drawBar(createBar, Config::Screen::BODY_TOP, Config::Screen::BODY_H, false);
   }
 }
 
@@ -187,14 +183,14 @@ void Boot::eraseOldBars() {
   const int16_t w = display.getWidth();
 
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
-    int16_t oldX = (x + _prevShift) % w;
-    int16_t newX = (x + _shift) % w;
+    int16_t oldX = (x + _prevStep) % w;
+    int16_t newX = (x + _step) % w;
     eraseBarDiff(oldX, newX, Config::Screen::HEADER_TOP, Config::Screen::HEADER_H, w);
   }
 
   for (int16_t x = 0; x < w; x += BAR_SPACING) {
-    int16_t oldX = ((x - _prevShift) % w + w) % w;
-    int16_t newX = ((x - _shift) % w + w) % w;
+    int16_t oldX = ((x - _prevStep) % w + w) % w;
+    int16_t newX = ((x - _step) % w + w) % w;
     eraseBarDiff(oldX, newX, Config::Screen::BODY_TOP, Config::Screen::BODY_H, w);
   }
 }
@@ -228,10 +224,10 @@ void Boot::eraseBarDiff(int16_t oldX, int16_t newX, uint8_t top,
 // el borrado de la columna que queda libre)
 // ========================================================
 
-void Boot::drawBar(int16_t x, uint8_t y, uint8_t height, int16_t color) {
+void Boot::drawBar(int16_t x, uint8_t y, uint8_t height, bool black) {
   const int16_t w = display.getWidth();
 
-  display.fillRect(((x % w) + w) % w, y, 1, height, color);
+  display.fillRect(((x % w) + w) % w, y, 1, height, black);
 }
 
 // ========================================================

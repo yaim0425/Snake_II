@@ -84,12 +84,12 @@ private:
   // Estado interno
   // ========================================================
 
-  uint8_t _shift;       // desplazamiento actual (0..BAR_SPACING-1)
-  uint8_t _prevShift;   // desplazamiento que se dibujó en pantalla
-  Ticker _ticker;       // avance de 1 px cada ANIM_TICK ms (acumulador por tiempo)
-  Stopwatch _total;     // duración total desde el begin() (TOTAL_MS)
+  uint8_t _step;      // desplazamiento actual (0..BAR_SPACING-1)
+  uint8_t _prevStep;  // desplazamiento que se dibujó en pantalla
+  Ticker _ticker;     // avance de 1 px cada ANIM_TICK ms (acumulador por tiempo)
+  Stopwatch _total;   // duración total desde el begin() (TOTAL_MS)
   bool _done;
-  bool _redraw;         // primer frame: clear() completo + dibujar todo
+  bool _redraw;  // primer frame: clear() completo + dibujar todo
 
   // ========================================================
   // Helpers
@@ -97,12 +97,12 @@ private:
 
   // Dibuja una columna vertical de 1 px con el módulo normalizado a
   // 0..ancho-1 (fillRect recorta en vez de envolver)
-  void drawBar(int16_t x, uint8_t y, uint8_t height, int16_t color);
+  void drawBar(int16_t x, uint8_t y, uint8_t height, bool black);
 
   // Dibuja las franjas iniciales: las BAR_W-1 columnas de la cola de cada
   // franja (la de cabeza la pone drawBars, que es la única columna nueva
   // en cada avance de 1 px)
-  void drawFirstBars();
+  void firstPrint();
 
   // Dibuja todas las franjas (TITULO y CUERPO) en el desplazamiento actual:
   // imprime la columna de cabeza de cada franja y borra en negro la que
@@ -115,8 +115,7 @@ private:
   void eraseOldBars();
 
   // Borra 1 px de cada columna de la franja vieja que no está en la nueva
-  void eraseBarDiff(int16_t oldX, int16_t newX, uint8_t top, uint8_t height,
-                    int16_t width);
+  void eraseBarDiff(int16_t oldX, int16_t newX, uint8_t top, uint8_t height, int16_t width);
 };
 
 #endif
