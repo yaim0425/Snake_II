@@ -7,8 +7,9 @@
 //     pin Config::Pin::BUZZER) y la inicializa en sound.begin().
 //     Declarado extern en Globals.h; definido aquí.
 //   - Engine: despachador puro que POSEE las ventanas (Boot, Menu,
-//     MenuCredits, Game, Legend) como miembros. En Snake_II.ino ya NO hay
-//     ventanas globales: son internas de Engine.
+//     MenuCredits, MenuDifficulty, MenuSound, Game, Legend) como
+//     miembros. En Snake_II.ino ya NO hay ventanas globales: son
+//     internas de Engine.
 //
 // setup() inicia el hardware y luego engine.begin() (entra al primer
 // estado, Boot); loop() hace la única lectura de botones del frame
@@ -34,9 +35,10 @@ Buttons buttons(Config::Pin::BUTTONS);
 Sound   sound(Config::Pin::BUZZER);
 
 // ====================================================================================
-// Despachador: posee las ventanas (Boot, Menu, MenuCredits, Game, Legend) y
-// decide cuál se ve según su estado. Su constructor no recibe nada: las
-// ventanas usan los servicios globales directamente.
+// Despachador: posee las ventanas (Boot, Menu, MenuCredits,
+// MenuDifficulty, MenuSound, Game, Legend) y decide cuál se ve
+// según su estado. Su constructor no recibe nada: las ventanas
+// usan los servicios globales directamente.
 // ====================================================================================
 
 Engine engine;

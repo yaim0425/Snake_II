@@ -43,6 +43,10 @@ const char* Menu::optionText(int8_t index) const {
 // Credits=4). Sin "Continue" la lista se compacta: el índice 1
 // pasa a Dificultad, el 2 a Sonido y el 3 a Créditos; el
 // OPT_CONTINUE deja de existir (indexOfOption devuelve -1).
+//
+// "Difficulty" y "Sound" ya no se editan inline aquí: confirm()
+// las devuelve como cualquier otra opción y el Engine abre las
+// ventanas MenuDifficulty y MenuSound.
 // ========================================================
 
 Menu::Option Menu::optionAt(int8_t index) const {
@@ -82,14 +86,7 @@ Menu::Menu(uint16_t bestScore, const char* version)
     _selected(OPT_NEW),
     _timer(),
     _redraw(true),
-    // _editingSound(false),
-    // _soundEnabled(true),
-    // _editingDifficulty(false),
-    // _difficulty(Config::Difficulty::DEFAULT_LEVEL),
-    // _editDifficulty(Config::Difficulty::DEFAULT_LEVEL),
-    // _editBlink(),
-    // _repeat(),
-    // _repeatTick(),
+    _diamondsDirty(false),
     _scroller() {}
 
 // ========================================================
@@ -103,8 +100,6 @@ void Menu::begin() {
   _redraw = true;
   _visibleDiamond = true;
   // _optionCount = OPT_COUNT;
-  // _editingSound = false;
-  // _editingDifficulty = false;
 }
 
 // ========================================================
@@ -173,80 +168,37 @@ void Menu::setSelected(Menu::Option option) {
   _timer.start();
   _scroller.setTexto(optionText(_selected), 16, TEXT_12x16);
   _redraw = true;
-  _editingSound = false;
-  _editingDifficulty = false;
+}
+
+// ========================================================
+// Rombos de posición (restauración)
+//
+// La repintamos entera (y solo ella) porque la ventana anterior
+// la dejó ocupada con su selector. No hace falta vaciar el resto
+// de la pantalla: el título, el cuadro de la opción y el pie
+// siguen siendo los del propio Menu. El Engine entra al Menu sin
+// llamar a begin() (changeState(..., false)), así que el clear()
+// completo no se dispara y esta bandera es la única que repinta.
+// ========================================================
+
+void Menu::restoreDiamondBand() {
+  _diamondsDirty = true;
+  _timer.start();  // el parpadeo del rombo activo arranca de cero
 }
 
 // ========================================================
 // Actualizar (consume los eventos de botones leídos en loop())
+//
+// "Difficulty" y "Sound" no se editan aquí: al confirmarlas
+// confirm() devuelve la opción y el Engine abre la ventana
+// correspondiente (MenuDifficulty / MenuSound). El Menú solo
+// navega y compone.
 // ========================================================
 
 void Menu::update() {
   navigate();
   if (true) return;  // IGNORE: no se actualiza el menú en esta versión
 
-  if (_editingSound) {
-    // En modo edición de sonido: la tecla indicada por la flecha (la del
-    // destino) cambia el valor mostrado (ON/OFF) sin aplicarlo; solo se
-    // aplica al confirmar (btn2).
-    if (buttons.pressed(Buttons::MOVE_LEFT) && _soundEnabled) {
-      // ON: la flecha "<" (MOVE_LEFT) apaga
-      _soundEnabled = false;
-      sound.play(Sound::SFX_CLICK);
-    }
-    if (buttons.pressed(Buttons::MOVE_RIGHT) && !_soundEnabled) {
-      // OFF: la flecha ">" (MOVE_RIGHT) enciende
-      _soundEnabled = true;
-      sound.play(Sound::SFX_CLICK);
-    }
-    if (buttons.pressed(Buttons::ACTION_RIGHT)) {
-      // btn2 (Select): aplica el valor actual y vuelve al menú
-      sound.setEnabled(_soundEnabled);
-      if (_soundEnabled) sound.play(Sound::SFX_CONFIRM);
-      endSoundEdit();
-    } else if (buttons.pressed(Buttons::ACTION_UP)) {
-      // btn1 (Back): cancela sin cambiar el estado y vuelve al menú
-      sound.play(Sound::SFX_BACK);
-      endSoundEdit();
-    }
-  } else if (_editingDifficulty) {
-    // En modo edición de dificultad: MOVE_RIGHT +1, MOVE_LEFT -1 con
-    // repetición al mantener presionado (primer paso inmediato, después
-    // repite cada HOLD_REPEAT_TICK ms tras HOLD_REPEAT_DELAY de mantención).
-    // El valor mostrado cambia sin aplicarse; solo se aplica al confirmar.
-    if (holdRepeat(Buttons::MOVE_RIGHT) && _editDifficulty < Config::Difficulty::MAX_LEVEL) {
-      _editDifficulty++;
-      sound.play(Sound::SFX_CLICK);
-    }
-    if (holdRepeat(Buttons::MOVE_LEFT) && _editDifficulty > Config::Difficulty::MIN_LEVEL) {
-      _editDifficulty--;
-      sound.play(Sound::SFX_CLICK);
-    }
-    if (buttons.pressed(Buttons::ACTION_RIGHT)) {
-      // btn2 (Select): aplica el valor y vuelve al menú
-      _difficulty = _editDifficulty;
-      sound.play(Sound::SFX_CONFIRM);
-      endDifficultyEdit();
-    } else if (buttons.pressed(Buttons::ACTION_UP)) {
-      // btn1 (Back): cancela sin cambiar el estado y vuelve al menú
-      sound.play(Sound::SFX_BACK);
-      endDifficultyEdit();
-    }
-  } else {
-    navigate();
-    // Al confirmar la opción "Dificultad" (btn2) se entra en modo edición
-    // inline, igual que "Sound" (ver Engine).
-    if (buttons.pressed(Buttons::ACTION_RIGHT) && optionAt(_selected) == OPT_DIFFICULTY) {
-      sound.play(Sound::SFX_CLICK);
-      beginDifficultyEdit();
-      return;
-    }
-    if (buttons.pressed(Buttons::ACTION_RIGHT) && optionAt(_selected) == OPT_SOUND) {
-      sound.play(Sound::SFX_CLICK);
-      beginSoundEdit();
-      return;
-    }
-  }
   _scroller.animate();
 }
 
@@ -278,195 +230,6 @@ void Menu::navigate() {
     _timer.start();
     Serial.printf("Menu: opcion %d -> %d\n", before, _selected);
   }
-}
-
-// ========================================================
-// Edición inline de Sonido
-// ========================================================
-
-void Menu::beginSoundEdit() {
-  _editingSound = true;
-  _soundEnabled = sound.enabled();
-  _editBlink.start();
-}
-
-void Menu::endSoundEdit() {
-  _editingSound = false;
-  _redraw = true;
-}
-
-bool Menu::isEditingSound() const {
-  return _editingSound;
-}
-
-// ========================================================
-// Edición inline de Dificultad
-// ========================================================
-
-void Menu::beginDifficultyEdit() {
-  _editingDifficulty = true;
-  _editDifficulty = _difficulty;
-  _editBlink.start();
-}
-
-void Menu::endDifficultyEdit() {
-  _editingDifficulty = false;
-  _redraw = true;
-}
-
-bool Menu::isEditingDifficulty() const {
-  return _editingDifficulty;
-}
-
-uint8_t Menu::difficulty() const {
-  return _difficulty;
-}
-
-// ========================================================
-// Repetición por mantención (dificultad)
-//
-// Devuelve true cuando hay que aplicar el paso del botón en
-// el modo de edición de dificultad: el primero es inmediato
-// (evento pressed) y, manteniéndolo presionado, los siguientes
-// cada HOLD_REPEAT_TICK ms a partir de HOLD_REPEAT_DELAY de
-// mantención. Dos Stopwatch compartidos (`_repeat` = retardo,
-// `_repeatTick` = cadencia): si se suelta y se vuelve a
-// presionar, pressed() reinicia ambos.
-// ========================================================
-
-bool Menu::holdRepeat(uint8_t button) {
-  if (buttons.pressed(button)) {
-    _repeat.start();
-    _repeatTick.start();
-    return true;
-  }
-
-  if (buttons.state(button) && _repeat.expired(HOLD_REPEAT_DELAY) && _repeatTick.expired(HOLD_REPEAT_TICK)) {
-    _repeatTick.start();
-    return true;
-  }
-
-  return false;
-}
-
-// ========================================================
-// Selector de sonido (modo edición de sonido)
-//
-// Reemplaza a los rombos de posición mientras se edita el
-// sonido. Texto 6x8 centrado en mayúsculas con el MISMO
-// ancho en ambos estados ("OFF" y "ON " miden 3 chars = 18
-// px, así el centrado no se desplaza) y UNA flecha
-// parpadeante, en el lado del destino:
-//   - OFF: "OFF >"  (la flecha apunta a la tecla MOVE_RIGHT,
-//     que enciende el sonido)
-//   - ON:  "< ON"  (la flecha apunta a la tecla MOVE_LEFT,
-//     que apaga el sonido)
-// La flecha está pegada al texto (hueco ARROW_GAP) y parpadea
-// visible 75% / oculto 25% de ARROW_BLINK_PERIOD ms; la
-// palabra no parpadea. Ocupa la banda 45..53.
-// ========================================================
-
-void Menu::drawSoundSelector() {
-  Adafruit_SSD1306& s = display.screen();
-
-  // Palabra centrada. En ambos estados mide lo mismo: "ON " lleva un
-  // espacio final para emparejar el ancho con "OFF" (18 px).
-  const char* label = (_soundEnabled) ? "ON " : "OFF";
-  int16_t labelW = display.getTextWidth(label, TEXT_6x8);
-  int16_t labelX = (display.getWidth() - labelW) / 2;
-
-  const int16_t yTop = DIA_TOP + 1;             // 46
-  const int16_t yMid = DIA_TOP + DIA_SIZE / 2;  // 49
-  const int16_t yBot = DIA_TOP + DIA_SIZE;      // 53
-
-  // Parpadeo de la flecha: visible el 75% del período, oculta el primer 25%
-  // (anclado al beginSoundEdit: sin salto de fase con el reloj de 64 bits)
-  bool arrowVisible =
-    _editBlink.blinkOn(ARROW_BLINK_PERIOD, ARROW_BLINK_OFF_PCT);
-
-  if (arrowVisible) {
-    if (_soundEnabled) {
-      // ON: flecha a la izquierda, punta hacia la izquierda ("< ON")
-      int16_t base = labelX - ARROW_GAP;  // lado plano, pegado al texto
-      s.fillTriangle(base - ARROW_W, yMid, base, yTop, base, yBot,
-                     SSD1306_WHITE);
-    } else {
-      // OFF: flecha a la derecha, punta hacia la derecha ("OFF >")
-      int16_t base = labelX + labelW + ARROW_GAP;  // lado plano, pegado al texto
-      s.fillTriangle(base + ARROW_W, yMid, base, yTop, base, yBot,
-                     SSD1306_WHITE);
-    }
-  }
-
-  display.drawText(label, labelX, yTop, TEXT_6x8);
-}
-
-// ========================================================
-// Selector de dificultad (modo edición de dificultad)
-//
-// Reemplaza a los rombos de posición mientras se edita la
-// dificultad. Texto 6x8 con el número 1..10 centrado con
-// ancho constante (1 dígito se alinea a la derecha con un
-// espacio inicial: " 5" mide lo mismo que "10", 12 px, y el
-// centrado no se desplaza) y DOS flechas parpadeantes a los
-// lados, apuntando al exterior ("< 5 >"):
-//   - flecha izquierda: MOVE_LEFT (-1), oculta en el mínimo
-//   - flecha derecha:   MOVE_RIGHT (+1), oculta en el máximo
-// Las flechas parpadean juntas (visible 75%, oculto 25% de
-// ARROW_BLINK_PERIOD ms), pegadas al texto (hueco ARROW_GAP);
-// el número no parpadea. Ocupa la banda 45..53.
-//
-// Al mantener presionado MOVE_LEFT o MOVE_RIGHT el paso se vuelve
-// continuo y el dibujo lo refleja: se detiene el parpadeo, solo la
-// flecha del botón activo queda fija y la contraria se oculta.
-// ========================================================
-
-void Menu::drawDifficultySelector() {
-  Adafruit_SSD1306& s = display.screen();
-
-  // Número centrado con ancho constante ("13" / " 5" = 12 px)
-  char buf[8];
-  if (_editDifficulty < 10) sprintf(buf, " %u", _editDifficulty);
-  else sprintf(buf, "%u", _editDifficulty);
-
-  int16_t labelW = display.getTextWidth(buf, TEXT_6x8);
-  int16_t labelX = (display.getWidth() - labelW) / 2;
-
-  const int16_t yTop = DIA_TOP + 1;             // 46
-  const int16_t yMid = DIA_TOP + DIA_SIZE / 2;  // 49
-  const int16_t yBot = DIA_TOP + DIA_SIZE;      // 53
-
-  // Al mantener presionado MOVE_LEFT (-1) o MOVE_RIGHT (+1) la repetición
-  // continua queda marcada en pantalla: el parpadeo se detiene y SOLO la
-  // flecha del botón activo se muestra (fija); la contraria se oculta.
-  // Sin mantener, las dos flechas parpadean juntas (visible 75%, oculto
-  // 25% de ARROW_BLINK_PERIOD ms) como siempre. Al llegar al límite (1 o
-  // 25) el botón de ese lado ya no puede avanzar y se procesa igual que si
-  // se hubiera soltado (vuelve el parpadeo normal, con el límite oculto).
-  bool leftHeld = buttons.state(Buttons::MOVE_LEFT) && _editDifficulty > Config::Difficulty::MIN_LEVEL;
-  bool rightHeld = buttons.state(Buttons::MOVE_RIGHT) && _editDifficulty < Config::Difficulty::MAX_LEVEL;
-
-  bool arrowsVisible =
-    leftHeld || rightHeld || _editBlink.blinkOn(ARROW_BLINK_PERIOD, ARROW_BLINK_OFF_PCT);
-
-  if (arrowsVisible) {
-    // Flecha izquierda (-1): fija al mantener MOVE_LEFT; oculta mientras se
-    // mantiene MOVE_RIGHT; sin mantener parpadea. No se dibuja en el mínimo.
-    if (_editDifficulty > Config::Difficulty::MIN_LEVEL && !rightHeld) {
-      int16_t base = labelX - ARROW_GAP;  // lado plano, pegado al texto
-      s.fillTriangle(base - ARROW_W, yMid, base, yTop, base, yBot,
-                     SSD1306_WHITE);
-    }
-    // Flecha derecha (+1): fija al mantener MOVE_RIGHT; oculta mientras se
-    // mantiene MOVE_LEFT; sin mantener parpadea. No se dibuja en el máximo.
-    if (_editDifficulty < Config::Difficulty::MAX_LEVEL && !leftHeld) {
-      int16_t base = labelX + labelW + ARROW_GAP;  // lado plano, pegado al texto
-      s.fillTriangle(base + ARROW_W, yMid, base, yTop, base, yBot,
-                     SSD1306_WHITE);
-    }
-  }
-
-  display.drawText(buf, labelX, yTop, TEXT_6x8);
 }
 
 // ========================================================
@@ -526,6 +289,20 @@ void Menu::print() {
     _redraw = false;
   }
 
+  // La ventana anterior (MenuDifficulty/MenuSound) sustituyó la banda de
+  // rombos por su selector y la borró entera. Esa banda (45..53) incluye la
+  // fila de la línea separadora del pie (Config::Screen::FOOT_LINE = 53),
+  // así que hay que repintar las dos cosas. Solo se toca esa franja: el
+  // título, el cuadro de la opción y el texto del pie siguen como estaban.
+  if (_diamondsDirty) {
+    display.fillRect(0, DIA_TOP, display.getWidth(), DIA_SIZE + 1, true);
+    for (int8_t i = 0; i < OPT_COUNT; i++)
+      drawDiamond(i, i == _selected, false);
+    display.fillRect(0, Config::Screen::FOOT_LINE, display.getWidth(), 1, false);
+    _visibleDiamond = true;  // el rombo activo vuelve a la fase visible
+    _diamondsDirty = false;
+  }
+
   if (_lastSelected != _selected) {
     drawDiamond(_lastSelected, true, true);
     drawDiamond(_selected, false, true);
@@ -563,24 +340,6 @@ void Menu::print() {
   // pintar: la banda ya está en la pantalla) y solo vuelca al navegar, al
   // recomponer la opción o tras el clear de arriba.
   _scroller.blit(TEXT_SEL_TOP);
-
-  if (_editingSound) {
-    // Modo edición de sonido: la banda del selector (45..53) se borra y se
-    // vuelve a dibujar en cada frame (la flecha parpadea; la palabra no).
-    display.screen().fillRect(0, DIA_TOP, display.getWidth(),
-                              DIA_SIZE + 1, SSD1306_BLACK);
-    drawSoundSelector();
-  } else if (_editingDifficulty) {
-    // Modo edición de dificultad: la banda del selector (45..53) se borra y
-    // se vuelve a dibujar en cada frame (las flechas parpadean; el número no).
-    display.screen().fillRect(0, DIA_TOP, display.getWidth(),
-                              DIA_SIZE + 1, SSD1306_BLACK);
-    drawDifficultySelector();
-  } else {
-    // Solo se borra la banda de rombos (45..53), la única zona dinámica restante
-    display.screen().fillRect(0, DIA_TOP, display.getWidth(),
-                              DIA_SIZE + 1, SSD1306_BLACK);
-  }
 }
 
 void Menu::firstPrint() {
@@ -632,13 +391,12 @@ int8_t Menu::selected() const {
 }
 
 int8_t Menu::confirm() const {
-  // Las opciones "Sound" y "Dificultad" NO se devuelven para abrir otra
-  // ventana: se editan inline en el propio menú (ver beginSoundEdit /
-  // beginDifficultyEdit y update). Se devuelve la OPCIÓN LÓGICA (enum
-  // Option): con "Continue" oculto la lista es 4 opciones y los índices
-  // ya no coinciden con el enum, así el Engine compara con los mismos
-  // valores (OPT_NEW/OPT_CONTINUE/OPT_CREDITS).
-  if (buttons.pressed(Buttons::ACTION_RIGHT) && optionAt(_selected) != OPT_SOUND && optionAt(_selected) != OPT_DIFFICULTY)
+  // Se devuelve la OPCIÓN LÓGICA (enum Option): con "Continue" oculto la
+  // lista es 4 opciones y los índices ya no coinciden con el enum, así el
+  // Engine compara con los mismos valores (OPT_NEW/OPT_CONTINUE/
+  // OPT_DIFFICULTY/OPT_SOUND/OPT_CREDITS) y es él quien abre la ventana
+  // correspondiente.
+  if (buttons.pressed(Buttons::ACTION_RIGHT))
     return (int8_t)optionAt(_selected);
   return -1;
 }

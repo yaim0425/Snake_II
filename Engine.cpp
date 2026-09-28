@@ -57,6 +57,8 @@ void Engine::update() {
           switch (select) {
             case Menu::OPT_NEW: changeState(State::NEW); break;
             case Menu::OPT_CONTINUE: changeState(State::CONTINUE); break;
+            case Menu::OPT_DIFFICULTY: changeState(State::MENU_DIFFICULTY); break;
+            case Menu::OPT_SOUND: changeState(State::MENU_SOUND); break;
             case Menu::OPT_CREDITS: changeState(State::MENU_CREDITS); break;
           }
         }
@@ -80,6 +82,30 @@ void Engine::update() {
           _menu.setContinueAvailable(resumable);
           _menu.setSelected(resumable ? Menu::OPT_CONTINUE : Menu::OPT_NEW);
           changeState(State::MENU);
+        }
+        break;
+      }
+
+    case State::MENU_DIFFICULTY:
+      {
+
+        // La ventana sustituyó la banda de rombos del Menu por su selector:
+        // al volver solo hay que repintar esa franja, sin clear() completo.
+        _menuDifficulty.update();
+        if (_menuDifficulty.done()) {
+          _menu.restoreDiamondBand();
+          changeState(State::MENU, false);
+        }
+        break;
+      }
+
+    case State::MENU_SOUND:
+      {
+
+        _menuSound.update();
+        if (_menuSound.done()) {
+          _menu.restoreDiamondBand();
+          changeState(State::MENU, false);
         }
         break;
       }
@@ -114,6 +140,8 @@ void Engine::print() {
     case State::CONTINUE:
       _game.print();
       break;
+    case State::MENU_DIFFICULTY: _menuDifficulty.print(); break;
+    case State::MENU_SOUND: _menuSound.print(); break;
     case State::MENU_CREDITS: _menuCredits.print(); break;
     case State::LEGEND: _legend.print(); break;
   }
@@ -131,20 +159,27 @@ void Engine::setBestScore(uint16_t value) {
 // Transición (fija el estado y llama al begin() de la ventana entrante)
 // ========================================================
 
-void Engine::changeState(State newState) {
+void Engine::changeState(State newState, bool beginWindow) {
   _state = newState;
 
   switch (_state) {
     case State::BOOT: _boot.begin(); break;
-    case State::MENU: _menu.begin(); break;
+    case State::MENU:
+      // beginWindow=false: solo se usa al volver de MenuDifficulty/MenuSound,
+      // que ya dejaron repintada la banda de rombos (restoreDiamondBand) y
+      // por tanto no necesitan el clear() completo de Menu::begin().
+      if (beginWindow) _menu.begin();
+      break;
     case State::NEW:
-      _game.setDifficulty(_menu.difficulty());
+      _game.setDifficulty(_menuDifficulty.difficulty());
       _game.begin(true);
       break;
     case State::CONTINUE:
-      _game.setDifficulty(_menu.difficulty());
+      _game.setDifficulty(_menuDifficulty.difficulty());
       _game.begin(false);
       break;
+    case State::MENU_DIFFICULTY: _menuDifficulty.begin(); break;
+    case State::MENU_SOUND: _menuSound.begin(); break;
     case State::MENU_CREDITS: _menuCredits.begin(); break;
     case State::LEGEND: _legend.begin(); break;
   }

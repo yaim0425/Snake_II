@@ -95,21 +95,15 @@ void firstPrint();
   int8_t confirm() const;
 
   // ========================================================
-  // Edición inline de Sonido
+  // Rombos de posición (restauración)
   // ========================================================
 
-  void beginSoundEdit();
-  void endSoundEdit();
-  bool isEditingSound() const;
-
-  // ========================================================
-  // Edición inline de Dificultad
-  // ========================================================
-
-  void beginDifficultyEdit();
-  void endDifficultyEdit();
-  bool isEditingDifficulty() const;
-  uint8_t difficulty() const;
+  // Las ventanas MenuDifficulty y MenuSound sustituyen la banda de
+  // rombos (45..53) por su selector y dejan el resto de la ventana
+  // como estaba. Al salir de ellas el Engine llama a esto para que
+  // el Menu vuelva a pintar esa franja. A diferencia de begin(), no
+  // borra la pantalla: solo la banda.
+  void restoreDiamondBand();
 
 private:
 
@@ -158,32 +152,6 @@ private:
   static constexpr uint32_t BLINK_PERIOD  = 500;  // período completo del parpadeo (ms)
   static constexpr uint8_t  BLINK_OFF_PCT = 25;   // % del período en que está oculto
 
-  // Selector de sonido (modo edición): flecha única, pegada al texto, en el
-  // lado del destino (OFF muestra "OFF >": MOVE_RIGHT enciende; ON muestra
-  // "< ON": MOVE_LEFT apaga). La flecha parpadea: visible 75%, oculto 25% de
-  // un período de ARROW_BLINK_PERIOD ms. La palabra NO parpadea.
-  static constexpr int16_t ARROW_GAP             = 6;    // hueco (px) entre el texto y la flecha
-  static constexpr int16_t ARROW_W               = 6;    // grosor horizontal de la flecha (px)
-  static constexpr uint32_t ARROW_BLINK_PERIOD   = 500;  // período del parpadeo de la flecha (ms)
-  static constexpr uint8_t  ARROW_BLINK_OFF_PCT  = 25;   // % del período en que la flecha está oculta
-
-  // Selector de dificultad (modo edición): número 1..10 centrado con ancho
-  // constante (1 dígito se alinea a la derecha con un espacio inicial: " 5"
-  // mide lo mismo que "10", 12 px, y el centrado no se desplaza) y dos
-  // flechas parpadeantes a los lados ("< 5 >"). La flecha del lado en su
-  // límite se oculta: en 1 no hay flecha izquierda (-1 no existe); en 10 no
-  // hay derecha (+1 no existe). MOVE_LEFT -1, MOVE_RIGHT +1, con repetición
-  // al mantener presionado: el primer cambio es inmediato y tras
-  // HOLD_REPEAT_DELAY ms repele cada HOLD_REPEAT_TICK ms. Al mantener un
-  // botón el parpadeo se detiene: solo la flecha del botón activo queda fija
-  // y la contraria se oculta (señal visual de la repetición continua). Al
-  // llegar al límite (1 o 10) se procesa igual que haber soltado el botón:
-  // vuelve el parpadeo normal (con el límite oculto). Los límites y el
-  // nivel por defecto viven en Config::Difficulty.
-
-  static constexpr uint32_t HOLD_REPEAT_DELAY = 400;  // mantener para empezar a repetir (ms)
-  static constexpr uint32_t HOLD_REPEAT_TICK  = 100;  // intervalo de repetición mientras se mantiene (ms)
-
   // Pie del Body: línea separadora y texto (el texto baja 1 px: 56 -> 57)
   static constexpr int16_t PIE_LINE_ROW = 54;  // línea horizontal 1 px, a 2 px sobre el pie
   static constexpr int16_t PIE_TOP      = 57;  // texto "Best"/versión (antes fila 56)
@@ -194,14 +162,6 @@ private:
 
   void navigate();
   void blink();
-  void drawSoundSelector();
-  void drawDifficultySelector();
-
-  // Repetición por mantención: true cuando hay que aplicar el paso de un botón
-  // (MOVE_LEFT/MOVE_RIGHT) en el modo de edición de dificultad. El primer
-  // paso es inmediato (pressed); al mantener, solo tras HOLD_REPEAT_DELAY ms
-  // y luego un paso cada HOLD_REPEAT_TICK ms.
-  bool holdRepeat(uint8_t button);
 
   // ========================================================
   // Estado
@@ -222,18 +182,7 @@ private:
   int8_t _lastSelected;
   Stopwatch _timer;    // desde la última selección (parpadeo del rombo)
   bool _redraw;         // primer frame tras begin(): clear() completo + estáticos
-
-  // Edición inline de sonido
-  bool _editingSound;
-  bool _soundEnabled;
-
-  // Edición inline de dificultad
-  bool _editingDifficulty;
-  uint8_t _difficulty;      // valor persistente (default 5; se aplica al confirmar)
-  uint8_t _editDifficulty;  // valor en edición (no aplicado hasta confirmar)
-  Stopwatch _editBlink;     // ancla el parpadeo de los selectores (sonido/dificultad)
-  Stopwatch _repeat;        // inicio de la mantención (repetición por hold)
-  Stopwatch _repeatTick;    // último paso de la repetición
+  bool _diamondsDirty;  // hay que repintar solo la banda de rombos (restoreDiamondBand)
 
   Scroller _scroller;   // scroller de 1 bit del cuadro de selección (1 banda, texto 12x16)
 };
