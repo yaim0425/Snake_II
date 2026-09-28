@@ -1,10 +1,10 @@
 #include "esp32-hal.h"
-#include "Credits.h"
+#include "MenuCredits.h"
 #include "Globals.h"
 
 #include "Config.h"
 
-static const char* const ROLE_NAME[Credits::NUM_ENTRIES][2] = {
+static const char* const ROLE_NAME[MenuCredits::NUM_ENTRIES][2] = {
   { "Dev",      "opencode.ai" },
   { "Snake II", "v0.1"        },
   { "Director", "YAIM904"     }
@@ -12,12 +12,12 @@ static const char* const ROLE_NAME[Credits::NUM_ENTRIES][2] = {
 
 static constexpr int16_t PIE_TOP = 54;
 
-Credits::Credits()
+MenuCredits::MenuCredits()
   : _entry(1),
     _exit(false),
     _redraw(true) {}
 
-void Credits::begin() {
+void MenuCredits::begin() {
   _entry = 1;
   _scrollerRol.begin();
   _scrollerNombre.begin();
@@ -26,13 +26,13 @@ void Credits::begin() {
   _redraw = true;
 }
 
-void Credits::update() {
+void MenuCredits::update() {
   navigate();
   _scrollerRol.animate();
   _scrollerNombre.animate();
 }
 
-void Credits::navigate() {
+void MenuCredits::navigate() {
   uint8_t before = _entry;
   bool moved = false;
 
@@ -52,18 +52,18 @@ void Credits::navigate() {
     int8_t dir = (_entry > before) ? 1 : -1;
     _scrollerRol.startSlide(dir);
     _scrollerNombre.startSlide(dir);
-    Serial.printf("Credits: opcion %u -> %u\n", before, _entry);
+    Serial.printf("MenuCredits: opcion %u -> %u\n", before, _entry);
   }
 
   if (buttons.pressed(Buttons::ACTION_UP)) _exit = true;
 }
 
-void Credits::loadEntry() {
+void MenuCredits::loadEntry() {
   _scrollerRol.setTexto(ROLE_NAME[_entry][0], 16, TEXT_12x16);
   _scrollerNombre.setTexto(ROLE_NAME[_entry][1], 8, TEXT_6x8);
 }
 
-void Credits::print() {
+void MenuCredits::print() {
   int16_t w = display.getWidth();
   int16_t bodyTop = (int16_t)Config::Screen::BODY_TOP;
   int16_t roleH = display.getTextHeight(TEXT_12x16);
@@ -90,7 +90,7 @@ void Credits::print() {
   _scrollerNombre.blit(nameY);
 }
 
-bool Credits::done() const {
+bool MenuCredits::done() const {
   return _exit;
 }
 

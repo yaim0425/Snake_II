@@ -1,16 +1,16 @@
-#ifndef CREDITS_H
-#define CREDITS_H
+#ifndef MENU_CREDITS_H
+#define MENU_CREDITS_H
 
 #include <Arduino.h>
 
 #include "Scroller.h"
 
-class Credits {
+class MenuCredits {
 public:
 
   static constexpr uint8_t NUM_ENTRIES = 3;
 
-  Credits();
+  MenuCredits();
 
   void begin();
 

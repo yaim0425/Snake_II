@@ -57,7 +57,7 @@ void Engine::update() {
           switch (select) {
             case Menu::OPT_NEW: changeState(State::NEW); break;
             case Menu::OPT_CONTINUE: changeState(State::CONTINUE); break;
-            case Menu::OPT_CREDITS: changeState(State::CREDITS); break;
+            case Menu::OPT_CREDITS: changeState(State::MENU_CREDITS); break;
           }
         }
         break;
@@ -84,11 +84,11 @@ void Engine::update() {
         break;
       }
 
-    case State::CREDITS:
+    case State::MENU_CREDITS:
       {
 
-        _credits.update();
-        if (_credits.done()) {
+        _menuCredits.update();
+        if (_menuCredits.done()) {
           sound.play(Sound::SFX_BACK);
           changeState(State::MENU);
         }
@@ -114,7 +114,7 @@ void Engine::print() {
     case State::CONTINUE:
       _game.print();
       break;
-    case State::CREDITS: _credits.print(); break;
+    case State::MENU_CREDITS: _menuCredits.print(); break;
     case State::LEGEND: _legend.print(); break;
   }
 }
@@ -145,7 +145,7 @@ void Engine::changeState(State newState) {
       _game.setDifficulty(_menu.difficulty());
       _game.begin(false);
       break;
-    case State::CREDITS: _credits.begin(); break;
+    case State::MENU_CREDITS: _menuCredits.begin(); break;
     case State::LEGEND: _legend.begin(); break;
   }
 }

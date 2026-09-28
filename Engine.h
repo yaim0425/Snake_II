@@ -3,14 +3,14 @@
 
 #include "Boot.h"
 #include "Menu.h"
-#include "Credits.h"
+#include "MenuCredits.h"
 #include "Game.h"
 #include "Legend.h"
 
 // ========================================================
 // Engine — despachador de ventanas
 //
-// POSEE las ventanas: Boot, Menu, Credits, Game y Legend son
+// POSEE las ventanas: Boot, Menu, MenuCredits, Game y Legend son
 // miembros propios (no globales, no anidadas entre sí). Cada
 // una es una clase independiente con el patrón
 // begin()/update()/print()/done() y usa los servicios globales
@@ -72,7 +72,7 @@ private:
     MENU,
     NEW,
     CONTINUE,
-    CREDITS,
+    MENU_CREDITS,
     LEGEND
   };
 
@@ -90,7 +90,7 @@ private:
 
   Boot _boot;
   Menu _menu;
-  Credits _credits;
+  MenuCredits _menuCredits;
   Game _game;
   Legend _legend;
 };

@@ -38,7 +38,7 @@ D:\Documents\ESP32S3\Snake_II.
 
 En desarrollo. `Snake_II.ino` es el **wiring**: define los servicios globales
 (`Display`, `Buttons`, `Sound` — `Globals.h`) y crea el `Engine`, que **posee las
-ventanas** (`Boot`, `Legend`, `Menu`, `Credits`, `Game`) como miembros. Las
+ventanas** (`Boot`, `Legend`, `Menu`, `MenuCredits`, `Game`) como miembros. Las
 constantes compartidas viven en `Config.h` (pines, geometría, dificultad, versión).
 
 **Arquitectura:**
@@ -101,13 +101,13 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Buttons.h` / `Buttons.cpp` | Clase `Buttons` (lectura con debounce, `pressed`/`released`). Completa. |
 | `Boot.h` / `Boot.cpp` | Clase `Boot` (animación de arranque: dos bandas completas —TITULO 0..15, CUERPO 16..63— de líneas verticales de 3 px que se desplazan en sentidos opuestos, con rebalse por el borde; dura `TOTAL_MS` y se termina con cualquier botón). Completa. |
 | `Legend.h` / `Legend.cpp` | Clase `Legend` (panel de botones: pad MOVE a la izquierda con 4 flechas, 4 rombos completos de ACTION a la derecha en las posiciones de un pad que parpadean MUY rápido uno a la vez en ciclo lento —rombo fijo `HOLD_MS`, parpadeo `BLINK_PERIOD=100 ms`— y texto centrado en el pie con la función del rombo activo: Back, Select / Pause, None, None; cualquier botón la cierra con un sonido según el botón pulsado: MOVE = CLICK, ACTION_UP = BACK, ACTION_RIGHT = CONFIRM). Completa. |
-| `Scroller.h` / `Scroller.cpp` | Clase `Scroller` (scroller de 1 bit: una sola banda, texto como array de `int8_t` donde cada byte = 1 columna de 8 px; fondo siempre blanco y texto negro; `setTexto()` calcula el límite de caracteres según el tamaño y trunca silenciosamente; usada por `Menu` con 1 instancia y por `Credits` con 2 instancias sincronizadas). Completa. |
+| `Scroller.h` / `Scroller.cpp` | Clase `Scroller` (scroller de 1 bit: una sola banda, texto como array de `int8_t` donde cada byte = 1 columna de 8 px; fondo siempre blanco y texto negro; `setTexto()` calcula el límite de caracteres según el tamaño y trunca silenciosamente; usada por `Menu` con 1 instancia y por `MenuCredits` con 2 instancias sincronizadas). Completa. |
 | `Menu.h` / `Menu.cpp` | Clase `Menu` (menú con scroller de 1 bit —1 banda del `Scroller` compartido— y rombos de posición). Completa. **Incluye la edición inline de la opción "Sound"** (selector On/Off en la banda de los rombos) **y de la opción "Dificultad"** (selector `< N >`, nivel 1..10, con repetición al mantener presionado; al mantener, solo queda fija la flecha del botón activo). |
-| `Credits.h` / `Credits.cpp` | Clase `Credits` (ventana de créditos con 3 entradas navegables con transición lateral —2 bandas sincronizadas del `Scroller` compartido— y `SFX_CLICK` al navegar, vuelve al menú con `ACTION_UP`). Completa. |
+| `MenuCredits.h` / `MenuCredits.cpp` | Clase `MenuCredits` (ventana de créditos con 3 entradas navegables con transición lateral —2 bandas sincronizadas del `Scroller` compartido— y `SFX_CLICK` al navegar, vuelve al menú con `ACTION_UP`). Se llama así, y no `Credits`, para distinguirla de una hipotética ventana de créditos general: esta es la que se abre desde la opción "Credits" del `Menu`. Completa. |
 | `Game.h` / `Game.cpp` | Clase `Game` (ventana del juego de la serpiente: estados NEW/CONTINUE del `Engine`). **Coordina**: dificultad/velocidad, lectura de botones (MOVE → `Snake::turn`), `snake.step()` con manejo del resultado, alimento (`Food`), puntaje, sonidos, overlays y volcado del tablero con los segmentos de `Snake` (celda de `Config::Screen::CELL`, sprites escalados con `SPRITE_SCALE`). Completa. |
 | `Food.h` / `Food.cpp` | Clase `Food` (alimento del tablero, extraído de `Game`): estado (posición, presencia, tipo normal/especial), generación en celdas libres (`spawn`, que consulta la ocupación al tablero vía `Game::occupied`), dibujo del rombo (normal) o del sprite `SPECIAL_FOOD` (especial) —la celda la toma de `Config::Screen::CELL`, no declara una propia— y el temporizador de la comida especial. Completa. |
 | `Snake.h` / `Snake.cpp` | Clase `Snake` (lógica pura de la serpiente, extraída de `Game`): buffer circular de segmentos, dirección commitida + giro pendiente (sin reversa directa), paso con wrap, colisión, comer/crecer y elección de sprites de las partes. **Sin `Display`/`Sound`/`Food`**: `Game` coordina el ritmo, el alimento, los sonidos y el dibujo. Completa. |
-| `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas** pero las **posee como miembros** (`_boot`, `_menu`, `_credits`, `_game`, `_legend`): su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Los `begin()` de las ventanas se lanzan desde `setup()` vía `engine.begin()`. Completa. |
+| `Engine.h` / `Engine.cpp` | Clase `Engine` (despachador de ventanas, antes `App`). **No anida las ventanas** pero las **posee como miembros** (`_boot`, `_menu`, `_menuCredits`, `_game`, `_legend`): su estado interno decide qué ventana corre y cuándo cambiar (`changeState()`, que llama al `begin()` de la ventana entrante). Los `begin()` de las ventanas se lanzan desde `setup()` vía `engine.begin()`. Completa. |
 | `Snake_II.ino` | Enlace de dependencias (wiring). Define los **servicios globales** (`display`, `buttons`, `sound`) y crea `Engine engine;` (que posee las ventanas). `Sound` se construye con el pin: `Sound sound(Config::Pin::BUZZER);` (el `Buzzer` es suyo). `setup()` llama `display.begin()`, `buttons.begin()`, `sound.begin()` (que inicializa su `Buzzer` interno) y `engine.begin()`; `loop()` hace la **única lectura de botones del frame** (`buttons.read()`) y llama `engine.update()`, `engine.print()`, `sound.update()` y `display.show()`. |
 | `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). **No es un servicio global**: la posee `Sound` por valor (sección 10.2). Completa. |
 | `Sound.h` / `Sound.cpp` | Classe `Sound` (secuencias de los efectos del juego sobre su `Buzzer` interno —miembro por valor, inicializado en `begin()`—, con `setEnabled` para silenciar). Completa. |
@@ -125,7 +125,7 @@ directamente vía `Globals.h` (que se incluye solo en los `.cpp`, no en los
 (`Sound(uint8_t pin)` lo construye con el pin y `Sound::begin()` lo inicializa);
 ya no quedan `Buzzer buzzer;` global ni el bind `Sound(Buzzer&)`. Se mantienen
 constructor los
-parámetros de configuración: `Menu(bestScore, version)`, `Credits()`,
+parámetros de configuración: `Menu(bestScore, version)`, `MenuCredits()`,
 `Food(cols, rows, top)` y `Sound(pin)`
 (y `Game()`/`Boot()`/
 `Legend()` quedan sin parámetros). El constructor propio de cada ventana está
@@ -259,7 +259,7 @@ size=3 -> texto 18x24    -> cuadro  (18+6) x (24+2) = 24x26
   variables, constantes y enums; p. ej. `Menu::Option` = `OPT_NEW`/`OPT_CONTINUE`/
   `OPT_DIFFICULTY`/`OPT_SOUND`/`OPT_CREDITS`, `Config::Difficulty::MIN_LEVEL/MAX_LEVEL/DEFAULT_LEVEL` y
   los estados
-  del `Engine` `NEW`/`CONTINUE`/`CREDITS`). Los comentarios y la documentación (`PROYECTO.md`)
+  del `Engine` `NEW`/`CONTINUE`/`MENU_CREDITS`). Los comentarios y la documentación (`PROYECTO.md`)
   se mantienen en español (convención del proyecto).
 - **Servicios globales, ventanas internas:** `Display`, `Buttons` y `Sound` son los
   únicos **globales** (`Globals.h`: `extern`, definidos en
@@ -470,7 +470,7 @@ sin "Continue". Cantidad real máxima `MAX_OPTIONS = 8`.
   el tamaño del texto (tamaño 2) tampoco cambia.
 - **Animación (scroller de 1 bit):** en la clase **`Scroller`** (ver
   sección 14, "Clase `Scroller`"), que `Menu` instancia con **1 instancia**
-  (texto 12x16) y `Credits` con **2 instancias sincronizadas** (rol 12x16 +
+  (texto 12x16) y `MenuCredits` con **2 instancias sincronizadas** (rol 12x16 +
   nombre 6x8). Cada opción se compone **antes** de mostrarse en un **array de
   `int8_t`** (cada byte = 1 columna de 8 px, `1` = glifo, `0` = fondo)
   **centrada**, mediante `setTexto()` que dibuja el texto en un canvas
@@ -731,9 +731,9 @@ el estado `SONIDO` ni recibe `SoundWindow`.
 ## 11. Clase `Engine` — despachador de ventanas
 
 Separada del `.ino` en `Engine.h` / `Engine.cpp` (antes `App`). **No anida las
-ventanas** pero las **posee como miembros**: `Boot`, `Legend`, `Menu`, `Credits`,
+ventanas** pero las **posee como miembros**: `Boot`, `Legend`, `Menu`, `MenuCredits`,
 `Game` son clases independientes (hermanas) declaradas como miembros `_boot`,
-`_menu`, `_credits`, `_game`, `_legend`. No son globales ni reciben las
+`_menu`, `_menuCredits`, `_game`, `_legend`. No son globales ni reciben las
 ventanas por referencia.
 
 ### Responsabilidad
@@ -783,7 +783,7 @@ los globales ya construidos (misma TU, orden de definición).
 
 ```cpp
 enum class State : uint8_t {
-  BOOT = 0, MENU, NEW, CONTINUE, CREDITS, LEGEND
+  BOOT = 0, MENU, NEW, CONTINUE, MENU_CREDITS, LEGEND
 };
 ```
 
@@ -794,7 +794,7 @@ enum class State : uint8_t {
 | `MENU` | `Menu` | Confirma con `ACTION_RIGHT` (`confirm()`). |
 | `NEW` | `Game` | Nueva partida: `setDifficulty(menu.difficulty())` + `begin(true)`. Arranca con el conteo regresivo 3-2-1 (un `SFX_TICK` por dígito). Al salir (`done()`) suena `SFX_BACK`, el `Engine` sincroniza el récord (`menu.setBestScore(game.bestScore())`), **oculta/muestra "Continue" al volver** (`menu.setContinueAvailable(resumable)`, donde `resumable = !game.isGameOver() && game.score() > 0`: partida en curso **y** con puntos), deja la selección del menú en `Continue` si `resumable`, o en `New` en caso contrario (`menu.setSelected(...)`) y pasa a `MENU`. |
 | `CONTINUE` | `Game` | Reanudar la partida anterior (`begin(false)`): queda en pausa y se retoma con `ACTION_RIGHT` (Btn2, "Select / Pause") o `ACTION_LEFT`; si no hay partida en curso arranca una nueva. Al salir (`done()`) igual que `NEW`. |
-| `CREDITS` | `Credits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo `Scroller` que el menú** pero con **2 bandas sincronizadas** (`BAND_HEIGHTS = {16, 8}` = altos de rol 12x16 y nombre 6x8): cada banda tiene su **propia tira** de 128x16 (el rol en `SLOT_ROLE`, el nombre en `SLOT_NAME`), que se compone **solo al entrar y al navegar** (`loadEntry` → `Scroller::compose`); `drawBand(slot, y, fg, bg)` vuelca su **canvas persistente** con sus colores y la tira se sobrescribe **columna a columna** con sus fondos, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). El deslizamiento **arranca desde el borde** (`startSlide`, fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (igual que el menú, ≈0,5 s). Al navegar suena `SFX_CLICK` y al salir (`done()`) suena `SFX_BACK` (lo toca el `Engine`) y pasa directo a `MENU`. |
+| `MENU_CREDITS` | `MenuCredits` | 3 entradas navegables con `MOVE_LEFT`/`MOVE_RIGHT` y transición lateral (rol tamaño 2 **seleccionado con cuadro de borde a borde** y centrado en el alto restante del Body; nombre tamaño 1 plano en el pie). La transición usa el **mismo `Scroller` que el menú** pero con **2 bandas sincronizadas** (`BAND_HEIGHTS = {16, 8}` = altos de rol 12x16 y nombre 6x8): cada banda tiene su **propia tira** de 128x16 (el rol en `SLOT_ROLE`, el nombre en `SLOT_NAME`), que se compone **solo al entrar y al navegar** (`loadEntry` → `Scroller::compose`); `drawBand(slot, y, fg, bg)` vuelca su **canvas persistente** con sus colores y la tira se sobrescribe **columna a columna** con sus fondos, así la entrada anterior se mantiene hasta que la nueva la cubre (superposición al navegar rápido). El deslizamiento **arranca desde el borde** (`startSlide`, fuera de escena) y avanza **1 px cada 4 ms con acumulador por tiempo** (igual que el menú, ≈0,5 s). Al navegar suena `SFX_CLICK` y al salir (`done()`) suena `SFX_BACK` (lo toca el `Engine`) y pasa directo a `MENU`. |
 
 ### Métodos
 
@@ -925,7 +925,7 @@ llama a `display.clear()`, lo decide cada ventana.
    |---------|---------------------|---------------------|
    | `Boot` | — (primer frame: clear completo + `firstPrint()`, la línea completa de `BAR_W` columnas de cada franja) | Por franja: su columna de cabeza en blanco y, en negro, la que deja libre por la cola (`drawBars()`, con el módulo normalizado en `drawBar` para el rebalse); si no cambió el desplazamiento (`_step == _prevStep`) no se dibuja nada |
     | `Menu` | Cuadro blanco (25..42), título, pie (línea 54 + texto) | Banda de la opción (26..41) con `Scroller::blit` —**solo cuando el scroller tiene algo nuevo que volcar** (navegar, recomponer o tras el `clear`; en reposo se salta, sección 14)— + rombos (banda 45..53); en el modo de edición de sonido, en vez de rombos se borra/redibuja **cada frame** la misma banda 45..53 con el selector ON/OFF (palabra centrada estática + flecha única, lado del destino, que parpadea); en el modo de edición de dificultad, el selector `< N >` (número centrado estático con ancho constante + dos flechas laterales que parpadean juntas, ocultas en su límite; al mantener un botón el parpadeo se detiene y solo queda fija la flecha del botón activo, ocultándose la contraria; al llegar al límite se procesa igual que haber soltado el botón, volviendo el parpadeo normal) |
-    | `Credits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas; se vuelcan juntas en el mismo frame y solo si hay algo nuevo que pintar, sección 14) |
+    | `MenuCredits` | Título + cuadro blanco del rol | Bandas rol/nombre (`Scroller`, 2 bandas sincronizadas; se vuelcan juntas en el mismo frame y solo si hay algo nuevo que pintar, sección 14) |
    | `Legend` | Rótulos, pad MOVE y los 4 rombos fijos | Zona del rombo activo (cuadro 9x9, parpadeo) + texto del pie (banda 54..63) solo si cambia el rombo; al cambiar, se restaura completo el rombo que deja de ser activo (evita que quede borrado si el cambio lo pilló en su fase oculta) |
    | `Game` | Primer frame: clear completo + Header (puntaje 12x16 izq., segundos restantes de la comida especial 12x16 der.) y alimento y serpiente | Header solo si cambia el puntaje o `_food.specialTime()` (banda 0..15); tablero (Body 16..63) solo si `_dirtyBoard` (movimiento, comida nueva, transición de estado): borra el Body, redibuja alimento + serpiente; overlay "3-2-1"/"PAUSA"/"GAME OVER"/festejo de récord (texto invertido sobre banda blanca: cuadro centrado para el conteo, de lado a lado para PAUSA, GAME OVER y los letreros del festejo "BUT"/"YOU ARE"/"THE BEST") en cada frame según el estado —en el conteo, al final de cada dígito el número y su cuadro se ocultan (`COUNT_HIDE_MS`), marcando `_dirtyBoard` una sola vez para restaurar el tablero —; al morir superando el récord, el "GAME OVER" es un ciclo "GAME OVER" → "BUT" → "YOU ARE" → "THE BEST" (`NEW_BEST_SIGN_MS` cada uno) que se repite hasta que se presiona un botón, y el `SFX_NEW_BEST` suena solo la primera vez que aparece el letrero "THE BEST" |
 
@@ -973,7 +973,7 @@ La franja es siempre **fondo blanco y texto negro** (sin parámetros de color).
   franja está en reposo, que es el caso normal. Lo ponen `begin()`, `setTexto()`,
   `startSlide()`, `animate()` (mientras haya desplazamiento) y `redraw()`; lo
   limpia `blit()` al volcar.
-- **Usos:** `Menu` = 1 instancia (16 px, `blit(TEXT_SEL_TOP)`); `Credits` = 2
+- **Usos:** `Menu` = 1 instancia (16 px, `blit(TEXT_SEL_TOP)`); `MenuCredits` = 2
   instancias sincronizadas (`_scrollerRol` 16 px + `_scrollerNombre` 8 px,
   ambas reciben `startSlide()` y `animate()` en el mismo frame). En reposo
   `blit()` es un no-op (dirty flag de `Scroller`).
@@ -1425,12 +1425,12 @@ Estilo del archivo: los namespaces internos (`Pin`, `Screen`, `Difficulty`,
 | Namespace | Constantes | Las usan |
 |-----------|------------|----------|
 | `Config::Pin` | `BUTTONS`, `BUZZER`, `OLED_SDA`, `OLED_SCL` | `Snake_II.ino` (pasa `Config::Pin::BUTTONS` a `Buttons` y `Config::Pin::BUZZER` a `Sound`, que construye su `Buzzer`), `Buzzer` (pin por defecto), `Display` (pines I2C por defecto) |
-| `Config::Screen` | `WIDTH`/`HEIGHT`/`CELL`/`ADDRESS` y regiones `HEADER_*`/`BODY_*`/`FOOT_*` | `Display` (defaults del constructor y `regionBounds`), `Boot` (bandas TITULO=Header/CUERPO=Body), `Game` (tablero en el Body, celda de los sprites y `BODY_TOP` al volcar el tablero), `Food` (celda del alimento: centro del rombo y sprite especial), `Credits` (rol del Body) |
+| `Config::Screen` | `WIDTH`/`HEIGHT`/`CELL`/`ADDRESS` y regiones `HEADER_*`/`BODY_*`/`FOOT_*` | `Display` (defaults del constructor y `regionBounds`), `Boot` (bandas TITULO=Header/CUERPO=Body), `Game` (tablero en el Body, celda de los sprites y `BODY_TOP` al volcar el tablero), `Food` (celda del alimento: centro del rombo y sprite especial), `MenuCredits` (rol del Body) |
 | `Config::Difficulty` | `MIN_LEVEL`/`MAX_LEVEL`/`DEFAULT_LEVEL` | `Menu` (selector de dificultad inline) y `Game` (`setDifficulty`/velocidad): antes duplicadas en ambas clases. El sufijo `_LEVEL` y `DEFAULT_LEVEL` evitan la macro `DEFAULT` del core ESP32 (`Arduino.h`). |
 | `Config::Version` | `VERSION`/`RELEASE_DATE` | `Menu` (valor por defecto del parámetro `version` de su constructor, que es el texto del pie; antes el literal `"v0.1"` estaba en la firma). `RELEASE_DATE` todavía no lo usa nadie: queda para la pantalla de créditos o el pie. |
 
 Las regiones `HEADER_TOP/H` y `BODY_TOP/H` reemplazan las constantes repetidas
-`BODY_TOP`/`BODY_H`/`TITLE_TOP`/`TITLE_H` de `Menu`, `Game`, `Boot` y `Credits`.
+`BODY_TOP`/`BODY_H`/`TITLE_TOP`/`TITLE_H` de `Menu`, `Game`, `Boot` y `MenuCredits`.
 Los `static constexpr` de esas clases se eliminaron; solo `Boot` conserva sus
 constantes propias (`BAR_W`, `BAR_SPACING`, `ANIM_TICK`, `TOTAL_MS`), que son de
 su animación.
@@ -1480,7 +1480,7 @@ extern Sound   sound;
    seguros— y el trabajo real va en los `begin()`). **No** se usa
    `static order/fiasco` ni factories.
 2. **Solo las clases de servicio son globales.** Las **ventanas** (`Boot`,
-   `Legend`, `Menu`, `Credits`, `Game`) NO: son miembros del `Engine` (sección
+   `Legend`, `Menu`, `MenuCredits`, `Game`) NO: son miembros del `Engine` (sección
    11) y por eso no aparecen aquí. El **`Buzzer` tampoco**: es una pieza de
    hardware interna de `Sound` (miembro por valor), no un servicio global.
 3. **`Globals.h` se incluye solo desde los `.cpp`** (las cabeceras no lo
