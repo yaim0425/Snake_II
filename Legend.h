@@ -109,8 +109,8 @@ private:
   // ========================================================
 
   bool _done;
-  uint8_t _step;  // rombo activo (0..3): recorre Btn1 → Btn4
-  uint8_t _prevStep;
+  uint8_t _BTN;  // rombo activo (0..3): recorre Btn1 → Btn4
+  uint8_t _prevBTN;
   Ticker _ticker;      // avance de 1 px cada ANIM_TICK ms (acumulador por tiempo)
   Stopwatch _timer;    // desde que se fijó el rombo activo (ciclo y parpadeo)
   bool _visibleDiamond;        // rombo activo visible (parpadeo)

@@ -27,7 +27,7 @@ const char* const Legend::BTN_FUNC[4] = {
 
 Legend::Legend()
   : _done(false),
-    _step(0),
+    _BTN(0),
     _ticker(DWELL_MS),
     _timer(),
     _visibleDiamond(true),
@@ -41,7 +41,7 @@ Legend::Legend()
 
 void Legend::begin() {
   _done = false;
-  _step = 0;
+  _BTN = 0;
   _ticker.start();
   _timer.start();
   _visibleDiamond = true;
@@ -84,7 +84,7 @@ void Legend::update() {
 
   // El rombo activo cambia cada DWELL_MS (avance lento)
   uint32_t steps = _ticker.consume();
-  if (steps) _step = (_step + steps) % 4;
+  if (steps) _BTN = (_BTN + steps) % 4;
 }
 
 // ========================================================
@@ -99,8 +99,6 @@ void Legend::update() {
 // ========================================================
 
 void Legend::print() {
-  const int16_t w = display.getWidth();
-
   // Estáticos (una sola vez al entrar)
   if (_redraw) {
     display.clear();
@@ -108,18 +106,18 @@ void Legend::print() {
     _redraw = false;
   }
 
-  if (_lastText != _step) {
+  if (_prevBTN != _BTN) {
     // El rombo que dejó de ser activo debe quedar completo. Si el cambio lo
     // pilló en su fase oculta del parpadeo, su zona quedó borrada y nadie la
     // volvería a dibujar: se restaura el rombo completo como estático.
     int16_t acx, acy;
-    diamondCenter(_step, acx, acy);
+    diamondCenter(_BTN, acx, acy);
     drawDiamond(acx, acy, false);
 
     // Texto del pie: función del rombo activo
-    display.fillRect(0, Config::Screen::FOOT_TOP, w, 8, true);
-    display.drawText(BTN[_step], (Config::Screen::WIDTH - strlen(BTN[_step]) * 6) / 2, Config::Screen::FOOT_TOP, TEXT_6x8);
-    _lastText = _step;
+    display.fillRect(0, Config::Screen::FOOT_TOP, display.getWidth(), 8, true);
+    display.drawText(BTN[_BTN], (Config::Screen::WIDTH - strlen(BTN[_BTN]) * 6) / 2, Config::Screen::FOOT_TOP, TEXT_6x8);
+    _prevBTN = _BTN;
     _timer.start();  // reinicia el ciclo de parpadeo del rombo activo
   }
 
@@ -129,7 +127,7 @@ void Legend::print() {
     bool visibleDiamond = _timer.blinkOn(BLINK_PERIOD, BLINK_OFF_PCT);
     if ((visibleDiamond && !_visibleDiamond) || (!visibleDiamond && _visibleDiamond)) {
         int16_t acx, acy;
-        diamondCenter(_step, acx, acy);
+        diamondCenter(_BTN, acx, acy);
         drawDiamond(acx, acy, _visibleDiamond);
         _visibleDiamond = !_visibleDiamond;
     }

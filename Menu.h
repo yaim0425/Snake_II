@@ -35,7 +35,7 @@ public:
   // ========================================================
 
   void begin();
-
+  void drawDiamond(int8_t selected, bool focus, bool black);
   // ========================================================
   // Opciones (cantidad variable)
   // ========================================================
@@ -193,7 +193,7 @@ private:
   // ========================================================
 
   void navigate();
-  void drawDiamonds();
+  void blink();
   void drawSoundSelector();
   void drawDifficultySelector();
 
@@ -219,6 +219,7 @@ private:
   bool _visibleDiamond;        // rombo activo visible (parpadeo)
 
   int8_t _selected;   // opción actual (objetivo central)
+  int8_t _lastSelected;
   Stopwatch _timer;    // desde la última selección (parpadeo del rombo)
   bool _redraw;         // primer frame tras begin(): clear() completo + estáticos
 

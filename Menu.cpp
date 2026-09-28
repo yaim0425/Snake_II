@@ -75,7 +75,7 @@ Menu::Menu(uint16_t bestScore, const char* version)
     // _version(version),
     // _title("Snake II"),
     // _showFooter(true),
-    // _optionCount(DEFAULT_OPTIONS - 1),  // sin "Continue" al arrancar (no hay partida)
+    // _optionCount(OPT_NEW),
     // _optionTexts(NO_CONTINUE_OPTIONS),
     _visibleContinue(false),
     _visibleDiamond(true),
@@ -101,6 +101,8 @@ void Menu::begin() {
   _scroller.setTexto(OPTION_TEXT[_selected], 16, TEXT_12x16);
   _timer.start();
   _redraw = true;
+  _visibleDiamond = true;
+  // _optionCount = OPT_COUNT;
   // _editingSound = false;
   // _editingDifficulty = false;
 }
@@ -180,6 +182,7 @@ void Menu::setSelected(Menu::Option option) {
 // ========================================================
 
 void Menu::update() {
+  navigate();
   if (true) return;  // IGNORE: no se actualiza el menú en esta versión
 
   if (_editingSound) {
@@ -258,18 +261,20 @@ void Menu::navigate() {
   // Solo MOVE_LEFT y MOVE_RIGHT (primera y última no conectadas)
   if (buttons.pressed(Buttons::MOVE_LEFT) && _selected > 0) {
     _selected--;
+    if (_selected == OPT_CONTINUE && !_visibleContinue) _selected--;  // saltar "Continue" si no está visible
     moved = true;
   }
 
-  if (buttons.pressed(Buttons::MOVE_RIGHT) && _selected < _optionCount - 1) {
+  if (buttons.pressed(Buttons::MOVE_RIGHT) && _selected < OPT_COUNT - 1) {
     _selected++;
+    if (_selected == OPT_CONTINUE && !_visibleContinue) _selected++;  // saltar "Continue" si no está visible
     moved = true;
   }
 
   if (moved) {
     sound.play(Sound::SFX_CLICK);
-    _scroller.setTexto(optionText(_selected), 16, TEXT_12x16);
-    _scroller.startSlide((_selected > before) ? 1 : -1);
+    // _scroller.setTexto(optionText(_selected), 16, TEXT_12x16);
+    // _scroller.startSlide((_selected > before) ? 1 : -1);
     _timer.start();
     Serial.printf("Menu: opcion %d -> %d\n", before, _selected);
   }
@@ -468,20 +473,42 @@ void Menu::drawDifficultySelector() {
 // Rombos de posición
 // ========================================================
 
-void Menu::drawDiamonds() {
+void Menu::blink() {
   if (_timer.expired(BLINK_HOLD)) {
     bool visibleDiamond = _timer.blinkOn(BLINK_PERIOD, BLINK_OFF_PCT);
     if ((visibleDiamond && !_visibleDiamond) || (!visibleDiamond && _visibleDiamond)) {
+      drawDiamond(_selected, true, _visibleDiamond);
 
-      uint8_t n = OPT_COUNT;
-      if (!_visibleContinue) n--;
-      int16_t x = (((_selected + 1) * display.getWidth()) / (n + 1)) - DIA_SIZE / 2;
+      // // Rombos de posición
+      // int8_t size = DIA_SIZE / 2;
+      // int16_t y = DIA_TOP + DIA_SIZE;
+      // int16_t x = (_selected + 1) * floor(display.getWidth() / (_optionCount + 1));
 
-      display.fillTriangle(x + 4, DIA_TOP, x + 8, DIA_TOP + DIA_SIZE / 2, x + 4, DIA_TOP + DIA_SIZE, _visibleDiamond);
-      display.fillTriangle(x + 4, DIA_TOP, x, DIA_TOP + DIA_SIZE / 2, x + 4, DIA_TOP + DIA_SIZE, _visibleDiamond);
+      // // Dibujar rombos de posición (triángulos) centrados en la banda inferior
+      // display.fillTriangle(x - size, y - size, x, y - DIA_SIZE, x + size, y - size, _visibleDiamond);
+      // display.fillTriangle(x - size, y - size, x, y - 0, x + size, y - size, _visibleDiamond);
+
+      // Hacer intermitente el texto de la opción seleccionada
+      display.fillRect(0, BOX_TOP, display.getWidth(), BOX_HEIGHT, false);
+      if (!_visibleDiamond)
+        display.drawTextInverted(OPTION_TEXT[_selected], (Config::Screen::WIDTH - strlen(OPTION_TEXT[_selected]) * 12) / 2, BOX_TOP + 1, TEXT_12x16);
+
       _visibleDiamond = !_visibleDiamond;
     }
   }
+}
+
+void Menu::drawDiamond(int8_t diamond, bool focus, bool black) {
+  // Rombos de posición
+  int8_t size = DIA_SIZE / 2;
+  int16_t y = DIA_TOP + DIA_SIZE;
+  int16_t x = (diamond + 1) * floor(display.getWidth() / (OPT_COUNT + 1));
+
+  if (focus) {
+    display.fillTriangle(x - size, y - size, x, y - DIA_SIZE, x + size, y - size, black);
+    display.fillTriangle(x - size, y - size, x, y - 0, x + size, y - size, black);
+  } else
+    display.fillTriangle(x - size, y, x, y - size, x + size, y, black);
 }
 
 // ========================================================
@@ -499,7 +526,33 @@ void Menu::print() {
     _redraw = false;
   }
 
-  drawDiamonds();
+  if (_lastSelected != _selected) {
+    drawDiamond(_lastSelected, true, true);
+    drawDiamond(_selected, false, true);
+    drawDiamond(_lastSelected, false, false);
+    drawDiamond(_selected, true, false);
+
+    // int8_t size = DIA_SIZE / 2;
+    // int16_t y = DIA_TOP + DIA_SIZE;
+    // int16_t ax = (_selected + 1) * floor(display.getWidth() / (_optionCount + 1));
+    // int16_t bx = (_lastSelected + 1) * floor(display.getWidth() / (_optionCount + 1));
+
+    // display.fillTriangle(bx - size, y - size, bx, y - DIA_SIZE, bx + size, y - size, true);
+    // display.fillTriangle(bx - size, y - size, bx, y - 0, bx + size, y - size, true);
+    // display.fillTriangle(ax - size, y, ax, y - size, ax + size, y, true);
+
+    // display.fillTriangle(ax - size, y - size, ax, y - DIA_SIZE, ax + size, y - size, false);
+    // display.fillTriangle(ax - size, y - size, ax, y - 0, ax + size, y - size, false);
+    // display.fillTriangle(bx - size, y, bx, y - size, bx + size, y, false);
+
+    display.fillRect(0, BOX_TOP, display.getWidth(), BOX_HEIGHT, false);
+    display.drawTextInverted(OPTION_TEXT[_selected], (Config::Screen::WIDTH - strlen(OPTION_TEXT[_selected]) * 12) / 2, BOX_TOP + 1, TEXT_12x16);
+
+    _lastSelected = _selected;
+    _timer.start();
+  }
+
+  blink();
   if (true) return;  // IGNORE: no se actualiza el menú en esta versión
 
   // Dinámicos (cada frame): la banda de la opción deslizante y los rombos.
@@ -531,37 +584,43 @@ void Menu::print() {
 }
 
 void Menu::firstPrint() {
+  // Fondo y header (título)
   display.drawText(Config::Version::NAME, (Config::Screen::WIDTH - strlen(Config::Version::NAME) * 12) / 2, Config::Screen::HEADER_TOP, TEXT_12x16);
 
+  // Cuadro de selección (banda de la opción actual)
   display.fillRect(0, BOX_TOP, display.getWidth(), BOX_HEIGHT, false);
   display.drawTextInverted(OPTION_TEXT[_selected], (Config::Screen::WIDTH - strlen(OPTION_TEXT[_selected]) * 12) / 2, BOX_TOP + 1, TEXT_12x16);
 
+  // Pie (línea + Best/versión)
   display.fillRect(0, Config::Screen::FOOT_LINE, Config::Screen::WIDTH, 1, false);
 
-  const char* label = "Best:";
+  // Best score
+  const char* label = "Best ";
   display.drawText(label, 0, Config::Screen::FOOT_TOP, TEXT_6x8);
   char buf[6];
   sprintf(buf, "%u", (unsigned)_bestScore);
   display.drawText(buf, strlen(label) * 6, Config::Screen::FOOT_TOP, TEXT_6x8);
 
+  // Versión
   display.drawText(Config::Version::VERSION, Config::Screen::WIDTH - strlen(Config::Version::VERSION) * 6, Config::Screen::FOOT_TOP, TEXT_6x8);
 
+  for (uint8_t selected = 0; selected < OPT_COUNT; selected++)
+    drawDiamond(selected, selected == _selected, false);
 
-  uint8_t n = OPT_COUNT;
-  if (!_visibleContinue) n--;
-  for (uint8_t i = 0; i < n; i++) {
-    int16_t cx = (int16_t)((i + 1) * display.getWidth()) / (n + 1);
-    int16_t x = cx - DIA_SIZE / 2;
+  // // Rombos de posición
+  // int8_t size = DIA_SIZE / 2;
+  // int16_t y = DIA_TOP + DIA_SIZE;
 
-    if (i == _selected) {
-      display.fillTriangle(x + 4, DIA_TOP, x + 8, DIA_TOP + DIA_SIZE / 2, x + 4, DIA_TOP + DIA_SIZE, false);
-      display.fillTriangle(x + 4, DIA_TOP, x, DIA_TOP + DIA_SIZE / 2, x + 4, DIA_TOP + DIA_SIZE, false);
-    } else {
-      int16_t baseY = DIA_TOP + DIA_SIZE;
-      int16_t y = baseY - 3;
-      display.fillTriangle(x + 4, y, x, baseY, x + 8, baseY, false);
-    }
-  }
+  // // Dibujar rombos de posición (triángulos) centrados en la banda inferior
+  // for (uint8_t selected = 0; selected < _optionCount; selected++) {
+  //   int16_t x = (selected + 1) * floor(display.getWidth() / (_optionCount + 1));
+
+  //   if (selected == _selected) {
+  //     display.fillTriangle(x - size, y - size, x, y - DIA_SIZE, x + size, y - size, false);
+  //     display.fillTriangle(x - size, y - size, x, y - 0, x + size, y - size, false);
+  //   } else
+  //     display.fillTriangle(x - size, y, x, y - size, x + size, y, false);
+  // }
 }
 
 // ========================================================
