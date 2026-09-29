@@ -1,8 +1,9 @@
 #ifndef TIMER_H
 #define TIMER_H
 
-#include <Arduino.h>
-#include <esp_timer.h>
+#include <Arduino.h>   // ver nota: aporta los tipos enteros, y además otras TUs
+                      // (Buttons.cpp usa pinMode/digitalRead, Game.cpp usa Serial)
+                      // lo heredan de aquí. No quitar sin añadirlo allí.
 
 // ========================================================
 // Timer — reloj de 64 bits y cronómetros
@@ -26,15 +27,16 @@
 //   - Ticker  : pasos periódicos (ANIM_TICK, HOLD_REPEAT_TICK...);
 //               consume() devuelve los pasos completos desde la
 //               última consulta y conserva el residuo.
+//
+// Aquí solo hay declaraciones: las definiciones están en `Timer.cpp`
+// (ver la nota de ese archivo sobre por qué nada se declara `inline`).
 // ========================================================
 
 // ========================================================
 // Reloj global: microsegundos de arranque -> ms en 64 bits
 // ========================================================
 
-inline uint64_t nowMs() {
-  return (uint64_t)esp_timer_get_time() / 1000ULL;
-}
+uint64_t nowMs();
 
 // ========================================================
 // Stopwatch — cronómetro: ¿pasaron X ms desde start()?
@@ -44,18 +46,16 @@ class Stopwatch {
 public:
 
   // Reinicia el cronómetro (llamar en begin() de la ventana)
-  void start() { _start = nowMs(); }
+  void start();
 
   // Milisegundos desde start()
-  uint64_t elapsed() const { return nowMs() - _start; }
+  uint64_t elapsed() const;
 
   // ¿Ya pasaron `ms` desde start()?
-  bool expired(uint32_t ms) const { return elapsed() >= ms; }
+  bool expired(uint32_t ms) const;
 
   // ¿Es la fase visible del período? (oculto el primer offPct%)
-  bool blinkOn(uint32_t period, uint8_t offPct) const {
-    return (elapsed() % period) >= (uint64_t)period * offPct / 100;
-  }
+  bool blinkOn(uint32_t period, uint8_t offPct) const;
 
 private:
 
@@ -69,24 +69,14 @@ private:
 class Ticker {
 public:
 
-  explicit Ticker(uint32_t period) : _period(period) {}
+  explicit Ticker(uint32_t period);
 
   // Reinicia el acumulador (llamar en begin() de la ventana)
-  void start() {
-    _last = nowMs();
-    _accum = 0;
-  }
+  void start();
 
   // Pasos completos de `_period` ms desde la última consulta
   // (conserva el residuo para el siguiente consume())
-  uint32_t consume() {
-    uint64_t now = nowMs();
-    _accum += now - _last;
-    _last = now;
-    uint32_t steps = (uint32_t)(_accum / _period);
-    _accum %= _period;
-    return steps;
-  }
+  uint32_t consume();
 
 private:
 

@@ -61,7 +61,7 @@ constantes compartidas viven en `Config.h` (pines, geometría, dificultad, versi
 - `Snake` — lógica pura (sin `Display`/`Sound`/`Food`): buffer circular, giro
   pendiente, wrap, colisión, sprites. `Game` coordina ritmo, input y dibujo.
 - `Sprite.h` — tabla de sprites (header-only).
-- `Timer.h` — reloj de 64 bits (`esp_timer_get_time`), `Stopwatch` y `Ticker`.
+- `Timer.h` / `Timer.cpp` — reloj de 64 bits (`esp_timer_get_time`), `Stopwatch` y `Ticker`.
   Migración completa desde `millis()`.
 
 **Características del juego:**
@@ -119,7 +119,7 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Buzzer.h` / `Buzzer.cpp` | Clase `Buzzer` (capa de hardware de sonido: un tono no bloqueante vía LEDC). **No es un servicio global**: la posee `Sound` por valor (sección 10.2). Completa. |
 | `Sound.h` / `Sound.cpp` | Classe `Sound` (secuencias de los efectos del juego sobre su `Buzzer` interno —miembro por valor, inicializado en `begin()`—, con `setEnabled` para silenciar). Completa. |
 | `Sprite.h` | Namespace `Sprite` (tabla de sprites de la serpiente, estilo Nokia: cola, cuerpo, curvas, cabeza cerrada/abierta y panza; sprites de 4×4 px + sprite de la comida especial de 8×4 px). Solo datos (header-only, sin `.cpp`). Adaptada al estilo del proyecto. |
-| `Timer.h` | Reloj de 64 bits y cronómetros compartidos (`nowMs()`, `Stopwatch`, `Ticker`), basados en `esp_timer_get_time()` (sección 21). Solo reloj (header-only, sin `.cpp`). |
+| `Timer.h` / `Timer.cpp` | Reloj de 64 bits y cronómetros compartidos (`nowMs()`, `Stopwatch`, `Ticker`), basados en `esp_timer_get_time()` (sección 21). El header solo declara; las definiciones están en el `.cpp`, porque el `inline` en el header repetía el mismo código en cada `.cpp` que lo incluye. |
 | `PROYECTO.md` | Este documento. |
 | `LICENSE.md` | Licencia del proyecto: **MIT**, con el texto canónico en inglés (traducirlo haría que GitHub dejara de reconocerlo). Para cambiar el titular basta con editar la línea `Copyright (c) 2026 <nombre>` de ese archivo. |
 | `THIRD_PARTY_NOTICES.md` | Aviso de atribución de las dependencias de terceros (Adafruit GFX y SSD1306, BSD-3; core Arduino-ESP32, LGPL-2.1; ESP-IDF, Apache-2.0) y constancia de que **el repositorio no distribuye código ni artwork de terceros** (los sprites de `Sprite.h` son tablas de bits propias). No es una obligación legal —las librerías se enlazan, no se distribuyen— pero se mantiene al día si cambian de versión las del gestor de Arduino. |
@@ -1516,17 +1516,31 @@ extern Sound   sound;
 
 ## 21. `Timer.h` — reloj de 64 bits y cronómetros
 
-Ubicación: `Timer.h`. Header-only (sin `.cpp`). Ante los límites de `millis()`
+Ubicación: `Timer.h` / `Timer.cpp`. Antes `Timer.h` era header-only; ahora las
+definiciones están en el `.cpp` (el patrón `.h`/`.cpp` del resto del proyecto).
+Motivo: `Stopwatch` y `Ticker` los usan casi todas las ventanas y, como métodos
+`inline` dentro de la clase, el compilador repetía el mismo código en cada
+unidad de traducción. **Nada se declara `inline` en el header**: una función
+`inline` definida en otro `.cpp` no genera símbolo y daría *undefined
+reference*.
+
+Ante los límites de `millis()`
 (32 bits: da la vuelta cada ~49,7 días, y `elapsed % period` sobre un instante
 absoluto salta de fase una vez por giro), se centraliza el tiempo en el **reloj de
 64 bits del ESP32**: `esp_timer_get_time()` (microsegundos desde el arranque, no
 envuelve en ~292.000 años). Con 64 bits las restas (`ahora - inicio`) y los
 módulos son seguros sin pensar en el desbordamiento.
 
+**`esp_timer.h` vive solo en el `.cpp`** (único consumidor: `nowMs()`).
+`<Arduino.h>` **se mantiene en el header** a propósito: además de los tipos
+enteros, otras unidades de traducción lo heredan de ahí y no lo incluyen
+(`Buttons.cpp` usa `pinMode`/`digitalRead`, `Game.cpp` usa `Serial`). Quitarlo
+exigiría añadirlo explícitamente en esos `.cpp`: es deuda conocida, no un descuido.
+
 ### API
 
 ```cpp
-inline uint64_t nowMs();   // instante actual en milisegundos (64 bits)
+uint64_t nowMs();        // instante actual en milisegundos (64 bits)
 
 class Stopwatch {
   void start();                        // reinicia (llamar en el begin() de la ventana)
