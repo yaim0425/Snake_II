@@ -121,6 +121,8 @@ Directorio: `D:\Documents\ESP32S3\Snake_II`
 | `Sprite.h` | Namespace `Sprite` (tabla de sprites de la serpiente, estilo Nokia: cola, cuerpo, curvas, cabeza cerrada/abierta y panza; sprites de 4×4 px + sprite de la comida especial de 8×4 px). Solo datos (header-only, sin `.cpp`). Adaptada al estilo del proyecto. |
 | `Timer.h` | Reloj de 64 bits y cronómetros compartidos (`nowMs()`, `Stopwatch`, `Ticker`), basados en `esp_timer_get_time()` (sección 21). Solo reloj (header-only, sin `.cpp`). |
 | `PROYECTO.md` | Este documento. |
+| `LICENSE.md` | Licencia del proyecto: **MIT**, con el texto canónico en inglés (traducirlo haría que GitHub dejara de reconocerlo). Para cambiar el titular basta con editar la línea `Copyright (c) 2026 <nombre>` de ese archivo. |
+| `THIRD_PARTY_NOTICES.md` | Aviso de atribución de las dependencias de terceros (Adafruit GFX y SSD1306, BSD-3; core Arduino-ESP32, LGPL-2.1; ESP-IDF, Apache-2.0) y constancia de que **el repositorio no distribuye código ni artwork de terceros** (los sprites de `Sprite.h` son tablas de bits propias). No es una obligación legal —las librerías se enlazan, no se distribuyen— pero se mantiene al día si cambian de versión las del gestor de Arduino. |
 
 Nota: Arduino solo compila el `.ino` del sketch. El respaldo quedó como `.txt`
 para que no interfiera en la compilación.
