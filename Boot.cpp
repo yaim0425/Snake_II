@@ -9,23 +9,32 @@
 // ========================================================
 
 Boot::Boot()
-  : _step(0),
-    _prevStep(0),
-    _ticker(ANIM_TICK),
-    _total(),
+  // : _step(0),
+  // _prevStep(0),
+  // : _ticker(ANIM_TICK),
+   : _timer(),
+   _x(0),
+   _y(0),
+   _bars(0),
+    _visibleMessage(false),
     _done(false),
-    _redraw(true) {}
+    _clear(true) {}
+
 
 // ========================================================
 // Inicialización (al entrar en la ventana)
 // ========================================================
 
 void Boot::begin() {
-  _step = 0;
-  _ticker.start();
-  _total.start();
+  // _step = 0;
+  // _ticker.start();
+  _timer.start();
+  _x = 0;
+  _y = 0;
+  _bars = 0;
+  _visibleMessage = false;
   _done = false;
-  _redraw = true;
+  _clear = true;
 }
 
 // ========================================================
@@ -59,20 +68,20 @@ void Boot::update() {
     return;
   }
 
-  // Duración total
-  if (_total.expired(TOTAL_MS)) {
-    _done = true;
-    return;
-  }
-
-  // Avance de 1 px cada ANIM_TICK ms (Ticker acumula por tiempo;
-  // consume() devuelve los pasos completos de una vez)
-  uint32_t steps = _ticker.consume();
-  // for (uint8_t i = 0; i < steps - 1; ++i) {
-  //   _step = (_step + 1) % BAR_SPACING;
-  //   drawBars();
+  // // Duración total
+  // if (_stopwatch.expired(TOTAL_MS)) {
+  //   _done = true;
+  //   return;
   // }
-  if (steps) _step = (_step + steps) % BAR_SPACING;
+
+  // // Avance de 1 px cada ANIM_TICK ms (Ticker acumula por tiempo;
+  // // consume() devuelve los pasos completos de una vez)
+  // uint32_t steps = _ticker.consume();
+  // // for (uint8_t i = 0; i < steps - 1; ++i) {
+  // //   _step = (_step + 1) % BAR_SPACING;
+  // //   drawBars();
+  // // }
+  // if (steps) _step = (_step + steps) % BAR_SPACING;
 }
 
 // ========================================================
@@ -95,16 +104,15 @@ void Boot::update() {
 // ========================================================
 
 void Boot::print() {
-  if (_redraw) {
-    display.clear();
-    firstPrint();
-    _redraw = false;
-  }
+  firstPrint();
+  doChanges();
 
-  if (_step == _prevStep) return;
 
-  drawBars();
-  _prevStep = _step;
+
+  // if (_step == _prevStep) return;
+
+  // drawBars();
+  // _prevStep = _step;
 }
 
 // ========================================================
@@ -119,22 +127,84 @@ void Boot::print() {
 // ========================================================
 
 void Boot::firstPrint() {
-  const int16_t w = display.getWidth();
+  if (!_clear) return;
 
-  // TITULO: las líneas se mueven de izquierda a derecha, así que la
-  // cabeza es su extremo derecho (y la cola, su extremo izquierdo)
-  for (int16_t x = 0; x < w; x += BAR_SPACING) {
-    int16_t px = (x + _step) % w;
+  // ------------------------------------------------------
 
-    display.fillRect(px, Config::Screen::HEADER_TOP, BAR_W, Config::Screen::HEADER_H, false);
-  }
+  display.clear();
+  _clear = false;
 
-  // CUERPO: las líneas se mueven de derecha a izquierda, así que la
-  // cabeza es su extremo izquierdo (y la cola, su extremo derecho)
-  for (int16_t x = 0; x < w; x += BAR_SPACING) {
-    int16_t px = ((w - x - _step - BAR_W - 1) % w + w) % w;
+  // ------------------------------------------------------
 
-    display.fillRect(px, Config::Screen::BODY_TOP, BAR_W, Config::Screen::BODY_H, false);
+  int16_t w = Config::Screen::WIDTH;
+
+  int16_t footLine = Config::Screen::FOOT_LINE;
+  display.fillRect(0, footLine, w, 1, false);
+
+  int16_t bodyTop = Config::Screen::BODY_TOP;
+  display.fillRect(0, bodyTop, w, 1, false);
+  display.fillRect(0, bodyTop - 1, w, 1, false);
+
+  // ------------------------------------------------------
+
+  int16_t top = Config::Scroller::TOP;
+  int16_t h = Config::Screen::HEADER_H;
+  display.fillRect(0, top, w, h, false);
+
+  // ------------------------------------------------------
+
+  char* name = Config::Version::NAME;
+  int16_t nameWidth = (w - strlen(name) * 12) / 2;
+  display.drawTextInverted(name, nameWidth, top + 1, TEXT_12x16);
+
+  // ------------------------------------------------------
+
+  const char* message = MESSAGE;
+  int16_t labelWidth = (w - strlen(message) * 6) / 2;
+  int16_t footTop = Config::Screen::FOOT_TOP;
+  display.drawText(message, labelWidth, footTop, TEXT_6x8);
+
+  // ------------------------------------------------------
+
+  _x = labelWidth;
+  _y = footTop;
+
+
+
+
+  // "Press any button..." (centrado en la franja de texto)
+
+  // const int16_t w = display.getWidth();
+
+  // // TITULO: las líneas se mueven de izquierda a derecha, así que la
+  // // cabeza es su extremo derecho (y la cola, su extremo izquierdo)
+  // for (int16_t x = 0; x < w; x += BAR_SPACING) {
+  //   int16_t px = (x + _step) % w;
+
+  //   display.fillRect(px, Config::Screen::HEADER_TOP, BAR_W, Config::Screen::HEADER_H, false);
+  // }
+
+  // // CUERPO: las líneas se mueven de derecha a izquierda, así que la
+  // // cabeza es su extremo izquierdo (y la cola, su extremo derecho)
+  // for (int16_t x = 0; x < w; x += BAR_SPACING) {
+  //   int16_t px = ((w - x - _step - BAR_W - 1) % w + w) % w;
+
+  //   display.fillRect(px, Config::Screen::BODY_TOP, BAR_W, Config::Screen::BODY_H, false);
+  // }
+}
+
+void Boot::doChanges() {
+  if (_timer.expired(Config::DefaultTimer::HOLD)) {
+    bool visibleMessage = _timer.blinkOn(Config::DefaultTimer::PERIOD, Config::DefaultTimer::OFF);
+    if ((visibleMessage && !_visibleMessage) || (!visibleMessage && _visibleMessage)) {
+
+      if (_visibleMessage)
+        display.drawTextInverted(MESSAGE, _x, _y, TEXT_6x8);
+      else
+        display.drawText(MESSAGE, _x, _y, TEXT_6x8);
+
+      _visibleMessage = !_visibleMessage;
+    }
   }
 }
 

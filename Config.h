@@ -31,10 +31,25 @@ namespace Config {
 namespace Pin {
 
 // Botones (orden del enum Buttons::Button: MOVE_UP..ACTION_LEFT)
+constexpr int8_t MOVE_UP = 2;
+constexpr int8_t MOVE_RIGHT = 1;
+constexpr int8_t MOVE_DOWN = 42;
+constexpr int8_t MOVE_LEFT = 41;
+
+constexpr int8_t ACTION_UP = 38;
+constexpr int8_t ACTION_RIGHT = 40;
+constexpr int8_t ACTION_DOWN = 39;
+constexpr int8_t ACTION_LEFT = 47;
+
 constexpr int8_t BUTTONS[8] = {
-  2, 1, 42, 41,   // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
-  38, 40, 39, 47  // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
+  MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT,
+  ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
 };
+
+// constexpr int8_t BUTTONS[8] = {
+//   2, 1, 42, 41,   // MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT
+//   38, 40, 39, 47  // ACTION_UP, ACTION_RIGHT, ACTION_DOWN, ACTION_LEFT
+// };
 
 constexpr uint8_t BUZZER = 14;   // zumbador
 constexpr uint8_t OLED_SDA = 8;  // I2C: datos
@@ -80,6 +95,60 @@ namespace Version {
 constexpr char* NAME = "Snake II";
 constexpr char* VERSION = "v1.0.0";
 constexpr char* RELEASE_DATE = "2026/12/31";
+}
+
+namespace Credits {
+constexpr char* Credits[] = {
+  Version::NAME,
+  Version::VERSION,
+  Version::RELEASE_DATE,
+  "",
+  "Programmer",
+  "OpenAI",
+  "YAIM0425",
+  "",
+  "Reviewer",
+  "ClaudeAI",
+  "",
+  "Producer",
+  "YAIM0425",
+  "",
+  "Graphics",
+  "OpenAI",
+  "",
+  "Sound Effects",
+  "OpenAI",
+  "",
+  "Music",
+  "YAIM0425",
+  "",
+  "License",
+  "MIT License",
+  "Copyright (c) 2026 yaim0425"
+};
+constexpr char* THANKS = "Thanks for playing!";
+}
+
+namespace Legend {
+constexpr uint32_t HOLD = 900;    // visible fija antes de parpadear
+constexpr uint32_t NEXT = 2200;   // duración total por rombo (avance lento)
+constexpr uint32_t PERIOD = 100;  // período del parpadeo MUY rápido (ms)
+constexpr uint8_t OFF = 50;       // % del período en que está oculto
+}
+
+namespace Diamond {
+constexpr uint8_t SIZE = 5;           // px de lado del rombo
+}
+
+namespace Scroller {
+constexpr int16_t TOP = 28; // fila superior de la franja de texto (banda del menú)
+constexpr uint32_t ANIMATION = 4; // ms por px de desplazamiento lateral
+}
+
+namespace DefaultTimer {
+constexpr uint32_t HOLD = 1000;    // mantener sin navegar para parpadear
+constexpr uint32_t PERIOD = 1000;  // período completo del parpadeo (ms)
+constexpr uint8_t OFF = 20;       // % del período en que está oculto
 }
 }
 
