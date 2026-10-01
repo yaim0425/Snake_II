@@ -1,6 +1,7 @@
 #include "HardwareSerial.h"
 #include "Boot.h"
 #include "Globals.h"
+#include "Sprite.h"
 
 #include <Adafruit_GFX.h>
 
@@ -8,15 +9,21 @@
 // Constructor (usa los servicios globales Display/Buttons)
 // ========================================================
 
+const char* const Boot::MESSAGE[MESSAGE_LINES] = {
+    "Press any button",
+    "to start"
+};
+
 Boot::Boot()
   // : _step(0),
   // _prevStep(0),
   // : _ticker(ANIM_TICK),
-   : _timer(),
-   _x(0),
-   _y(0),
-   _bars(0),
+  : _timer(),
+    _x(0),
+    _y(0),
+    _bars(0),
     _visibleMessage(false),
+    _blinkMessage(false),
     _done(false),
     _clear(true) {}
 
@@ -33,6 +40,7 @@ void Boot::begin() {
   _y = 0;
   _bars = 0;
   _visibleMessage = false;
+  _blinkMessage = false;
   _done = false;
   _clear = true;
 }
@@ -82,6 +90,8 @@ void Boot::update() {
   // //   drawBars();
   // // }
   // if (steps) _step = (_step + steps) % BAR_SPACING;
+  _blinkMessage = _visibleMessage ^ _timer.blinkOn(Config::DefaultTimer::PERIOD, Config::DefaultTimer::OFF);
+  _blinkMessage = _blinkMessage && _timer.expired(Config::DefaultTimer::HOLD);
 }
 
 // ========================================================
@@ -105,7 +115,7 @@ void Boot::update() {
 
 void Boot::print() {
   firstPrint();
-  doChanges();
+  blinkMessage();
 
 
 
@@ -137,39 +147,57 @@ void Boot::firstPrint() {
   // ------------------------------------------------------
 
   int16_t w = Config::Screen::WIDTH;
+  int16_t headerTop = Config::Screen::HEADER_TOP;
 
-  int16_t footLine = Config::Screen::FOOT_LINE;
-  display.fillRect(0, footLine, w, 1, false);
+  // int16_t footLine = Config::Screen::FOOT_LINE;
+  // display.fillRect(0, footLine, w, 1, false);
 
   int16_t bodyTop = Config::Screen::BODY_TOP;
-  display.fillRect(0, bodyTop, w, 1, false);
-  display.fillRect(0, bodyTop - 1, w, 1, false);
+  // display.fillRect(0, bodyTop, w, 1, false);
+  // display.fillRect(0, bodyTop - 1, w, 1, false);
 
   // ------------------------------------------------------
 
-  int16_t top = Config::Scroller::TOP;
+  // int16_t top = Config::Scroller::TOP;
   int16_t h = Config::Screen::HEADER_H;
-  display.fillRect(0, top, w, h, false);
+  // display.fillRect(0, top, w, h, false);
+  display.fillRect(0, 0, w, h, false);
 
   // ------------------------------------------------------
 
-  char* name = Config::Version::NAME;
-  int16_t nameWidth = (w - strlen(name) * 12) / 2;
-  display.drawTextInverted(name, nameWidth, top + 1, TEXT_12x16);
+  // char* name = Config::Version::NAME;
+  // int16_t nameWidth = (w - strlen(name) * 12) / 2;
+  // display.drawTextInverted(name, nameWidth, top + 1, TEXT_12x16);
 
   // ------------------------------------------------------
 
-  const char* message = MESSAGE;
-  int16_t labelWidth = (w - strlen(message) * 6) / 2;
-  int16_t footTop = Config::Screen::FOOT_TOP;
-  display.drawText(message, labelWidth, footTop, TEXT_6x8);
+  for (int8_t i = 0; i < MESSAGE_LINES; i++) {
+    const char* message = MESSAGE[i];
+    int16_t x = (w - strlen(message) * 6) / 2;
+    int16_t y = headerTop + i * 8;
+    display.drawTextInverted(message, x, y, TEXT_6x8);
+  }
+  // const char* message = MESSAGE;
+  // _x = (w - strlen(message) * 6) / 2;
+  // _y = Config::Screen::HEADER_TOP;
+  // display.drawTextInverted(message, _x, _y, TEXT_6x8);
+  // display.drawText(message, _x, _y, TEXT_6x8);
+  // display.drawText(message, _x, _y, TEXT_12x16);
 
   // ------------------------------------------------------
 
-  _x = labelWidth;
-  _y = footTop;
+  // display.fillRect(0, bodyTop + h, w, h, false);
 
+  // ------------------------------------------------------
 
+  int16_t midX = (w - Sprite::LOGO_W) / 2;
+
+  for (int16_t y = 0; y < Sprite::LOGO_H; ++y)
+    for (int16_t x = 0; x < Sprite::LOGO_W; ++x)
+      if (Sprite::logoPixel(x, y))
+        display.drawPixel(midX + x, y + bodyTop, false);
+
+  // ------------------------------------------------------
 
 
   // "Press any button..." (centrado en la franja de texto)
@@ -193,19 +221,25 @@ void Boot::firstPrint() {
   // }
 }
 
-void Boot::doChanges() {
-  if (_timer.expired(Config::DefaultTimer::HOLD)) {
-    bool visibleMessage = _timer.blinkOn(Config::DefaultTimer::PERIOD, Config::DefaultTimer::OFF);
-    if ((visibleMessage && !_visibleMessage) || (!visibleMessage && _visibleMessage)) {
+void Boot::blinkMessage() {
+  if (!_blinkMessage) return;
 
-      if (_visibleMessage)
-        display.drawTextInverted(MESSAGE, _x, _y, TEXT_6x8);
-      else
-        display.drawText(MESSAGE, _x, _y, TEXT_6x8);
+  int16_t w = Config::Screen::WIDTH;
+  int16_t headerTop = Config::Screen::HEADER_TOP;
 
-      _visibleMessage = !_visibleMessage;
-    }
+  for (int8_t line = 0; line < MESSAGE_LINES; line++) {
+    const char* message = MESSAGE[line];
+    int16_t x = (w - strlen(message) * 6) / 2;
+    int16_t y = headerTop + line * 8;
+
+    if (_visibleMessage)
+      display.fillRect(x, y, strlen(message) * 6, 8, false);
+    else
+      display.drawTextInverted(message, x, y, TEXT_6x8);
   }
+
+  _visibleMessage = !_visibleMessage;
+  _blinkMessage = false;
 }
 
 // ========================================================

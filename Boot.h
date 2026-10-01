@@ -80,7 +80,9 @@ private:
   // Duración total de la animación
   static constexpr uint32_t TOTAL_MS = 4000;
 
-  static constexpr char* MESSAGE = "Press button...";
+  // static constexpr char* MESSAGE = "Press any button to start";
+  static constexpr int8_t MESSAGE_LINES = 2;
+  static const char* const MESSAGE[MESSAGE_LINES];
 
   // ========================================================
   // Estado interno
@@ -90,7 +92,10 @@ private:
   uint8_t _prevStep;  // desplazamiento que se dibujó en pantalla
   // Ticker _ticker;     // avance de 1 px cada ANIM_TICK ms (acumulador por tiempo)
   Stopwatch _timer;   // duración total desde el begin() (TOTAL_MS)
-  bool _visibleMessage;
+  
+  bool  _blinkMessage;  // true si el mensaje de "Press any button..." cambió de visible a invisible o viceversa  
+  bool _visibleMessage;  // true si el mensaje de "Press any button..." está visible
+
   bool _done;
   bool _clear;  // primer frame: clear() completo + dibujar todo
 
@@ -110,7 +115,7 @@ private:
   // franja (la de cabeza la pone drawBars, que es la única columna nueva
   // en cada avance de 1 px)
   void firstPrint();
-  void doChanges();
+  void blinkMessage();
 
   // Dibuja todas las franjas (TITULO y CUERPO) en el desplazamiento actual:
   // imprime la columna de cabeza de cada franja y borra en negro la que
