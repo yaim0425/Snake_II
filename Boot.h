@@ -95,6 +95,7 @@ private:
   
   bool  _blinkMessage;  // true si el mensaje de "Press any button..." cambió de visible a invisible o viceversa  
   bool _visibleMessage;  // true si el mensaje de "Press any button..." está visible
+  bool _holdMessage;  // true si el mensaje de "Press any button..." está visible
 
   bool _done;
   bool _clear;  // primer frame: clear() completo + dibujar todo

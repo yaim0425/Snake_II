@@ -10,8 +10,8 @@
 // ========================================================
 
 const char* const Boot::MESSAGE[MESSAGE_LINES] = {
-    "Press any button",
-    "to start"
+  "Press any button",
+  "to start"
 };
 
 Boot::Boot()
@@ -19,13 +19,14 @@ Boot::Boot()
   // _prevStep(0),
   // : _ticker(ANIM_TICK),
   : _timer(),
+    _blinkMessage(false),
+    _visibleMessage(false),
+    _holdMessage(false),
+    _done(false),
+    _clear(true),
     _x(0),
     _y(0),
-    _bars(0),
-    _visibleMessage(false),
-    _blinkMessage(false),
-    _done(false),
-    _clear(true) {}
+    _bars(0) {}
 
 
 // ========================================================
@@ -41,6 +42,7 @@ void Boot::begin() {
   _bars = 0;
   _visibleMessage = false;
   _blinkMessage = false;
+  _holdMessage = false;
   _done = false;
   _clear = true;
 }
@@ -90,8 +92,11 @@ void Boot::update() {
   // //   drawBars();
   // // }
   // if (steps) _step = (_step + steps) % BAR_SPACING;
-  _blinkMessage = _visibleMessage ^ _timer.blinkOn(Config::DefaultTimer::PERIOD, Config::DefaultTimer::OFF);
-  _blinkMessage = _blinkMessage && _timer.expired(Config::DefaultTimer::HOLD);
+
+  if (!_holdMessage && _timer.expired(Config::DefaultTimer::HOLD))
+    _holdMessage = true;
+  else if (_holdMessage)
+    _blinkMessage = _visibleMessage ^ _timer.blinkOn(Config::DefaultTimer::PERIOD, Config::DefaultTimer::OFF);
 }
 
 // ========================================================
@@ -147,7 +152,7 @@ void Boot::firstPrint() {
   // ------------------------------------------------------
 
   int16_t w = Config::Screen::WIDTH;
-  int16_t headerTop = Config::Screen::HEADER_TOP;
+  // int16_t headerTop = Config::Screen::HEADER_TOP;
 
   // int16_t footLine = Config::Screen::FOOT_LINE;
   // display.fillRect(0, footLine, w, 1, false);
@@ -159,9 +164,9 @@ void Boot::firstPrint() {
   // ------------------------------------------------------
 
   // int16_t top = Config::Scroller::TOP;
-  int16_t h = Config::Screen::HEADER_H;
+  // int16_t h = Config::Screen::HEADER_H;
   // display.fillRect(0, top, w, h, false);
-  display.fillRect(0, 0, w, h, false);
+  // display.fillRect(0, 0, w, h, false);
 
   // ------------------------------------------------------
 
@@ -171,12 +176,18 @@ void Boot::firstPrint() {
 
   // ------------------------------------------------------
 
-  for (int8_t i = 0; i < MESSAGE_LINES; i++) {
-    const char* message = MESSAGE[i];
-    int16_t x = (w - strlen(message) * 6) / 2;
-    int16_t y = headerTop + i * 8;
-    display.drawTextInverted(message, x, y, TEXT_6x8);
-  }
+  _visibleMessage = false;
+  _blinkMessage = true;
+  blinkMessage();
+  _blinkMessage = false;
+
+  // for (int8_t i = 0; i < MESSAGE_LINES; i++) {
+  //   const char* message = MESSAGE[i];
+  //   int16_t x = (w - strlen(message) * 6) / 2;
+  //   int16_t y = headerTop + i * 9;
+  //   display.drawTextInverted(message, x, y, TEXT_6x8);
+  // }
+
   // const char* message = MESSAGE;
   // _x = (w - strlen(message) * 6) / 2;
   // _y = Config::Screen::HEADER_TOP;
@@ -190,12 +201,14 @@ void Boot::firstPrint() {
 
   // ------------------------------------------------------
 
+  display.fillRect(0, bodyTop, w, Config::Screen::BODY_H, false);
+
   int16_t midX = (w - Sprite::LOGO_W) / 2;
 
   for (int16_t y = 0; y < Sprite::LOGO_H; ++y)
     for (int16_t x = 0; x < Sprite::LOGO_W; ++x)
       if (Sprite::logoPixel(x, y))
-        display.drawPixel(midX + x, y + bodyTop, false);
+        display.drawPixel(midX + x, bodyTop + y, true);
 
   // ------------------------------------------------------
 
@@ -226,16 +239,16 @@ void Boot::blinkMessage() {
 
   int16_t w = Config::Screen::WIDTH;
   int16_t headerTop = Config::Screen::HEADER_TOP;
-
+  
   for (int8_t line = 0; line < MESSAGE_LINES; line++) {
     const char* message = MESSAGE[line];
     int16_t x = (w - strlen(message) * 6) / 2;
     int16_t y = headerTop + line * 8;
 
     if (_visibleMessage)
-      display.fillRect(x, y, strlen(message) * 6, 8, false);
+      display.fillRect(x, y, strlen(message) * 6, 8, true);
     else
-      display.drawTextInverted(message, x, y, TEXT_6x8);
+      display.drawText(message, x, y, TEXT_6x8);
   }
 
   _visibleMessage = !_visibleMessage;
