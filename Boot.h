@@ -91,11 +91,11 @@ private:
   uint8_t _step;      // desplazamiento actual (0..BAR_SPACING-1)
   uint8_t _prevStep;  // desplazamiento que se dibujó en pantalla
   // Ticker _ticker;     // avance de 1 px cada ANIM_TICK ms (acumulador por tiempo)
-  Stopwatch _timer;   // duración total desde el begin() (TOTAL_MS)
-  
-  bool  _blinkMessage;  // true si el mensaje de "Press any button..." cambió de visible a invisible o viceversa  
+  Stopwatch _timer;  // duración total desde el begin() (TOTAL_MS)
+
+  bool _blinkMessage;    // true si el mensaje de "Press any button..." cambió de visible a invisible o viceversa
   bool _visibleMessage;  // true si el mensaje de "Press any button..." está visible
-  bool _holdMessage;  // true si el mensaje de "Press any button..." está visible
+  bool _holdMessage;     // true si el mensaje de "Press any button..." está visible
 
   bool _done;
   bool _clear;  // primer frame: clear() completo + dibujar todo

@@ -9,7 +9,7 @@
 // Textos del pie (identificador y función de cada rombo)
 // ========================================================
 
-const char* const Legend::BTN[4] = {
+const char* const Legend::BTN_FUNC[4] = {
   "Btn1 / Back",
   "Btn2 / Select / Pause",
   "Btn3 / None",
@@ -17,7 +17,7 @@ const char* const Legend::BTN[4] = {
 };
 
 const char* const Legend::BTN_NAME[4] = { "Btn1", "Btn2", "Btn3", "Btn4" };
-const char* const Legend::BTN_FUNC[4] = {
+const char* const Legend::BTN_XXX[4] = {
   "Back", "Select / Pause", "None", "None"
 };
 
@@ -27,11 +27,12 @@ const char* const Legend::BTN_FUNC[4] = {
 
 Legend::Legend()
   : _done(false),
-    _BTN(0),
-    _ticker(DWELL_MS),
+    _btn(0),
+    _ticker(CICLE),
+    _holdDiamond(true),
     _timer(),
     _visibleDiamond(true),
-    _redraw(true),
+    _clear(true),
     _lastActive(0),
     _lastText(-1) {}
 
@@ -41,11 +42,12 @@ Legend::Legend()
 
 void Legend::begin() {
   _done = false;
-  _BTN = 0;
+  _btn = 0;
   _ticker.start();
+  _holdDiamond = true;
   _timer.start();
   _visibleDiamond = true;
-  _redraw = true;
+  _clear = true;
   _lastActive = 0;
   _lastText = -1;
 }
@@ -84,7 +86,15 @@ void Legend::update() {
 
   // El rombo activo cambia cada DWELL_MS (avance lento)
   uint32_t steps = _ticker.consume();
-  if (steps) _BTN = (_BTN + steps) % 4;
+  if (steps) _btn = (_btn + steps) % 4;
+
+  if (_holdDiamond && _timer.expired(Config::Legend::HOLD))
+    _holdDiamond = false;
+
+  if (!_holdDiamond)
+    _blinkDiamond = _visibleDiamond ^ _timer.blinkOn(Config::Legend::PERIOD, Config::Legend::OFF);
+
+  _nextBtn = _prevBtn != _btn;
 }
 
 // ========================================================
@@ -99,39 +109,38 @@ void Legend::update() {
 // ========================================================
 
 void Legend::print() {
-  // Estáticos (una sola vez al entrar)
-  if (_redraw) {
-    display.clear();
-    firstPrint();
-    _redraw = false;
-  }
+  firstPrint();
+  blinkDiamond();
+  nextBtn();
 
-  if (_prevBTN != _BTN) {
-    // El rombo que dejó de ser activo debe quedar completo. Si el cambio lo
-    // pilló en su fase oculta del parpadeo, su zona quedó borrada y nadie la
-    // volvería a dibujar: se restaura el rombo completo como estático.
-    int16_t acx, acy;
-    diamondCenter(_BTN, acx, acy);
-    drawDiamond(acx, acy, false);
+  // if (true) return;
 
-    // Texto del pie: función del rombo activo
-    display.fillRect(0, Config::Screen::FOOT_TOP, display.getWidth(), 8, true);
-    display.drawText(BTN[_BTN], (Config::Screen::WIDTH - strlen(BTN[_BTN]) * 6) / 2, Config::Screen::FOOT_TOP, TEXT_6x8);
-    _prevBTN = _BTN;
-    _timer.start();  // reinicia el ciclo de parpadeo del rombo activo
-  }
+  // if (_prevBtn != _btn) {
+  //   // El rombo que dejó de ser activo debe quedar completo. Si el cambio lo
+  //   // pilló en su fase oculta del parpadeo, su zona quedó borrada y nadie la
+  //   // volvería a dibujar: se restaura el rombo completo como estático.
+  //   int16_t acx, acy;
+  //   diamondCenter(_btn, acx, acy);
+  //   dDiamond(acx, acy, false);
 
-  // Rombo activo: se borra solo su zona y se redibuja según el parpadeo;
-  // los inactivos ya están fijos en pantalla
-  if (_timer.expired(HOLD_MS)) {
-    bool visibleDiamond = _timer.blinkOn(BLINK_PERIOD, BLINK_OFF_PCT);
-    if ((visibleDiamond && !_visibleDiamond) || (!visibleDiamond && _visibleDiamond)) {
-        int16_t acx, acy;
-        diamondCenter(_BTN, acx, acy);
-        drawDiamond(acx, acy, _visibleDiamond);
-        _visibleDiamond = !_visibleDiamond;
-    }
-  }
+  //   // Texto del pie: función del rombo activo
+  //   display.fillRect(0, Config::Screen::FOOT_TOP, display.getWidth(), 8, true);
+  //   display.drawText(BTN_FUNC[_btn], (Config::Screen::WIDTH - strlen(BTN_FUNC[_btn]) * 6) / 2, Config::Screen::FOOT_TOP, TEXT_6x8);
+  //   _prevBtn = _btn;
+  //   _timer.start();  // reinicia el ciclo de parpadeo del rombo activo
+  // }
+
+  // // Rombo activo: se borra solo su zona y se redibuja según el parpadeo;
+  // // los inactivos ya están fijos en pantalla
+  // if (_timer.expired(HOLD)) {
+  //   bool visibleDiamond = _timer.blinkOn(PERIOD, OFF);
+  //   if ((visibleDiamond && !_visibleDiamond) || (!visibleDiamond && _visibleDiamond)) {
+  //     int16_t acx, acy;
+  //     diamondCenter(_btn, acx, acy);
+  //     dDiamond(acx, acy, _visibleDiamond);
+  //     _visibleDiamond = !_visibleDiamond;
+  //   }
+  // }
 }
 
 // ========================================================
@@ -139,29 +148,156 @@ void Legend::print() {
 // ========================================================
 
 void Legend::firstPrint() {
-  const int16_t w = display.getWidth();
-  int16_t middleX = Config::Screen::WIDTH / 2;
-  char* title = "Move";
+  if (!_clear) return;
+
+  // ------------------------------------------------------
+
+  display.clear();
+  _clear = false;
+
+  // ------------------------------------------------------
+
+  // ------------------------------------------------------
+
+  const int16_t w = Config::Screen::WIDTH;
+
+  char* title = "Move / Action";
+  const int16_t bodyTop = Config::Screen::BODY_TOP;
+
+  // const int16_t x1 = PAD_L_X - PAD_RADIO;
+  // const int16_t x2 = PAD_L_X + PAD_RADIO;
+  // const int16_t y1 = bodyTop + PAD_RADIO;
+  // const int16_t y2 = bodyTop + PAD_RADIO;
 
   // Rótulo y pad MOVE (izquierda)
+  // title = "Move";
+  // display.fillRect(PAD_L_X, bodyTop+PAD_L_R, PAD_L_R, 1, false);
+  // display.fillRect(PAD_L_X - (Config::Diamond::SIZE + PAD_R), 0, 1, bodyTop + size * 2 + PAD_R, false);
+  // display.fillRect(0, PAD_Y, 1, bodyTop + size * 2 + PAD_R  + 1, false);
+  display.fillRect(0, bodyTop - 1, w, 1, false);
+
+  // ------------------------------------------------------
+
+  int16_t centerX = 0;
+  int16_t centerY = 0;
+  const int16_t size = Config::Diamond::SIZE;
+
+  // ------------------------------------------------------
+
+  int16_t middleX = w / 2;
+
   title = "Move";
-  display.drawText(title, (middleX - strlen(title) * 6) / 2, SIGN_Y, TEXT_6x8);
-  drawArrow(0, PAD_MOVE_X, CY - R);  // ↑
-  drawArrow(1, PAD_MOVE_X + R, CY);  // →
-  drawArrow(2, PAD_MOVE_X, CY + R);  // ↓
-  drawArrow(3, PAD_MOVE_X - R, CY);  // ←
+  display.drawText(title, (middleX - strlen(title) * 6) / 2, TEXT_Y, TEXT_6x8);
+
+  // Arriba (↑)
+  centerX = PAD_LEFT_X;
+  centerY = PAD_Y - PAD_RADIO;
+  display.fillTriangle(centerX - size, centerY, centerX, centerY - size, centerX + size, centerY, false);
+
+  // Derecha (→)
+  centerX = PAD_LEFT_X + PAD_RADIO;
+  centerY = PAD_Y;
+  display.fillTriangle(centerX, centerY - size, centerX + size, centerY, centerX, centerY + size, false);
+
+  // Abajo (↓)
+  centerX = PAD_LEFT_X;
+  centerY = PAD_Y + PAD_RADIO;
+  display.fillTriangle(centerX - size, centerY, centerX, centerY + size, centerX + size, centerY, false);
+
+  // Izquierda (←)
+  centerX = PAD_LEFT_X - PAD_RADIO;
+  centerY = PAD_Y;
+  display.fillTriangle(centerX, centerY - size, centerX - size, centerY, centerX, centerY + size, false);
+
+  // ------------------------------------------------------
 
   // Rótulo y rombos de ACTION (derecha): las posiciones de un pad
   title = "Action";
-  display.drawText(title, middleX + (middleX - strlen(title) * 6) / 2, SIGN_Y, TEXT_6x8);
-  for (uint8_t step = 0; step < 4; step++) {
-    int16_t cx, cy;
-    diamondCenter(step, cx, cy);
-    drawDiamond(cx, cy, false);
+  display.drawText(title, middleX + (middleX - strlen(title) * 6) / 2, TEXT_Y, TEXT_6x8);
+
+  for (_btn = 0; _btn < 4; _btn++) {
+    _visibleDiamond = false;
+    _blinkDiamond = true;
+    blinkDiamond();
   }
 
+  _btn = 0;
+  // for (uint8_t step = 0; step < 4; step++) {
+  //   int16_t cx, cy;
+  //   diamondCenter(step, cx, cy);
+  //   drawDiamond(cx, cy, false);
+  // }
+
+  // ------------------------------------------------------
+
   display.fillRect(0, Config::Screen::FOOT_LINE, w, 1, false);
-  display.drawText(BTN[0], (Config::Screen::WIDTH - strlen(BTN[0]) * 6) / 2, Config::Screen::FOOT_TOP, TEXT_6x8);
+  _nextBtn = true;
+  nextBtn();
+}
+
+
+void Legend::blinkDiamond() {
+  if (!_blinkDiamond) return;
+
+  int16_t centerX = 0;
+  int16_t centerY = 0;
+  const int16_t size = Config::Diamond::SIZE;
+
+  switch (_btn) {
+    case 0:  // Btn1 (Arriba)
+      centerX = PAD_RIGHT_X;
+      centerY = PAD_Y - PAD_RADIO;
+      break;
+
+    case 1:  // Btn2 (Derecha)
+      centerX = PAD_RIGHT_X + PAD_RADIO;
+      centerY = PAD_Y;
+      break;
+
+    case 2:  // Btn3 (Abajo)
+      centerX = PAD_RIGHT_X;
+      centerY = PAD_Y + PAD_RADIO;
+      break;
+
+    case 3:  // Btn4 (Izquierda)
+      centerX = PAD_RIGHT_X - PAD_RADIO;
+      centerY = PAD_Y;
+      break;
+  }
+
+  switch (_btn) {
+    case 0:
+    case 2:
+      display.fillTriangle(centerX - size, centerY, centerX, centerY - size, centerX + size, centerY, _visibleDiamond);
+      display.fillTriangle(centerX - size, centerY, centerX, centerY + size, centerX + size, centerY, _visibleDiamond);
+      break;
+    case 1:
+    case 3:
+      display.fillTriangle(centerX, centerY - size, centerX - size, centerY, centerX, centerY + size, _visibleDiamond);
+      display.fillTriangle(centerX, centerY - size, centerX + size, centerY, centerX, centerY + size, _visibleDiamond);
+      break;
+  }
+
+  _blinkDiamond = false;
+  _visibleDiamond = !_visibleDiamond;
+}
+
+void Legend::nextBtn() {
+  if (!_nextBtn) return;
+
+  const int16_t w = Config::Screen::WIDTH;
+  const char* text = BTN_FUNC[_btn];
+  display.fillRect(0, Config::Screen::FOOT_TOP, w, 8, true);
+  display.drawText(text, (w - strlen(text) * 6) / 2, Config::Screen::FOOT_TOP, TEXT_6x8);
+
+  _visibleDiamond = false;
+  _blinkDiamond = true;
+  blinkDiamond();
+
+  _prevBtn = _btn;
+  _timer.start();
+  _holdDiamond = true;
+  _nextBtn = false;
 }
 
 // ========================================================
@@ -171,19 +307,19 @@ void Legend::firstPrint() {
 void Legend::diamondCenter(uint8_t i, int16_t& cx, int16_t& cy) const {
   switch (i) {
     case 0:
-      cx = DIA_PAD_X;
-      cy = CY - DIA_R;
+      cx = PAD_RADIO;
+      cy = CY - PAD_RADIO;
       break;  // ↑ Btn1
     case 1:
-      cx = DIA_PAD_X + DIA_R;
+      cx = PAD_RADIO + PAD_RADIO;
       cy = CY;
       break;  // → Btn2
     case 2:
-      cx = DIA_PAD_X;
-      cy = CY + DIA_R;
+      cx = PAD_RADIO;
+      cy = CY + PAD_RADIO;
       break;  // ↓ Btn3
     default:
-      cx = DIA_PAD_X - DIA_R;
+      cx = PAD_RADIO - PAD_RADIO;
       cy = CY;
       break;  // ← Btn4
   }
@@ -194,10 +330,10 @@ void Legend::diamondCenter(uint8_t i, int16_t& cx, int16_t& cy) const {
 // ========================================================
 
 void Legend::drawPad(int16_t cx) {
-  drawArrow(0, cx, CY - R);  // ↑
-  drawArrow(1, cx + R, CY);  // →
-  drawArrow(2, cx, CY + R);  // ↓
-  drawArrow(3, cx - R, CY);  // ←
+  drawArrow(0, cx, CY - PAD_RADIO);  // ↑
+  drawArrow(1, cx + PAD_RADIO, CY);  // →
+  drawArrow(2, cx, CY + PAD_RADIO);  // ↓
+  drawArrow(3, cx - PAD_RADIO, CY);  // ←
 }
 
 // ========================================================
@@ -228,7 +364,7 @@ void Legend::drawArrow(uint8_t dir, int16_t cx, int16_t cy) {
 // Rombo completo de DIA_SIZE centrado en (cx, cy)
 // ========================================================
 
-void Legend::drawDiamond(int16_t cx, int16_t cy, bool black) {
+void Legend::dDiamond(int16_t cx, int16_t cy, bool black) {
   const int16_t h = DIA_SIZE / 2;  // media altura / ancho medio
 
   display.fillTriangle(cx, cy - h, cx + h, cy, cx, cy + h, black);
@@ -241,11 +377,11 @@ void Legend::drawDiamond(int16_t cx, int16_t cy, bool black) {
 
 bool Legend::blinkVisible() const {
   // Fijo (visible) mientras se mantiene el rombo: primero HOLD_MS
-  if (!_timer.expired(HOLD_MS)) return true;
+  if (!_timer.expired(HOLD)) return true;
 
   // Luego parpadea MUY rápido: oculto durante el OFF_PCT inicial de cada
   // BLINK_PERIOD (anclado al _timer: sin salto de fase con el reloj 64 bits)
-  return _timer.blinkOn(BLINK_PERIOD, BLINK_OFF_PCT);
+  return _timer.blinkOn(PERIOD, OFF);
 }
 
 // ========================================================

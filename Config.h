@@ -74,9 +74,9 @@ constexpr uint8_t HEADER_H = 16;
 constexpr uint8_t BODY_TOP = 16;
 constexpr uint8_t BODY_H = 48;
 
-constexpr uint8_t FOOT_H = 7;
+constexpr uint8_t FOOT_H = 8;
 constexpr uint8_t FOOT_TOP = HEIGHT - FOOT_H;             // Punto Y del texto del pie
-constexpr uint8_t FOOT_LINE = HEIGHT - (FOOT_H + 1 + 1);  // línea separadora del pie + 2 px de margen;
+constexpr uint8_t FOOT_LINE = HEIGHT - (FOOT_H + 1 + 1);  // línea separadora del pie + 1 px de margen;
 
 }
 
@@ -137,18 +137,18 @@ constexpr uint8_t OFF = 50;       // % del período en que está oculto
 }
 
 namespace Diamond {
-constexpr uint8_t SIZE = 5;           // px de lado del rombo
+constexpr uint8_t SIZE = 3;  // px de un lado del rombo
 }
 
 namespace Scroller {
-constexpr int16_t TOP = 28; // fila superior de la franja de texto (banda del menú)
-constexpr uint32_t ANIMATION = 4; // ms por px de desplazamiento lateral
+constexpr int16_t TOP = 28;        // fila superior de la franja de texto (banda del menú)
+constexpr uint32_t ANIMATION = 4;  // ms por px de desplazamiento lateral
 }
 
 namespace DefaultTimer {
 constexpr uint32_t HOLD = 1000;    // mantener sin navegar para parpadear
 constexpr uint32_t PERIOD = 1000;  // período completo del parpadeo (ms)
-constexpr uint8_t OFF = 20;       // % del período en que está oculto
+constexpr uint8_t OFF = 20;        // % del período en que está oculto
 }
 }
 

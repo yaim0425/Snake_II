@@ -21,7 +21,7 @@ Boot::Boot()
   : _timer(),
     _blinkMessage(false),
     _visibleMessage(false),
-    _holdMessage(false),
+    _holdMessage(true),
     _done(false),
     _clear(true),
     _x(0),
@@ -42,7 +42,7 @@ void Boot::begin() {
   _bars = 0;
   _visibleMessage = false;
   _blinkMessage = false;
-  _holdMessage = false;
+  _holdMessage = true;
   _done = false;
   _clear = true;
 }
@@ -93,9 +93,10 @@ void Boot::update() {
   // // }
   // if (steps) _step = (_step + steps) % BAR_SPACING;
 
-  if (!_holdMessage && _timer.expired(Config::DefaultTimer::HOLD))
-    _holdMessage = true;
-  else if (_holdMessage)
+  if (_holdMessage && _timer.expired(Config::DefaultTimer::HOLD))
+    _holdMessage = !_holdMessage;
+
+  if (!_holdMessage)
     _blinkMessage = _visibleMessage ^ _timer.blinkOn(Config::DefaultTimer::PERIOD, Config::DefaultTimer::OFF);
 }
 
@@ -151,13 +152,13 @@ void Boot::firstPrint() {
 
   // ------------------------------------------------------
 
-  int16_t w = Config::Screen::WIDTH;
+  const int16_t w = Config::Screen::WIDTH;
   // int16_t headerTop = Config::Screen::HEADER_TOP;
 
   // int16_t footLine = Config::Screen::FOOT_LINE;
   // display.fillRect(0, footLine, w, 1, false);
 
-  int16_t bodyTop = Config::Screen::BODY_TOP;
+  const int16_t bodyTop = Config::Screen::BODY_TOP;
   // display.fillRect(0, bodyTop, w, 1, false);
   // display.fillRect(0, bodyTop - 1, w, 1, false);
 
@@ -179,7 +180,6 @@ void Boot::firstPrint() {
   _visibleMessage = false;
   _blinkMessage = true;
   blinkMessage();
-  _blinkMessage = false;
 
   // for (int8_t i = 0; i < MESSAGE_LINES; i++) {
   //   const char* message = MESSAGE[i];
@@ -203,7 +203,7 @@ void Boot::firstPrint() {
 
   display.fillRect(0, bodyTop, w, Config::Screen::BODY_H, false);
 
-  int16_t midX = (w - Sprite::LOGO_W) / 2;
+  const int16_t midX = (w - Sprite::LOGO_W) / 2;
 
   for (int16_t y = 0; y < Sprite::LOGO_H; ++y)
     for (int16_t x = 0; x < Sprite::LOGO_W; ++x)
@@ -237,9 +237,9 @@ void Boot::firstPrint() {
 void Boot::blinkMessage() {
   if (!_blinkMessage) return;
 
-  int16_t w = Config::Screen::WIDTH;
-  int16_t headerTop = Config::Screen::HEADER_TOP;
-  
+  const int16_t w = Config::Screen::WIDTH;
+  const int16_t headerTop = Config::Screen::HEADER_TOP;
+
   for (int8_t line = 0; line < MESSAGE_LINES; line++) {
     const char* message = MESSAGE[line];
     int16_t x = (w - strlen(message) * 6) / 2;

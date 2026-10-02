@@ -72,13 +72,13 @@ private:
 
   enum class State : uint8_t {
     BOOT = 0,
+    LEGEND,
     MENU,
     NEW,
     CONTINUE,
-    MENU_CREDITS,
     MENU_DIFFICULTY,
     MENU_SOUND,
-    LEGEND
+    MENU_CREDITS
   };
 
   State _state;
