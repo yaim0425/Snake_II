@@ -28,6 +28,7 @@ const char* const Legend::BTN_XXX[4] = {
 Legend::Legend()
   : _done(false),
     _btn(0),
+    _prevBtn(0),
     _ticker(CICLE),
     _holdDiamond(true),
     _timer(),
@@ -43,6 +44,7 @@ Legend::Legend()
 void Legend::begin() {
   _done = false;
   _btn = 0;
+  _prevBtn = 0;
   _ticker.start();
   _holdDiamond = true;
   _timer.start();
@@ -157,71 +159,58 @@ void Legend::firstPrint() {
 
   // ------------------------------------------------------
 
-  // ------------------------------------------------------
-
   const int16_t w = Config::Screen::WIDTH;
+  const int16_t size = Config::Diamond::SIZE;
+  const int16_t padY = Config::Screen::BODY_MIDDLE;
 
-  char* title = "Move / Action";
-  const int16_t bodyTop = Config::Screen::BODY_TOP;
-
-  // const int16_t x1 = PAD_L_X - PAD_RADIO;
-  // const int16_t x2 = PAD_L_X + PAD_RADIO;
-  // const int16_t y1 = bodyTop + PAD_RADIO;
-  // const int16_t y2 = bodyTop + PAD_RADIO;
-
-  // Rótulo y pad MOVE (izquierda)
-  // title = "Move";
-  // display.fillRect(PAD_L_X, bodyTop+PAD_L_R, PAD_L_R, 1, false);
-  // display.fillRect(PAD_L_X - (Config::Diamond::SIZE + PAD_R), 0, 1, bodyTop + size * 2 + PAD_R, false);
-  // display.fillRect(0, PAD_Y, 1, bodyTop + size * 2 + PAD_R  + 1, false);
-  display.fillRect(0, bodyTop - 1, w, 1, false);
-
-  // ------------------------------------------------------
-
+  char* text = "Move / Action";
   int16_t centerX = 0;
   int16_t centerY = 0;
-  const int16_t size = Config::Diamond::SIZE;
+
+  int16_t middleX = w / 2;
+  int16_t textX = 0;
 
   // ------------------------------------------------------
 
-  int16_t middleX = w / 2;
+  display.fillRect(0, TEXT_Y - 1, w, 8 + 1, false);
 
-  title = "Move";
-  display.drawText(title, (middleX - strlen(title) * 6) / 2, TEXT_Y, TEXT_6x8);
+  // ------------------------------------------------------
+
+  text = "Move";
+  textX = (middleX - strlen(text) * 6) / 2;
+  display.drawTextInverted(text, textX, TEXT_Y, TEXT_6x8);
 
   // Arriba (↑)
   centerX = PAD_LEFT_X;
-  centerY = PAD_Y - PAD_RADIO;
+  centerY = padY - PAD_RADIO;
   display.fillTriangle(centerX - size, centerY, centerX, centerY - size, centerX + size, centerY, false);
 
   // Derecha (→)
   centerX = PAD_LEFT_X + PAD_RADIO;
-  centerY = PAD_Y;
+  centerY = padY;
   display.fillTriangle(centerX, centerY - size, centerX + size, centerY, centerX, centerY + size, false);
 
   // Abajo (↓)
   centerX = PAD_LEFT_X;
-  centerY = PAD_Y + PAD_RADIO;
+  centerY = padY + PAD_RADIO;
   display.fillTriangle(centerX - size, centerY, centerX, centerY + size, centerX + size, centerY, false);
 
   // Izquierda (←)
   centerX = PAD_LEFT_X - PAD_RADIO;
-  centerY = PAD_Y;
+  centerY = padY;
   display.fillTriangle(centerX, centerY - size, centerX - size, centerY, centerX, centerY + size, false);
 
   // ------------------------------------------------------
 
   // Rótulo y rombos de ACTION (derecha): las posiciones de un pad
-  title = "Action";
-  display.drawText(title, middleX + (middleX - strlen(title) * 6) / 2, TEXT_Y, TEXT_6x8);
+  text = "Action";
+  textX = (middleX + (middleX - strlen(text) * 6) / 2);
+  display.drawTextInverted(text, textX, TEXT_Y, TEXT_6x8);
 
-  for (_btn = 0; _btn < 4; _btn++) {
-    _visibleDiamond = false;
-    _blinkDiamond = true;
-    blinkDiamond();
-  }
-
+  for (_btn = 0; _btn < 4; _btn++)
+    blinkDiamond(true);
   _btn = 0;
+
   // for (uint8_t step = 0; step < 4; step++) {
   //   int16_t cx, cy;
   //   diamondCenter(step, cx, cy);
@@ -230,40 +219,45 @@ void Legend::firstPrint() {
 
   // ------------------------------------------------------
 
-  display.fillRect(0, Config::Screen::FOOT_LINE, w, 1, false);
-  _nextBtn = true;
-  nextBtn();
+  const int16_t pieY = Config::Screen::FOOT_TOP;
+  const int16_t pieH = Config::Screen::FOOT_H;
+  display.fillRect(0, pieY - 1, w, pieH + 1, false);
+  nextBtn(true);
 }
 
+void Legend::blinkDiamond(bool print) {
+  if (!_blinkDiamond && !print) return;
 
-void Legend::blinkDiamond() {
-  if (!_blinkDiamond) return;
+  const int16_t size = Config::Diamond::SIZE;
+  const int16_t padY = Config::Screen::BODY_MIDDLE;
 
   int16_t centerX = 0;
   int16_t centerY = 0;
-  const int16_t size = Config::Diamond::SIZE;
 
   switch (_btn) {
     case 0:  // Btn1 (Arriba)
       centerX = PAD_RIGHT_X;
-      centerY = PAD_Y - PAD_RADIO;
+      centerY = padY - PAD_RADIO;
       break;
 
     case 1:  // Btn2 (Derecha)
       centerX = PAD_RIGHT_X + PAD_RADIO;
-      centerY = PAD_Y;
+      centerY = padY;
       break;
 
     case 2:  // Btn3 (Abajo)
       centerX = PAD_RIGHT_X;
-      centerY = PAD_Y + PAD_RADIO;
+      centerY = padY + PAD_RADIO;
       break;
 
     case 3:  // Btn4 (Izquierda)
       centerX = PAD_RIGHT_X - PAD_RADIO;
-      centerY = PAD_Y;
+      centerY = padY;
       break;
   }
+
+  if (print)
+    _visibleDiamond = false;
 
   switch (_btn) {
     case 0:
@@ -271,6 +265,7 @@ void Legend::blinkDiamond() {
       display.fillTriangle(centerX - size, centerY, centerX, centerY - size, centerX + size, centerY, _visibleDiamond);
       display.fillTriangle(centerX - size, centerY, centerX, centerY + size, centerX + size, centerY, _visibleDiamond);
       break;
+
     case 1:
     case 3:
       display.fillTriangle(centerX, centerY - size, centerX - size, centerY, centerX, centerY + size, _visibleDiamond);
@@ -282,18 +277,23 @@ void Legend::blinkDiamond() {
   _visibleDiamond = !_visibleDiamond;
 }
 
-void Legend::nextBtn() {
-  if (!_nextBtn) return;
+void Legend::nextBtn(bool print) {
+  if (!_nextBtn && !print) return;
 
   const int16_t w = Config::Screen::WIDTH;
+  const int16_t footY = Config::Screen::FOOT_TOP;
+  const int16_t footH = Config::Screen::FOOT_H;
+
+  const char* prevText = BTN_FUNC[_prevBtn];
+  int16_t prevTextWidth = strlen(prevText) * 6;
+  int16_t prevTextX = (w - prevTextWidth) / 2;
+  display.fillRect(prevTextX, footY, prevTextWidth, footH, false);
+
   const char* text = BTN_FUNC[_btn];
-  display.fillRect(0, Config::Screen::FOOT_TOP, w, 8, true);
-  display.drawText(text, (w - strlen(text) * 6) / 2, Config::Screen::FOOT_TOP, TEXT_6x8);
+  display.fillRect(0, footY, w, footH, false);
+  display.drawTextInverted(text, (w - strlen(text) * 6) / 2, footY, TEXT_6x8);
 
-  _visibleDiamond = false;
-  _blinkDiamond = true;
-  blinkDiamond();
-
+  blinkDiamond(true);
   _prevBtn = _btn;
   _timer.start();
   _holdDiamond = true;

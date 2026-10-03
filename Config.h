@@ -78,6 +78,9 @@ constexpr uint8_t FOOT_H = 8;
 constexpr uint8_t FOOT_TOP = HEIGHT - FOOT_H;             // Punto Y del texto del pie
 constexpr uint8_t FOOT_LINE = HEIGHT - (FOOT_H + 1 + 1);  // línea separadora del pie + 1 px de margen;
 
+constexpr uint8_t BODY_MIDDLE = BODY_TOP + (BODY_H - FOOT_H - 1) / 2 - 2; // -8  5
+// constexpr uint8_t BODY_MIDDLE = BODY_TOP + (BODY_H - FOOT_H - 1) / 2 - 6;
+// constexpr uint8_t BODY_MIDDLE = BODY_TOP + (BODY_H - FOOT_H - 1) / 2 + 5;
 }
 
 // ========================================================
